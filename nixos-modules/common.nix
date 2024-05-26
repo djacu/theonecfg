@@ -1,0 +1,30 @@
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
+let
+  cfg = config.theonecfg.common;
+in
+{
+  options.theonecfg.common.enable = lib.mkEnableOption "common config" // {
+    default = true;
+  };
+
+  config = lib.mkIf cfg.enable {
+    i18n.defaultLocale = "en_US.UTF-8";
+
+    nix = {
+      package = pkgs.nixVersions.nix_2_21;
+      channel.enable = false; # opt out of nix channels
+      settings = {
+        experimental-features = [
+          "nix-command"
+          "flakes"
+        ];
+        trusted-users = [ "@wheel" ];
+      };
+    };
+  };
+}
