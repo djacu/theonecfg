@@ -1,5 +1,9 @@
 let
-  knownConfigurations = [ "test-vm" ];
+  knownConfigurations = [
+    "adalon"
+    "gildenfire"
+    "test-vm"
+  ];
 in
 inputs:
 builtins.mapAttrs
@@ -22,6 +26,10 @@ builtins.mapAttrs
         inputs.self.nixosModules.default
         ./${hostDirectory}
       ];
+
+      specialArgs = {
+        inherit inputs;
+      };
     }
   )
   (

@@ -6,6 +6,7 @@
 }:
 let
   cfg = config.theonecfg.common;
+  isNotContainer = !config.boot.isContainer;
 in
 {
   options.theonecfg.common.enable = lib.mkEnableOption "common config" // {
@@ -26,5 +27,7 @@ in
         trusted-users = [ "@wheel" ];
       };
     };
+
+    services.openssh.enable = lib.mkDefault isNotContainer;
   };
 }
