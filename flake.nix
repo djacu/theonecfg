@@ -6,24 +6,9 @@
   outputs =
     { self, nixpkgs }@inputs:
     {
-
       nixosModules = import ./nixos-modules inputs;
+      nixosConfigurations = (import ./nixos-configurations inputs);
 
-      nixosConfigurations.linuxvm = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        modules = [
-          self.nixosModules.default
-          (
-            { ... }:
-            {
-              #theonecfg.hypr.enable = true;
-              theonecfg.simple-vm.enable = true;
-              theonecfg.common.enable = true;
-            }
-          )
-        ];
-      };
-
-      packages.x86_64-linux.linuxvm = self.nixosConfigurations.linuxvm.config.system.build.vm;
+      packages.x86_64-linux.test-vm = self.nixosConfigurations.test-vm.config.system.build.vm;
     };
 }

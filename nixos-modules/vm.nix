@@ -1,23 +1,11 @@
-{
-  lib,
-  config,
-  modulesPath,
-  ...
-}:
+{ lib, config, ... }:
 let
   cfg = config.theonecfg.simple-vm;
 in
 {
-  imports = [
-    #(modulesPath + "/profiles/graphical.nix")
-    (modulesPath + "/profiles/qemu-guest.nix")
-  ];
-
   options.theonecfg.simple-vm.enable = lib.mkEnableOption "simple vm config";
 
   config = lib.mkIf cfg.enable {
-    system.stateVersion = "23.11";
-
     # Configure networking
     networking.useDHCP = false;
     networking.interfaces.eth0.useDHCP = true;
