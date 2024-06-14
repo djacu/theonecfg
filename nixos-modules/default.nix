@@ -5,7 +5,9 @@ inputs: {
       imports = [
         ./basic-network.nix
         ./common.nix
+	./desktop.nix
 	./dev.nix
+	./fonts.nix
         ./hypr.nix
         ./vm.nix
 	./zoxide.nix

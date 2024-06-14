@@ -34,6 +34,6 @@
 
     theonecfg.common.enable = true;
     theonecfg.basicNetwork.enable = true;
-    theonecfg.dev.enable = true;
+    theonecfg.desktop.enable = true;
   };
 }
