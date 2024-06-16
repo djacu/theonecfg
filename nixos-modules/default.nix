@@ -13,6 +13,8 @@ inputs: {
 	./zoxide.nix
 	./zsh.nix
 
+	./users
+
         inputs.disko.nixosModules.default
         inputs.impermanence.nixosModules.impermanence
       ];
