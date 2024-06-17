@@ -1,5 +1,6 @@
 {
   system = "x86_64-linux";
+  release = "2405";
   modules = [
     {
       home.stateVersion = "24.05";

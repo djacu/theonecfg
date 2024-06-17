@@ -29,9 +29,9 @@ in
 
         nix = {
           package = pkgs.nix;
-          registry.nixpkgs.flake = inputs.nixpkgs;
+          registry.nixpkgs.flake = inputs.nixpkgs-unstable;
           settings = {
-            nix-path = [ "nixpkgs=${inputs.nixpkgs}" ];
+            nix-path = [ "nixpkgs=${inputs.nixpkgs-unstable}" ];
             experimental-features = [
               "nix-command"
               "flakes"

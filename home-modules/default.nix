@@ -1,6 +1,6 @@
 inputs:
 let
-  inherit (inputs.nixpkgs.lib) filterAttrs mapAttrs;
+  inherit (inputs.nixpkgs-unstable.lib) filterAttrs mapAttrs;
 in
 mapAttrs (userName: _: {
   imports = [ ./${userName} ];

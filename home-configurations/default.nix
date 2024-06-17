@@ -1,6 +1,6 @@
 inputs:
 let
-  inherit (inputs.nixpkgs.lib)
+  inherit (inputs.nixpkgs-unstable.lib)
     flatten
     filterAttrs
     mapAttrsToList
@@ -16,11 +16,11 @@ listToAttrs (
       mapAttrsToList (
         userName: _:
         let
-          inherit (import ./${hostName}/${userName}) system modules;
+          inherit (import ./${hostName}/${userName}) system modules release;
         in
         nameValuePair "${hostName}-${userName}" (
-          inputs.home-manager.lib.homeManagerConfiguration {
-            pkgs = import inputs.nixpkgs { inherit system; };
+          inputs."home-manager-${release}".lib.homeManagerConfiguration {
+            pkgs = import inputs."nixpkgs-${release}" { inherit system; };
             modules = [ inputs.self.homeModules.${userName} ] ++ modules;
           }
         )

@@ -9,7 +9,10 @@ inputs:
 builtins.mapAttrs
   (
     hostDirectory: _:
-    inputs.nixpkgs.lib.nixosSystem {
+    let
+      inherit (import ./${hostDirectory}) release modules;
+    in
+    inputs."nixpkgs-${release}".lib.nixosSystem {
       modules = [
         (
           { config, ... }:
@@ -24,7 +27,7 @@ builtins.mapAttrs
           }
         )
         inputs.self.nixosModules.default
-        ./${hostDirectory}
+	modules
       ];
 
       specialArgs = {
@@ -33,7 +36,7 @@ builtins.mapAttrs
     }
   )
   (
-    inputs.nixpkgs.lib.attrsets.filterAttrs (_: fileType: fileType == "directory") (
+    inputs.nixpkgs-unstable.lib.attrsets.filterAttrs (_: fileType: fileType == "directory") (
       builtins.readDir ./.
     )
   )
