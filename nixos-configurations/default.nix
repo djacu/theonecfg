@@ -27,7 +27,7 @@ builtins.mapAttrs
           }
         )
         inputs.self.nixosModules.default
-	modules
+        modules
       ];
 
       specialArgs = {

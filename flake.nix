@@ -13,6 +13,7 @@
   outputs =
     { self, ... }@inputs:
     {
+      formatter = import ./formatter inputs;
       homeConfigurations = import ./home-configurations inputs;
       homeModules = import ./home-modules inputs;
       nixosConfigurations = import ./nixos-configurations inputs;

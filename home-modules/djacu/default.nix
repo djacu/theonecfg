@@ -9,9 +9,7 @@ let
   cfg = config.theonecfg.users.djacu;
 in
 {
-  imports = [
-    ./dev.nix
-  ];
+  imports = [ ./dev.nix ];
 
   options.theonecfg.users.djacu = {
     enable = lib.mkEnableOption "djacu user config";

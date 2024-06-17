@@ -25,7 +25,7 @@ in
       syntaxHighlighting.highlighters = [
         "main"
         "brackets"
-	"cursor"
+        "cursor"
         "root"
       ];
     };

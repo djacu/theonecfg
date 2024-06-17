@@ -5,15 +5,15 @@ inputs: {
       imports = [
         ./basic-network.nix
         ./common.nix
-	./desktop.nix
-	./dev.nix
-	./fonts.nix
+        ./desktop.nix
+        ./dev.nix
+        ./fonts.nix
         ./hypr.nix
         ./vm.nix
-	./zoxide.nix
-	./zsh.nix
+        ./zoxide.nix
+        ./zsh.nix
 
-	./users
+        ./users
 
         inputs.disko.nixosModules.default
         inputs.impermanence.nixosModules.impermanence
