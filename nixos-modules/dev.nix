@@ -8,5 +8,6 @@ in
   config = lib.mkIf cfg.enable {
     theonecfg.zsh.enable = true;
     theonecfg.zoxide.enable = true;
+    programs.ssh.startAgent = true;
   };
 }
