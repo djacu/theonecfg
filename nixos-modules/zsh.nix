@@ -29,5 +29,10 @@ in
         "root"
       ];
     };
+
+    users.defaultUserShell = "/run/current-system/sw/bin/zsh";
+    system.userActivationScripts.zshrc = ''
+      touch .zshrc
+    '';
   };
 }

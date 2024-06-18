@@ -1,9 +1,4 @@
-{
-  lib,
-  pkgs,
-  config,
-  ...
-}:
+{ lib, config, ... }:
 let
   cfg = config.theonecfg.users.djacu;
 in
@@ -16,7 +11,6 @@ in
       extraGroups = [
         "wheel"
       ] ++ (lib.optional config.networking.networkmanager.enable "networkmanager");
-      shell = if config.theonecfg.zsh.enable then pkgs.zsh else pkgs.bash;
     };
   };
 }
