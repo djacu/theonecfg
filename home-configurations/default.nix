@@ -22,6 +22,9 @@ listToAttrs (
           inputs."home-manager-${release}".lib.homeManagerConfiguration {
             pkgs = import inputs."nixpkgs-${release}" { inherit system; };
             modules = [ inputs.self.homeModules.${userName} ] ++ modules;
+            extraSpecialArgs = {
+              inherit inputs system;
+            };
           }
         )
       ) (filterAttrs (_: fileType: fileType == "directory") (readDir ./${hostName}))

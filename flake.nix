@@ -8,6 +8,7 @@
     nixpkgs-2405.url = "github:nixos/nixpkgs/nixos-24.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nixos-hardware.url = "github:nixos/nixos-hardware";
+    nixvimcfg.url = "github:djacu/nixvimcfg";
   };
 
   outputs =

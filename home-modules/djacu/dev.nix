@@ -2,6 +2,8 @@
   lib,
   config,
   pkgs,
+  inputs,
+  system,
   ...
 }:
 let
@@ -44,6 +46,8 @@ in
       tealdeer
       traceroute
       yj
+
+      inputs.nixvimcfg.packages.${system}.default
     ];
 
     xdg.enable = true;
