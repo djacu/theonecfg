@@ -28,6 +28,7 @@ in
           pkgs.noto-fonts
           pkgs.noto-fonts-cjk-sans
           pkgs.noto-fonts-color-emoji
+          pkgs.nerdfonts
         ];
         defaultText = literalExpression ''
           [
@@ -35,6 +36,7 @@ in
             pkgs.noto-fonts
             pkgs.noto-fonts-cjk-sans
             pkgs.noto-fonts-color-emoji
+            pkgs.nerdfonts
           ]
         '';
         description = ''
