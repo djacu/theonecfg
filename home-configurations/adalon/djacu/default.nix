@@ -7,7 +7,7 @@
 
       theonecfg.users.djacu.enable = true;
       theonecfg.users.djacu.dev.enable = true;
-      #theonecfg.users.djacu.desktop.enable = true;
+      theonecfg.users.djacu.desktop.enable = true;
     }
   ];
 }
