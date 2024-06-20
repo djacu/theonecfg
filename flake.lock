@@ -367,6 +367,21 @@
         "type": "github"
       }
     },
+    "nur": {
+      "locked": {
+        "lastModified": 1718851736,
+        "narHash": "sha256-+z1DPipKu3+QkE5qAY0XkOTP9lLKAWQIp5LA9vFenBs=",
+        "owner": "nix-community",
+        "repo": "nur",
+        "rev": "253451053701bbe7672c81e5a01407e5a30bb6fe",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nur",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "disko": "disko",
@@ -375,7 +390,8 @@
         "nixos-hardware": "nixos-hardware",
         "nixpkgs-2405": "nixpkgs-2405",
         "nixpkgs-unstable": "nixpkgs-unstable",
-        "nixvimcfg": "nixvimcfg"
+        "nixvimcfg": "nixvimcfg",
+        "nur": "nur"
       }
     },
     "systems": {

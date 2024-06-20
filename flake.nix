@@ -9,6 +9,7 @@
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nixos-hardware.url = "github:nixos/nixos-hardware";
     nixvimcfg.url = "github:djacu/nixvimcfg";
+    nur.url = "github:nix-community/nur";
   };
 
   outputs =
@@ -19,6 +20,7 @@
       homeModules = import ./home-modules inputs;
       nixosConfigurations = import ./nixos-configurations inputs;
       nixosModules = import ./nixos-modules inputs;
+      overlays = import ./overlays inputs;
 
       packages.x86_64-linux.test-vm = self.nixosConfigurations.test-vm.config.system.build.vm;
     };
