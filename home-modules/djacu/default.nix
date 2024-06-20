@@ -10,14 +10,12 @@ let
 in
 {
   imports = [
-    ./dev.nix
     ./desktop.nix
+    ./dev.nix
+    ./git.nix
   ];
 
-  options.theonecfg.users.djacu = {
-    enable = lib.mkEnableOption "djacu user config";
-    dev.enable = lib.mkEnableOption "djacu dev config";
-  };
+  options.theonecfg.users.djacu.enable = lib.mkEnableOption "djacu user config";
 
   config = lib.mkIf cfg.enable (
     lib.mkMerge [

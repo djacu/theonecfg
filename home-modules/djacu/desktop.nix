@@ -6,6 +6,6 @@ in
   options.theonecfg.users.djacu.desktop.enable = lib.mkEnableOption "djacu desktop config";
 
   config = lib.mkIf (cfg.enable && cfg.desktop.enable) {
-    # theonecfg.home.programs.kitty.enable = true;
+    theonecfg.home.programs.kitty.enable = true;
   };
 }
