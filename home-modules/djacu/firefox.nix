@@ -11,9 +11,63 @@ in
   options.theonecfg.users.djacu.firefox.enable = lib.mkEnableOption "djacu firefox config";
 
   config = lib.mkIf (cfg.enable && cfg.firefox.enable) {
+    home.file.".tridactylrc".text = ''
+      " "
+      " " Unbind
+      " "
+      "
+      " " Use browser's native find with Ctrl-f
+      unbind <C-f>
+      "
+      " "
+      " " Binds
+      " "
+      "
+      " " Disable tridactyl on this page
+      command shutup mode ignore
+      "
+      " " Search forward/backword
+      bind / fillcmdline find
+      bind ? fillcmdline find -?
+      "
+      " " Go to next/previous match
+      bind n findnext 1
+      bind N findnext -1
+      "
+      " " GitHub pull request checkout command to clipboard (only works if you're a collaborator or above)
+      bind yp composite js document.getElementById("clone-help-step-1").textContent.replace("git checkout -b", "git checkout -B").replace("git pull ", "git fetch ") + "git reset --hard " + document.getElementById("clone-help-step-1").textContent.split(" ")[3].replace("-","/") | yank
+      " 
+      " " Git{Hub,Lab} git clone via SSH yank
+      bind yg composite js "git clone " + document.location.href.replace(/https?:\/\//,"git@").replace("/",":").replace(/$/,".git") | clipboard yank
+      "
+      " " Binds for new reader mode
+      bind gr reader
+      bind gR reader --tab
+      "
+      " "
+      " " Misc
+      " "
+      "
+      colorscheme dark
+      "
+      " " Defaults to 300ms but I'm a 'move fast and close the wrong tabs' kinda chap
+      set hintdelay 100
+      " 
+      " "
+      " " Quickmarks - use go[key], gn[key], or gw[key] to open, tabopen, or winopen the URL respectively
+      " "
+      "
+      quickmark c calendar.google.com
+      quickmark g github.com
+      quickmark y youtube.com
+      "
+    '';
+
     programs.firefox = {
 
       enable = true;
+
+      package = pkgs.firefox.override { nativeMessagingHosts = ([ pkgs.tridactyl-native ]); };
 
       profiles.personal = {
         id = 0;
@@ -46,6 +100,7 @@ in
           bypass-paywalls-clean
           consent-o-matic
           darkreader
+          multi-account-containers
           privacy-badger
           simple-translate
           sponsorblock
