@@ -20,5 +20,7 @@ inputs: {
         inputs.disko.nixosModules.default
         inputs.impermanence.nixosModules.impermanence
       ];
+
+      nixpkgs.overlays = [ inputs.self.overlays.default ];
     };
 }

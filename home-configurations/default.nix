@@ -20,7 +20,10 @@ listToAttrs (
         in
         nameValuePair "${hostName}-${userName}" (
           inputs."home-manager-${release}".lib.homeManagerConfiguration {
-            pkgs = import inputs."nixpkgs-${release}" { inherit system; };
+            pkgs = import inputs."nixpkgs-${release}" {
+              inherit system;
+              overlays = [ inputs.self.overlays.default ];
+            };
             modules = [ inputs.self.homeModules.${userName} ] ++ modules;
             extraSpecialArgs = {
               inherit inputs system;
