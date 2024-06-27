@@ -215,6 +215,21 @@ in
           quickmark c calendar.google.com
           quickmark g github.com
           quickmark y youtube.com
+          " 
+          " "
+          " " Search URLs - use (o|t|w) <url> <search-terms>
+          " "
+          "
+          " " Delete default github searchurl
+          setnull searchurls.github
+          "
+          " " Set search urls
+          set searchurls.gh https://github.com/search?q=
+          set searchurls.yt https://www.youtube.com/results?search_query=
+          set searchurls.hm https://home-manager-options.extranix.com/?query=
+          set searchurls.np https://search.nixos.org/packages?channel=unstable&from=0&size=50&sort=relevance&type=packages&query=
+          set searchurls.no https://search.nixos.org/options?channel=unstable&from=0&size=50&sort=relevance&type=packages&query=
+          set searchurls.nd https://nix.dev/search.html?q=
           "
         '';
       })
