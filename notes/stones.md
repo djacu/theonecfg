@@ -1,0 +1,16 @@
+andesite
+basalt
+chalk
+chert
+claystone
+conglomerate
+granite
+kimberlite
+limestone
+marble
+peridotite
+phyllite
+sandstone
+shale
+slate
+suevite
