@@ -1,7 +1,7 @@
 let
   knownConfigurations = [
-    "adalon"
-    "gildenfire"
+    "malachite"
+    "cassiterite"
     "test-vm"
   ];
 in
