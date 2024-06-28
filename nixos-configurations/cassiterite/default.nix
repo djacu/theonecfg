@@ -40,7 +40,7 @@
         theonecfg.desktop.enable = true;
 
         theonecfg.users.djacu.enable = true;
-        users.users.djacu.initialHashedPassword = "$6$2lvLDx0d$oTu3QEH34qn3cnYoKl1qpHbfQPXqXXVXca6v2z/xxGzgAnUIzv4AUvlW5ivrUcARoFaKD7zUgIDxnO80dSPrn.";
+        users.users.djacu.initialHashedPassword = "$6$XfxMt044Az$jyfPvBMkcpPN.s9ZiVQyBjnU5g3x2cFZjBO3okgTENI2YjP6XokJr7QIaREPIcXiS4z5N9HnavEJEk.tneT670";
       };
     };
 }
