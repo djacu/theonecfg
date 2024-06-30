@@ -22,6 +22,7 @@ in
       ];
       extraConfig = {
         blame.ignoreRevsFile = ".git-blame-ignore-revs";
+        core.editor = "nvim";
         diff.algorithm = "histogram";
         fetch.prune = true;
         fetch.prunetags = true;
