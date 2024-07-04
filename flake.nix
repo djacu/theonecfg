@@ -21,6 +21,7 @@
       formatter = import ./formatter inputs;
       homeConfigurations = import ./home-configurations inputs;
       homeModules = import ./home-modules inputs;
+      identities = import ./identities inputs;
       nixosConfigurations = import ./nixos-configurations inputs;
       nixosModules = import ./nixos-modules inputs;
       overlays = import ./overlays inputs;

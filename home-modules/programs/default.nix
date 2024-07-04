@@ -1,6 +1,7 @@
 { ... }:
 {
   imports = [
+    ./agenix.nix
     ./fd.nix
     ./kitty.nix
     ./messaging.nix

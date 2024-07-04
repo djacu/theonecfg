@@ -24,9 +24,18 @@ listToAttrs (
               inherit system;
               overlays = [ inputs.self.overlays.default ];
             };
-            modules = [ inputs.self.homeModules.${userName} ] ++ modules;
+            modules =
+              [
+                #externals
+                inputs."agenix-${release}".homeManagerModules.default
+              ]
+              ++ [
+                # internals
+                inputs.self.homeModules.${userName}
+              ]
+              ++ modules; # configs
             extraSpecialArgs = {
-              inherit inputs system;
+              inherit inputs system release;
             };
           }
         )
