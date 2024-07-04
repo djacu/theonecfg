@@ -1,5 +1,8 @@
 {
   inputs = {
+    agenix-2405.url = "github:ryantm/agenix";
+    agenix-2405.inputs.nixpkgs.follows = "nixpkgs-2405";
+    agenix-2405.inputs.home-manager.follows = "home-manager-2405";
     disko.url = "github:nix-community/disko/";
     disko.inputs.nixpkgs.follows = "nixpkgs-unstable";
     home-manager-2405.url = "github:nix-community/home-manager/release-24.05";
