@@ -29,5 +29,13 @@ in
     };
 
     services.openssh.enable = lib.mkDefault isNotContainer;
+
+    services.pcscd.enable = lib.mkDefault true;
+    #programs.gnupg.agent = {
+    #  enable = true;
+    #  # enableSSHSupport = true;
+    #  pinentryPackage = pkgs.pinentry-tty;
+    #};
+    #environment.systemPackages = [ pkgs.gnupg ];
   };
 }
