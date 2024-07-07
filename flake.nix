@@ -25,7 +25,6 @@
       nixosConfigurations = import ./nixos-configurations inputs;
       nixosModules = import ./nixos-modules inputs;
       overlays = import ./overlays inputs;
-
-      packages.x86_64-linux.test-vm = self.nixosConfigurations.test-vm.config.system.build.vm;
+      secrets = import ./secrets inputs;
     };
 }

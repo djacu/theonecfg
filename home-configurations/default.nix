@@ -22,7 +22,10 @@ listToAttrs (
           inputs."home-manager-${release}".lib.homeManagerConfiguration {
             pkgs = import inputs."nixpkgs-${release}" {
               inherit system;
-              overlays = [ inputs.self.overlays.default ];
+              overlays = [
+                inputs.self.overlays.default
+                inputs.self.overlays.${release}
+              ];
             };
             modules =
               [
@@ -35,7 +38,7 @@ listToAttrs (
               ]
               ++ modules; # configs
             extraSpecialArgs = {
-              inherit inputs system release;
+              inherit inputs system;
             };
           }
         )

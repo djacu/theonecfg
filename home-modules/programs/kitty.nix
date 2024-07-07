@@ -6,6 +6,7 @@ in
   options.theonecfg.home.programs.kitty.enable = lib.mkEnableOption "kitty config";
 
   config = lib.mkIf cfg.enable {
+
     programs.kitty.enable = true;
     programs.kitty.settings = {
       open_url_with = "firefox";
@@ -14,5 +15,10 @@ in
       enable_audio_bell = "no";
     };
     programs.kitty.theme = "Nord";
+
+    programs.kitty.environment = lib.mkIf config.theonecfg.home.programs.nixvimcfg.enable {
+      EDITOR = "nvim";
+    };
+
   };
 }
