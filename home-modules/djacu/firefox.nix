@@ -58,7 +58,7 @@ in
               (
                 [
                   bitwarden
-                  bypass-paywalls-clean
+                  # bypass-paywalls-clean # TODO: find a replacement
                   consent-o-matic
                   darkreader
                   multi-account-containers
