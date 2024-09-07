@@ -9,5 +9,7 @@ in
     theonecfg.users.djacu.firefox.enable = true;
 
     theonecfg.home.programs.kitty.enable = true;
+
+    theonecfg.home.services.gpg.enable = true;
   };
 }
