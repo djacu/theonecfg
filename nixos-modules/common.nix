@@ -30,6 +30,6 @@ in
 
     services.openssh.enable = lib.mkDefault isNotContainer;
 
-    services.pcscd.enable = lib.mkDefault true;
+    services.pcscd.enable = lib.mkDefault isNotContainer;
   };
 }
