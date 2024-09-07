@@ -12,6 +12,7 @@ in
       userEmail = "daniel.n.baker@gmail.com";
       aliases = {
         lg = "log --graph --decorate --pretty=oneline --abbrev-commit --all";
+        patch = "diff --no-ext-diff";
       };
       difftastic.enable = true;
       difftastic.background = "dark";
