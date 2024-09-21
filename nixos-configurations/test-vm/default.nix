@@ -12,6 +12,11 @@
 
       nixpkgs.hostPlatform = "x86_64-linux";
 
+      boot.loader.grub.devices = [ "/dev/sda" ];
+      fileSystems = {
+        "/".device = "/dev/hda1";
+      };
+
       theonecfg.simple-vm.enable = true;
       theonecfg.common.enable = true;
     };
