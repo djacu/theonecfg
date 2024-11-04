@@ -30,30 +30,30 @@ zpool create \
     printf '%s ' "${i}"
   done)
 
+mkdir -p "${MNT}/tank0"
 zfs create \
   -o mountpoint=/tank0 \
   "${POOLNAME}"/tank0
 
+mkdir -p "${MNT}/tank0/video"
 zfs create \
   -o recordsize=1M \
   -o mountpoint=/tank0/video \
   "${POOLNAME}"/tank0/video
 
+mkdir -p "${MNT}/tank0/audio"
 zfs create \
   -o recordsize=1M \
   -o mountpoint=/tank0/audio \
   "${POOLNAME}"/tank0/audio
 
+mkdir -p "${MNT}/tank0/images"
 zfs create \
   -o recordsize=1M \
   -o mountpoint=/tank0/images \
   "${POOLNAME}"/tank0/images
 
+mkdir -p "${MNT}/tank0/bulk"
 zfs create \
   -o mountpoint=/tank0/bulk \
   "${POOLNAME}"/tank0/bulk
-
-mount -o X-mount.mkdir -t zfs "${POOLNAME}"/tank0/audio "${MNT}/tank0/audio"
-mount -o X-mount.mkdir -t zfs "${POOLNAME}"/tank0/bulk "${MNT}/tank0/bulk"
-mount -o X-mount.mkdir -t zfs "${POOLNAME}"/tank0/images "${MNT}/tank0/images"
-mount -o X-mount.mkdir -t zfs "${POOLNAME}"/tank0/video "${MNT}/tank0/video"
