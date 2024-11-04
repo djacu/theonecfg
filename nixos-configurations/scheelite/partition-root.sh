@@ -1,12 +1,11 @@
 #!/bin/env bash
 
 DISK=(
-  "/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7KHNJ0X208893V"
-  "/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7KHNJ0X208806D"
+  "/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7KHNJ0X208893V_1"
+  "/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7KHNJ0X208806D_1"
 )
 EFISIZE=10
 SWAPSIZE=64
-RESERVE=0
 POOLNAME="scheelite-root"
 
 partition_disk() {
@@ -16,8 +15,8 @@ partition_disk() {
   parted --script --align=optimal "${disk}" -- \
     mklabel gpt \
     mkpart EFI 1MiB $((EFISIZE))GiB \
-    mkpart "${POOLNAME}" $((EFISIZE))GiB -$((SWAPSIZE + RESERVE))GiB \
-    mkpart SWAP -$((SWAPSIZE + RESERVE))GiB -"${RESERVE}"GiB \
+    mkpart "${POOLNAME}" $((EFISIZE))GiB -$((SWAPSIZE))GiB \
+    mkpart SWAP -$((SWAPSIZE))GiB 100% \
     set 1 esp on
 
   partprobe "${disk}"
