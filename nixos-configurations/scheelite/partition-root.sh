@@ -77,10 +77,14 @@ zfs create \
   -o mountpoint=/persist \
   "${POOLNAME}"/safe/persist
 
-mount -o X-mount.mkdir -t zfs "${POOLNAME}"/local/root "${MNT}"
-mount -o X-mount.mkdir -t zfs "${POOLNAME}"/local/nix "${MNT}"/nix
-mount -o X-mount.mkdir -t zfs "${POOLNAME}"/safe/home "${MNT}"/home
-mount -o X-mount.mkdir -t zfs "${POOLNAME}"/safe/persist "${MNT}"/persist
+mkdir -p "${MNT}/nix"
+mkdir -p "${MNT}/home"
+mkdir -p "${MNT}/persist"
+
+zfs mount "${POOLNAME}"/local/root
+zfs mount "${POOLNAME}"/local/nix
+zfs mount "${POOLNAME}"/safe/home
+zfs mount "${POOLNAME}"/safe/persist
 
 for i in "${DISK[@]}"; do
   mkfs.vfat -n EFI "${i}"-part1
