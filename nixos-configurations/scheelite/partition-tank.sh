@@ -10,20 +10,6 @@ DISK=(
 )
 POOLNAME="scheelite-tank0"
 
-partition_disk() {
-  local disk="${1}"
-
-  parted --script --align=optimal "${disk}" -- \
-    mklabel gpt \
-    mkpart "${POOLNAME}" 0% 100%
-
-  partprobe "${disk}"
-}
-
-for i in "${DISK[@]}"; do
-  partition_disk "${i}"
-done
-
 # shellcheck disable=SC2046
 zpool create \
   -o ashift=12 \
@@ -41,7 +27,7 @@ zpool create \
   "${POOLNAME}" \
   raidz3 \
   $(for i in "${DISK[@]}"; do
-    printf '%s ' "${i}-part1"
+    printf '%s ' "${i}"
   done)
 
 zfs create \
