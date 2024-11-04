@@ -61,6 +61,7 @@ zfs create \
 
 zfs snapshot "${POOLNAME}"/local/root@empty
 
+mkdir -p "${MNT}/nix"
 zfs create \
   -o mountpoint=/nix \
   "${POOLNAME}"/local/nix
@@ -69,22 +70,15 @@ zfs create \
   -o canmount=off \
   "${POOLNAME}"/safe
 
+mkdir -p "${MNT}/home"
 zfs create \
   -o mountpoint=/home \
   "${POOLNAME}"/safe/home
 
+mkdir -p "${MNT}/persist"
 zfs create \
   -o mountpoint=/persist \
   "${POOLNAME}"/safe/persist
-
-mkdir -p "${MNT}/nix"
-mkdir -p "${MNT}/home"
-mkdir -p "${MNT}/persist"
-
-zfs mount "${POOLNAME}"/local/root
-zfs mount "${POOLNAME}"/local/nix
-zfs mount "${POOLNAME}"/safe/home
-zfs mount "${POOLNAME}"/safe/persist
 
 for i in "${DISK[@]}"; do
   mkfs.vfat -n EFI "${i}"-part1
