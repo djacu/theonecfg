@@ -1,5 +1,3 @@
-#!/bin/env bash
-
 DISK=(
   "/dev/disk/by-id/wwn-0x5000cca2902b7288"
   "/dev/disk/by-id/wwn-0x5000cca2902bcf64"

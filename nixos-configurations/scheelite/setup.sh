@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 
 MNT=$(mktemp -d)
 source ./partition-root.sh
