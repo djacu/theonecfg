@@ -1,5 +1,3 @@
-#!/bin/env bash
-
 DISK=(
   "/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7KHNJ0X208893V_1"
   "/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7KHNJ0X208806D_1"
