@@ -14,7 +14,6 @@ POOLNAME="scheelite-tank0"
 
 partition_disk() {
   local disk="${1}"
-  blkdiscard -f "${disk}" || true
 
   parted --script --align=optimal "${disk}" -- \
     mklabel gpt \
