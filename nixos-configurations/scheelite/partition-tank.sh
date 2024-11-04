@@ -39,7 +39,7 @@ zpool create \
   -O xattr=sa \
   -O mountpoint=none \
   "${POOLNAME}" \
-  mirror \
+  raidz3 \
   $(for i in "${DISK[@]}"; do
     printf '%s ' "${i}-part1"
   done)
