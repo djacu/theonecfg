@@ -2,6 +2,7 @@ let
   knownConfigurations = [
     "malachite"
     "cassiterite"
+    "scheelite"
     "test-vm"
   ];
 in
