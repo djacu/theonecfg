@@ -10,9 +10,7 @@
 }:
 
 {
-  imports = [
-    (modulesPath + "/installer/scan/not-detected.nix")
-  ];
+  imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
 
   boot.initrd.availableKernelModules = [
     "nvme"
@@ -60,30 +58,30 @@
     ];
   };
 
-  # fileSystems."/tank0" =
-  #   { device = "scheelite-tank0/tank0";
-  #     fsType = "zfs";
-  #   };
+  # fileSystems."/tank0" = {
+  #   device = "scheelite-tank0/tank0";
+  #   fsType = "zfs";
+  # };
 
-  # fileSystems."/tank0/video" =
-  #   { device = "scheelite-tank0/tank0/video";
-  #     fsType = "zfs";
-  #   };
+  # fileSystems."/tank0/video" = {
+  #   device = "scheelite-tank0/tank0/video";
+  #   fsType = "zfs";
+  # };
 
-  # fileSystems."/tank0/audio" =
-  #   { device = "scheelite-tank0/tank0/audio";
-  #     fsType = "zfs";
-  #   };
+  # fileSystems."/tank0/audio" = {
+  #   device = "scheelite-tank0/tank0/audio";
+  #   fsType = "zfs";
+  # };
 
-  # fileSystems."/tank0/images" =
-  #   { device = "scheelite-tank0/tank0/images";
-  #     fsType = "zfs";
-  #   };
+  # fileSystems."/tank0/images" = {
+  #   device = "scheelite-tank0/tank0/images";
+  #   fsType = "zfs";
+  # };
 
-  # fileSystems."/tank0/bulk" =
-  #   { device = "scheelite-tank0/tank0/bulk";
-  #     fsType = "zfs";
-  #   };
+  # fileSystems."/tank0/bulk" = {
+  #   device = "scheelite-tank0/tank0/bulk";
+  #   fsType = "zfs";
+  # };
 
   swapDevices = [
     { device = "/dev/disk/by-uuid/aeac891e-6a44-4937-8a6d-f7df60d3442c"; }
