@@ -20,6 +20,7 @@
         boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
         boot.supportedFilesystems = [ "zfs" ];
         boot.zfs.devNodes = "/dev/disk/by-id";
+        boot.zfs.extraPools = [ "scheelite-tank0" ];
         services.zfs.autoScrub.enable = true;
         boot.initrd.postDeviceCommands = lib.mkAfter ''
           zfs rollback -r scheelite-root/local/root@empty
