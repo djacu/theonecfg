@@ -24,3 +24,5 @@
 #     git blame $@
 # fi
 
+# nixos-configurations.scheelite.hardware: formatting
+95a9d4d2abbc2e92c916568b00d243efe2e39c3c
