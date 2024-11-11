@@ -52,7 +52,7 @@
   };
 
   fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/0155-3078";
+    device = "/dev/nvme0n1p1";
     fsType = "vfat";
     options = [
       "fmask=0077"
@@ -86,7 +86,7 @@
   #   };
 
   swapDevices = [
-    { device = "/dev/disk/by-uuid/2309a67d-bd46-405a-b337-7c95a15a6b94"; }
+    { device = "/dev/disk/by-uuid/aeac891e-6a44-4937-8a6d-f7df60d3442c"; }
     { device = "/dev/nvme1n1p3"; }
   ];
 
