@@ -44,3 +44,49 @@ Currently used in `legacy-packages`, `nixos-modules`, and `home-configurations`.
 ### packages
 
 Packages that can be built or run.
+
+## hosts
+
+### scheelite
+
+#### bootstrap
+
+1. Get into the root user.
+   1. `sudo -i`
+1. Wipe all old disk information and check that it looks correct.
+   1. `wipefs --all /dev/disk/by-id/wwn-0x5000*`
+   1. `wipefs --all /dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB*`
+   1. `lsblk -f`
+1. Clone the repository.
+   1. `nix-shell -p git neovim`
+   1. `git clone https://github.com/djacu/theonecfg.git`
+   1. `cd theonecfg`
+1. Partition the drives.
+   This creates a new temporary directory where the drives are mounted.
+   For example, `/tmp/tmp.kWXrNPDsDG/`, which is set to `MNT` in the setup script.
+   1. `cd nixos-configurations/scheelite`
+   1. `./setup.sh`
+   1. `cd -`
+1. If there have been hardware changes, regenerate the hardware configuration.
+   Copy it over from `/etc` into the repository and compare the two files.
+   1. `nixos-generate-config --root <MNT>`
+   1. The generated file will be not be formatted unlike the file in the repository.
+      In the generated file, swap devices will sometimes get mapped to `/dev/disk/by-uuid`.
+      Partition order is fixed, so it is okay to leave them mapped how they are, `/dev/xyz`.
+   1. In the generated file, all file systems, including ZFS pools, will be populated.
+      If non-legacy mountpoints are used, they should not be included in the `fileSystems` entries.
+      Except for the ones that are required for initrd and those should have `options = ["zfsutil"];`.[^1]
+1. Install
+   1. `sudo nixos-install --no-root-password --flake .#<host> --root <MNT>`
+   1. `umount -Rl <MNT>`
+   1. `zpool export -a`
+1. Reboot
+
+#### user setup
+
+`home-manager` may not be available after bootstrap.
+It can be run directly from the repository using `nix run`.
+
+`nix run github:nix-community/home-manager -- switch --flake .#<host>-<user>`
+
+[^1]: https://discourse.nixos.org/t/zfs-install-legacy-or-not/26047/2?u=djacu
