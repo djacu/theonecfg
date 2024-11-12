@@ -80,6 +80,9 @@ Packages that can be built or run.
    1. `sudo nixos-install --no-root-password --flake .#<host> --root <MNT>`
    1. `umount -Rl <MNT>`
    1. `zpool export -a`
+   1. Make sure to export the pools before reboot or you will see a message like, "The ZFS pool was last accessed by another system.".
+      If you do forget, the pool can be imported manually after boot with `sudo zpool import -f <pool>`.
+      It may take some time for the boot to finish because it will hang on importing a pool unsuccessfully.
 1. Reboot
 
 #### user setup
