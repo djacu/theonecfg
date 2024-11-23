@@ -1,7 +1,12 @@
 {
   release = "2405";
   modules =
-    { config, inputs, ... }:
+    {
+      config,
+      inputs,
+      lib,
+      ...
+    }:
     {
       imports = [
         ./disko.nix
@@ -21,7 +26,7 @@
         boot.supportedFilesystems = [ "zfs" ];
         boot.zfs.devNodes = "/dev/disk/by-id";
 
-        networking.hostId = "76b05211";
+        networking.hostId = lib.substring 0 8 (builtins.hashString "sha256" config.networking.hostName);
 
         security.sudo.extraConfig = ''
           # rollback results in sudo lectures after each reboot

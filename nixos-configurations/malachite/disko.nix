@@ -3,7 +3,7 @@
     disk = {
       disk1 = {
         type = "disk";
-        device = "/dev/disk/by-id/nvme-WD_BLACK_SN850_1TB_204178806629";
+        device = "/dev/disk/by-id/nvme-SPCC_M.2_PCIe_SSD_CAF4079C067A00488172";
         content = {
           type = "gpt";
           partitions = {
