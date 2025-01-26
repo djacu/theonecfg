@@ -1,5 +1,5 @@
 {
-  release = "2405";
+  release = "2411";
   modules =
     {
       config,
