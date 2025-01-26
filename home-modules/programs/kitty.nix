@@ -13,6 +13,6 @@ in
       tab_bar_edge = "top";
       enable_audio_bell = "no";
     };
-    programs.kitty.theme = "Nord";
+    programs.kitty.themeFile = "Nord";
   };
 }
