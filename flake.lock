@@ -386,11 +386,11 @@
         "nixvim": "nixvim"
       },
       "locked": {
-        "lastModified": 1729989887,
-        "narHash": "sha256-PujQcD7HuRQo+c4qIRJo9AmpgNp61IBLuv0sNoNmVHU=",
+        "lastModified": 1730072854,
+        "narHash": "sha256-B68VROYLyQOXxBnB/3DfCCz0PbI5vdDyl4XDH3XqwCA=",
         "owner": "djacu",
         "repo": "nixvimcfg",
-        "rev": "df7a79001912990ccdda31101c1670bf9f76813f",
+        "rev": "d32a8b72c04623495cf8b50fcba1824c418bd2e4",
         "type": "github"
       },
       "original": {
