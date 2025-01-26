@@ -22,6 +22,7 @@
       homeConfigurations = import ./home-configurations inputs;
       homeModules = import ./home-modules inputs;
       legacyPackages = import ./legacy-packages inputs;
+      library = import ./library inputs;
       nixosConfigurations = import ./nixos-configurations inputs;
       nixosModules = import ./nixos-modules inputs;
       overlays = import ./overlays inputs;
