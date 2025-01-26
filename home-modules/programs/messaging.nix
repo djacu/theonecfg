@@ -14,7 +14,7 @@ in
 
     home.packages = [
       pkgs.discord
-      pkgs.element-desktop-wayland
+      pkgs.element-desktop
       pkgs.signal-desktop
       pkgs.whatsapp-for-linux
     ];
