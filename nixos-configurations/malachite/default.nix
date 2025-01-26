@@ -5,8 +5,12 @@
       config,
       inputs,
       lib,
+      pkgs,
       ...
     }:
+    let
+      theonecfgLib = inputs.self.library;
+    in
     {
       imports = [
         ./disko.nix
@@ -19,7 +23,7 @@
         nixpkgs.hostPlatform = "x86_64-linux";
         system.stateVersion = "24.05";
 
-        boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
+        boot.kernelPackages = theonecfgLib.zfs.latestKernelPackage { inherit config pkgs; };
         boot.loader.systemd-boot.enable = true;
         boot.loader.efi.canTouchEfiVariables = true;
         boot.loader.efi.efiSysMountPoint = "/boot";
