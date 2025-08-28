@@ -19,19 +19,15 @@
     nur.url = "github:nix-community/nur";
   };
 
-  outputs =
-    { self, ... }@inputs:
-    {
-      formatter = import ./formatter inputs;
-      homeConfigurations = import ./home-configurations inputs;
-      homeModules = import ./home-modules inputs;
-      legacyPackages = import ./legacy-packages inputs;
-      library = import ./library inputs;
-      nixosConfigurations = import ./nixos-configurations inputs;
-      nixosModules = import ./nixos-modules inputs;
-      overlays = import ./overlays inputs;
-      packages = import ./packages inputs;
-
-      # packages.x86_64-linux.test-vm = self.nixosConfigurations.test-vm.config.system.build.vm;
-    };
+  outputs = inputs: {
+    formatter = import ./formatter inputs;
+    homeConfigurations = import ./home-configurations inputs;
+    homeModules = import ./home-modules inputs;
+    legacyPackages = import ./legacy-packages inputs;
+    library = import ./library inputs;
+    nixosConfigurations = import ./nixos-configurations inputs;
+    nixosModules = import ./nixos-modules inputs;
+    overlays = import ./overlays inputs;
+    packages = import ./packages inputs;
+  };
 }
