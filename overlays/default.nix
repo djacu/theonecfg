@@ -14,7 +14,7 @@ inputs: {
 
     composeManyExtensions [
 
-      inputs.nur.overlay
+      inputs.nur.overlays.default
 
       # auto-add packages
       (final: prev: {

@@ -17,7 +17,7 @@ in
     i18n.defaultLocale = "en_US.UTF-8";
 
     nix = {
-      package = pkgs.nixVersions.nix_2_21;
+      package = pkgs.nixVersions.nix_2_30;
       channel.enable = false; # opt out of nix channels
       settings = {
         experimental-features = [
