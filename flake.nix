@@ -5,6 +5,7 @@
     home-manager-2505.url = "github:nix-community/home-manager/release-25.05";
     home-manager-2505.inputs.nixpkgs.follows = "nixpkgs-2505";
     impermanence.url = "github:nix-community/impermanence";
+    nixpkgs-jfly.url = "github:jfly/nixpkgs/c815ac27c26d76236ed59002b60ebb988cf697d6";
     nixpkgs-lib.url = "github:nix-community/nixpkgs.lib";
     nixpkgs-2505.url = "github:nixos/nixpkgs/nixos-25.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";

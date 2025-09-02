@@ -146,6 +146,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-jfly": {
+      "locked": {
+        "lastModified": 1756842418,
+        "narHash": "sha256-xDRbtmx5UQBFamUMYije2Um7SXkI0h6ugxFNcxC/jjY=",
+        "owner": "jfly",
+        "repo": "nixpkgs",
+        "rev": "c815ac27c26d76236ed59002b60ebb988cf697d6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jfly",
+        "repo": "nixpkgs",
+        "rev": "c815ac27c26d76236ed59002b60ebb988cf697d6",
+        "type": "github"
+      }
+    },
     "nixpkgs-lib": {
       "locked": {
         "lastModified": 1762045811,
@@ -276,6 +292,7 @@
         "impermanence": "impermanence",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs-2505": "nixpkgs-2505",
+        "nixpkgs-jfly": "nixpkgs-jfly",
         "nixpkgs-lib": "nixpkgs-lib",
         "nixpkgs-unstable": "nixpkgs-unstable",
         "nixvimcfg": "nixvimcfg",

@@ -23,6 +23,10 @@ inputs: {
       type = "virtual";
       forwardAgent = false;
     };
+    x13s-iso = {
+      type = "iso";
+      forwardAgent = false;
+    };
   };
 
   knownUsers = {
