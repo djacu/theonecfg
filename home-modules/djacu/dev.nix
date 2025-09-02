@@ -20,6 +20,7 @@ in
     programs.ssh.enable = true;
 
     home.packages = with pkgs; [
+
       ansifilter
       as-tree
       bat
@@ -31,6 +32,7 @@ in
       dnsutils
       dt
       file
+      gh
       grex
       gron
       htmlq
@@ -53,6 +55,7 @@ in
       tealdeer
       traceroute
       yj
+      zathura
 
     ];
   };
