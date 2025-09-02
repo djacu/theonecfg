@@ -29,6 +29,8 @@
         boot.supportedFilesystems = [ "zfs" ];
         boot.zfs.devNodes = "/dev/disk/by-id";
 
+        hardware.bluetooth.enable = true;
+
         networking.hostId = "abc0862c";
 
         security.sudo.extraConfig = ''
