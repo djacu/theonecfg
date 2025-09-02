@@ -1,5 +1,6 @@
 let
   knownConfigurations = [
+    "x13s-iso"
     "malachite"
     "cassiterite"
     "scheelite"
