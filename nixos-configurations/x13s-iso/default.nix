@@ -23,6 +23,8 @@
 
       environment.systemPackages = [ pkgs.vim ];
 
+      boot.kernelPackages = pkgs.linuxPackages_6_16;
+
       # https://github.com/jhovold/linux/wiki/X13s#kernel-command-line
       # To boot Linux the following kernel parameters need to be provided:
       boot.kernelParams = [
