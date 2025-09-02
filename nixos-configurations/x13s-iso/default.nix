@@ -40,7 +40,7 @@
         # specifically for nvme
         "nvme"
         "phy_qcom_qmp_pcie"
-        "pcie_qcom"
+        # "pcie_qcom" # this is already built into the kernel arm64 defconfig and is not needed
 
         # For keyboard input and (more than 30 seconds of) display in initramfs, make sure to also include
         # for keyboard
