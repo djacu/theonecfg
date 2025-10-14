@@ -1,5 +1,6 @@
 let
   knownConfigurations = [
+    "argentite"
     "malachite"
     "cassiterite"
     "scheelite"
