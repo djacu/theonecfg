@@ -10,6 +10,7 @@ inputs: {
         ./dev.nix
         ./fonts.nix
         ./hypr.nix
+        ./nvidia-1080ti.nix
         ./plasma.nix
         ./vm.nix
         ./zoxide.nix
