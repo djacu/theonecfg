@@ -53,7 +53,7 @@ in
             };
             containersForce = true;
 
-            extensions =
+            extensions.packages =
               with pkgs.nur.repos.rycee.firefox-addons;
               (
                 [
@@ -156,9 +156,9 @@ in
                 definedAliases = [ "@nd" ];
               };
 
-              "Bing".metaData.hidden = true;
-              "eBay".metaData.hidden = true;
-              "Google".metaData.alias = "@g";
+              "bing".metaData.hidden = true;
+              "ebay".metaData.hidden = true;
+              "google".metaData.alias = "@g";
             };
             search.force = true;
           };
