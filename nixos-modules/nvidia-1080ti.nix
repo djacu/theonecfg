@@ -10,6 +10,8 @@ in
   options.theonecfg.nvidia-1080ti.enable = lib.mkEnableOption "simple vm config";
 
   config = lib.mkIf cfg.enable {
+    nixpkgs.config.allowUnfree = true;
+
     # Enable OpenGL
     hardware.graphics = {
       enable = true;
