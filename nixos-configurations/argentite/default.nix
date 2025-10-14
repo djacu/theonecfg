@@ -18,7 +18,7 @@
       ];
       config = {
         nixpkgs.hostPlatform = "x86_64-linux";
-        system.stateVersion = "24.05";
+        system.stateVersion = "25.05";
 
         boot.kernelPackages = pkgs.linuxPackages_6_15;
         boot.loader.systemd-boot.enable = true;
