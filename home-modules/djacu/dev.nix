@@ -14,6 +14,7 @@ in
     theonecfg.users.djacu.git.enable = true;
 
     theonecfg.home.programs.fd.enable = true;
+    theonecfg.home.programs.fish.enable = true;
     theonecfg.home.programs.nixvimcfg.enable = true;
     theonecfg.home.programs.tmux.enable = true;
 
