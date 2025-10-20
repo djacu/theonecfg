@@ -9,7 +9,7 @@ in
     programs.git = {
       enable = true;
       userName = "Daniel Baker";
-      userEmail = "daniel.n.baker@gmail.com";
+      userEmail = "dan@djacu.dev";
       aliases = {
         lg = "log --graph --decorate --pretty=oneline --abbrev-commit --all";
         patch = "diff --no-ext-diff";
