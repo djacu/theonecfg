@@ -15,6 +15,7 @@ in
     ./fish.nix
     ./firefox.nix
     ./git.nix
+    ./gpg.nix
   ];
 
   options.theonecfg.users.djacu.enable = lib.mkEnableOption "djacu user config";

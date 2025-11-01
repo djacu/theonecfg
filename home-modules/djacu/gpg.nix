@@ -5,10 +5,10 @@
   ...
 }:
 let
-  cfg = config.theonecfg.home.services.gpg;
+  cfg = config.theonecfg.users.djacu.gpg;
 in
 {
-  options.theonecfg.home.services.gpg.enable = lib.mkEnableOption "gpg config";
+  options.theonecfg.users.djacu.gpg.enable = lib.mkEnableOption "gpg config";
 
   config = lib.mkIf cfg.enable {
 

@@ -7,9 +7,8 @@ in
 
   config = lib.mkIf (cfg.enable && cfg.desktop.enable) {
     theonecfg.users.djacu.firefox.enable = true;
+    theonecfg.users.djacu.gpg.enable = true;
 
     theonecfg.home.programs.kitty.enable = true;
-
-    theonecfg.home.services.gpg.enable = true;
   };
 }
