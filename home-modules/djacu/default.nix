@@ -12,6 +12,7 @@ in
   imports = [
     ./desktop.nix
     ./dev.nix
+    ./fish.nix
     ./firefox.nix
     ./git.nix
   ];

@@ -12,6 +12,7 @@ in
 
   config = lib.mkIf (cfg.enable && cfg.dev.enable) {
     theonecfg.users.djacu.git.enable = true;
+    theonecfg.users.djacu.fish.enable = true;
 
     theonecfg.home.programs.fd.enable = true;
     theonecfg.home.programs.fish.enable = true;
