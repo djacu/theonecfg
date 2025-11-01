@@ -19,5 +19,10 @@ in
       shell = pkgs.fish;
     };
     programs.fish.enable = true;
+
+    users.users.djacu.openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEbH7DL3UpeYHm+J3YHJTIsnk/vdo5JgEzwD/Bf1tupp cardno:28_927_468"
+    ];
+
   };
 }
