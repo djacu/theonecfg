@@ -47,6 +47,7 @@ in
     services.gpg-agent = {
       enable = true;
       enableSshSupport = true;
+      enableExtraSocket = true;
       pinentry.package = pkgs.pinentry-qt;
       /*
         To list all keys
