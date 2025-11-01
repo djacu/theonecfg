@@ -1,8 +1,8 @@
 inputs:
 let
+
   inherit (builtins)
-    attrValues
-    match
+    readDir
     tryEval
     ;
 
@@ -11,7 +11,10 @@ let
     ;
 
   inherit (lib.attrsets)
+    attrNames
+    attrValues
     filterAttrs
+    genAttrs
     ;
 
   inherit (lib.lists)
@@ -20,10 +23,76 @@ let
     ;
 
   inherit (lib.strings)
+    match
     versionOlder
     ;
+
 in
 {
+
+  modules = rec {
+
+    /**
+      Get non-user directory names given a list of users and a path.
+
+      # Example
+
+        getNonUsers [ "djacu" ] ./.
+        => { programs = "directory"; }
+
+      # Type
+
+      ```
+      getNonUsers :: [String] -> Path -> [String]
+      ```
+
+      # Arguments
+
+      - [users] User directories to remove.
+      - [path] Path to the directory to read.
+    */
+
+    getNonUsers =
+      users: path:
+      attrNames (removeAttrs (filterAttrs (_: fileType: fileType == "directory") (readDir path)) users);
+
+    /**
+      Map strings to paths with prefix.
+    */
+    mapToPaths = path: map (elem: path + "/${elem}");
+
+    /**
+      Make home modules for users.
+
+      # Example
+
+        mkUserModules [ "djacu" ]
+        => { djacu = <homeModule>; }
+
+      # Type
+
+      ```
+      mkUserModules :: [String] -> {<homeModule>}
+      ```
+
+      # Arguments
+
+      - [users] Users for which to create home modules.
+    */
+    mkUserModules =
+      users: path:
+      let
+        nonUserModules = mapToPaths path (getNonUsers users path);
+      in
+      genAttrs users (userName: {
+        imports = [ (path + "/${userName}") ] ++ nonUserModules;
+        _module.args = {
+          inherit inputs;
+        };
+      });
+
+  };
+
   zfs = rec {
     /**
       Check if the defined ZFS package for boot is unstable.
@@ -116,4 +185,5 @@ in
         )
       );
   };
+
 }
