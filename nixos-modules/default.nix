@@ -1,26 +1,38 @@
 inputs: {
   default =
-    { ... }:
     {
-      imports = [
-        ./audio.nix
-        ./basic-network.nix
-        ./common.nix
-        ./desktop.nix
-        ./dev.nix
-        ./fonts.nix
-        ./hypr.nix
-        ./nvidia-1080ti.nix
-        ./plasma.nix
-        ./vm.nix
-        ./zoxide.nix
-        ./zsh.nix
+      lib,
+      ...
+    }:
+    let
 
-        ./users
+      inherit (builtins)
+        readDir
+        ;
 
-        inputs.disko.nixosModules.default
-        inputs.impermanence.nixosModules.impermanence
-      ];
+      inherit (lib.attrsets)
+        attrNames
+        filterAttrs
+        ;
+
+      inherit (lib.lists)
+        map
+        ;
+
+      inherit (lib.trivial)
+        const
+        ;
+
+    in
+    {
+      imports =
+        [
+          inputs.disko.nixosModules.default
+          inputs.impermanence.nixosModules.impermanence
+        ]
+        ++ map (directory: ./${directory}/module.nix) (
+          attrNames (filterAttrs (const (filetype: filetype == "directory")) (readDir ./.))
+        );
 
       nixpkgs.overlays = [ inputs.self.overlays.default ];
     };
