@@ -6,17 +6,30 @@
   ...
 }:
 let
+
+  inherit (builtins)
+    readDir
+    ;
+
+  inherit (lib.attrsets)
+    attrNames
+    filterAttrs
+    ;
+
+  inherit (lib.lists)
+    map
+    ;
+
+  inherit (lib.trivial)
+    const
+    ;
+
   cfg = config.theonecfg.users.djacu;
 in
 {
-  imports = [
-    ./desktop.nix
-    ./dev.nix
-    ./fish.nix
-    ./firefox.nix
-    ./git.nix
-    ./gpg.nix
-  ];
+  imports = map (directory: ./${directory}/module.nix) (
+    attrNames (filterAttrs (const (filetype: filetype == "directory")) (readDir ./.))
+  );
 
   options.theonecfg.users.djacu.enable = lib.mkEnableOption "djacu user config";
 
