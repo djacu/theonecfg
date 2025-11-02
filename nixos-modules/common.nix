@@ -29,6 +29,9 @@ in
     };
 
     services.openssh.enable = lib.mkDefault isNotContainer;
+    services.openssh.extraConfig = ''
+      StreamLocalBindUnlink yes
+    '';
 
     services.pcscd.enable = lib.mkDefault isNotContainer;
   };

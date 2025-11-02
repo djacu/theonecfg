@@ -61,9 +61,50 @@ in
       ];
     };
 
+    home.sessionVariables = {
+      XDG_RUNTIME_DIR = "/run/user/$UID";
+      SSH_AUTH_SOCK = "${builtins.getEnv "XDG_RUNTIME_DIR"}/gnupg/S.gpg-agent.ssh";
+      GPG_AGENT_SOCK = "${builtins.getEnv "XDG_RUNTIME_DIR"}/gnupg/S.gpg-agent";
+      GPG_EXTRA_SOCK = "${builtins.getEnv "XDG_RUNTIME_DIR"}/gnupg/S.gpg-agent.extra";
+    };
     # home.sessionVariables = {
     #   SSH_AUTH_SOCK = "$(gpgconf --list-dirs agent-ssh-socket)";
     # };
+
+    programs.ssh.enable = true;
+    # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.ssh.enableDefaultConfig
+    # programs.ssh.matchBlocks."*" = {
+    #   forwardAgent = false;
+    #   addKeysToAgent = "no";
+    #   compression = false;
+    #   serverAliveInterval = 0;
+    #   serverAliveCountMax = 3;
+    #   hashKnownHosts = false;
+    #   userKnownHostsFile = "~/.ssh/known_hosts";
+    #   controlMaster = "no";
+    #   controlPath = "~/.ssh/master-%r@%n:%p";
+    #   controlPersist = "no";
+    # };
+    programs.ssh.matchBlocks.malachite = {
+      hostname = "malachite";
+      forwardAgent = true;
+      remoteForwards = [
+        {
+          bind.address = config.home.sessionVariables.GPG_AGENT_SOCK;
+          host.address = config.home.sessionVariables.GPG_EXTRA_SOCK;
+        }
+      ];
+    };
+    programs.ssh.matchBlocks.argentite = {
+      hostname = "argentite";
+      forwardAgent = true;
+      remoteForwards = [
+        {
+          bind.address = config.home.sessionVariables.GPG_AGENT_SOCK;
+          host.address = config.home.sessionVariables.GPG_EXTRA_SOCK;
+        }
+      ];
+    };
 
   };
 }
