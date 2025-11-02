@@ -94,6 +94,10 @@ in
           bind.address = config.home.sessionVariables.GPG_AGENT_SOCK;
           host.address = config.home.sessionVariables.GPG_EXTRA_SOCK;
         }
+        {
+          bind.address = config.home.sessionVariables.GPG_AGENT_SOCK + ".ssh";
+          host.address = config.home.sessionVariables.GPG_AGENT_SOCK + ".ssh";
+        }
       ];
     };
     programs.ssh.matchBlocks.argentite = {
@@ -103,6 +107,10 @@ in
         {
           bind.address = config.home.sessionVariables.GPG_AGENT_SOCK;
           host.address = config.home.sessionVariables.GPG_EXTRA_SOCK;
+        }
+        {
+          bind.address = config.home.sessionVariables.GPG_AGENT_SOCK + ".ssh";
+          host.address = config.home.sessionVariables.GPG_AGENT_SOCK + ".ssh";
         }
       ];
     };
