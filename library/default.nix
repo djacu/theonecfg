@@ -51,7 +51,6 @@ in
       - [users] User directories to remove.
       - [path] Path to the directory to read.
     */
-
     getNonUsers =
       users: path:
       attrNames (removeAttrs (filterAttrs (_: fileType: fileType == "directory") (readDir path)) users);
@@ -59,25 +58,26 @@ in
     /**
       Map strings to paths with prefix.
     */
-    mapToPaths = path: map (elem: path + "/${elem}");
+    mapToPaths = prefix: map (elem: prefix + "/${elem}");
 
     /**
       Make home modules for users.
 
       # Example
 
-        mkUserModules [ "djacu" ]
+        mkUserModules [ "djacu" ] ./.
         => { djacu = <homeModule>; }
 
       # Type
 
       ```
-      mkUserModules :: [String] -> {<homeModule>}
+      mkUserModules :: [String] -> Path -> {<homeModule>}
       ```
 
       # Arguments
 
       - [users] Users for which to create home modules.
+      - [path] Path to the directory to read.
     */
     mkUserModules =
       users: path:
