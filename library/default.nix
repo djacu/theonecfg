@@ -19,6 +19,7 @@ let
 
   inherit (lib.lists)
     last
+    map
     sort
     ;
 
@@ -35,10 +36,15 @@ in
     /**
       Get non-user directory names given a list of users and a path.
 
-      # Example
+      # Inputs
 
-        getNonUsers [ "djacu" ] ./.
-        => { programs = "directory"; }
+      `users`
+
+      : 1\. Known users whose directories will be filtered out in the return.
+
+      `path`
+
+      : 2\. Path to all home-manager modules.
 
       # Type
 
@@ -46,27 +52,81 @@ in
       getNonUsers :: [String] -> Path -> [String]
       ```
 
-      # Arguments
+      # Example
+      :::{.example}
+      ## `lib.modules.getNonUsers` usage example
 
-      - [users] User directories to remove.
-      - [path] Path to the directory to read.
+      ```nix
+      getNonUsers [ "djacu" ] ./home-modules
+      => { programs = "directory"; services = "directory"; }
+      ```
+
+      :::
     */
     getNonUsers =
       users: path:
       attrNames (removeAttrs (filterAttrs (_: fileType: fileType == "directory") (readDir path)) users);
 
     /**
-      Map strings to paths with prefix.
+      Join a path `prefix`, a middle segment `middle`, and a trailing segment
+      `suffix` with “/”, producing an absolute path string.
+
+      # Inputs
+
+      `prefix`
+
+      : 1\. A Nix path.
+
+      `suffix`
+
+      : 2\. A string that may itself be a subpath (e.g., "a/b.nix").
+
+      `middle`
+
+      : 3\. A string segment inserted between `prefix` and `suffix` that may be nested paths.
+
+      # Type
+
+      ```
+      joinPathSegments :: Path -> String -> String -> String
+      ```
+
+      # Examples
+      :::{.example}
+      ## `lib.modules.joinPathSegments` usage example
+
+      ```nix
+      joinPathSegments ./home-modules "module.nix" "programs"
+      => "/nix/store/p8anp3wlicmsayagghjq7nrq61ycqafl-home-modules/programs/module.nix"
+      # middle with subpath
+      joinPathSegments ./home-modules "module.nix" "hardware/nvidia"
+      "/nix/store/p8anp3wlicmsayagghjq7nrq61ycqafl-home-modules/hardware/nvidia/module.nix"
+      # suffix with subpath
+      .joinPathSegments ./home-modules "zoxide/module.nix" "programs"
+      => "/nix/store/p8anp3wlicmsayagghjq7nrq61ycqafl-home-modules/programs/zoxide/module.nix"
+      ```
+
+      :::
     */
-    mapToPaths = prefix: map (elem: prefix + "/${elem}");
+    joinPathSegments =
+      prefix: suffix: middle:
+      "${prefix}/${middle}/${suffix}";
 
     /**
-      Make home modules for users.
+      Make standalone home-manager modules for each user. Each attribute in the
+      output will contain shared modules and user modules specific to that
+      user. Each known user must have a directory at the root of `path` that
+      matches the name given in users.
 
-      # Example
+      # Inputs
 
-        mkUserModules [ "djacu" ] ./.
-        => { djacu = <homeModule>; }
+      `users`
+
+      : 1\. Known users for which to create home-manager modules.
+
+      `path`
+
+      : 2\. Path to all home-manager modules.
 
       # Type
 
@@ -74,22 +134,51 @@ in
       mkUserModules :: [String] -> Path -> {<homeModule>}
       ```
 
-      # Arguments
+      # Examples
+      :::{.example}
+      ## `lib.modules.mkUserModules` usage example
 
-      - [users] Users for which to create home modules.
-      - [path] Path to the directory to read.
+      ```nix
+      mkUserModules [ "djacu" "ucajd" ] ./home-modules
+      => {
+           djacu = {
+             _module = { ... };
+             imports = [
+               "/nix/store/...-home-modules/djacu/module.nix"
+               "/nix/store/...-home-modules/programs/module.nix"
+               "/nix/store/...-home-modules/services/module.nix"
+             ];
+           };
+           ucajd = {
+             _module = { ... };
+             imports = [
+               "/nix/store/...-home-modules/ucajd/module.nix"
+               "/nix/store/...-home-modules/programs/module.nix"
+               "/nix/store/...-home-modules/services/module.nix"
+             ];
+           };
+         }
+      ```
+
+      :::
     */
     mkUserModules =
       users: path:
       let
-        nonUserModules = mapToPaths path (getNonUsers users path);
+        nonUserModules = map (joinPathSegments path "module.nix") (getNonUsers users path);
       in
-      genAttrs users (userName: {
-        imports = [ (path + "/${userName}") ] ++ nonUserModules;
-        _module.args = {
-          inherit inputs;
-        };
-      });
+      genAttrs users (
+        userName:
+        let
+          userModules = [ (joinPathSegments path "module.nix" userName) ];
+        in
+        {
+          imports = userModules ++ nonUserModules;
+          _module.args = {
+            inherit inputs;
+          };
+        }
+      );
 
   };
 
