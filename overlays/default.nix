@@ -1,17 +1,33 @@
 inputs: {
 
   default =
-
     let
 
-      inherit (inputs.nixpkgs-unstable.lib) composeManyExtensions filterAttrs;
-      inherit (builtins) attrNames readDir;
+      inherit (builtins)
+        readDir
+        ;
+
+      inherit (inputs.nixpkgs-lib)
+        lib
+        ;
+
+      inherit (lib.attrsets)
+        attrNames
+        filterAttrs
+        ;
+
+      inherit (lib.fixedPoints)
+        composeManyExtensions
+        ;
+
+      inherit (lib.trivial)
+        const
+        ;
 
       getDirectories =
-        path: attrNames (filterAttrs (_: fileType: fileType == "directory") (readDir path));
+        path: attrNames (filterAttrs (const (fileType: fileType == "directory")) (readDir path));
 
     in
-
     composeManyExtensions [
 
       inputs.nur.overlays.default
