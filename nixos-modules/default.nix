@@ -6,21 +6,13 @@ inputs: {
     }:
     let
 
-      inherit (builtins)
-        readDir
-        ;
-
-      inherit (lib.attrsets)
-        attrNames
-        filterAttrs
-        ;
-
       inherit (lib.lists)
         map
         ;
 
-      inherit (lib.trivial)
-        const
+      inherit (inputs.self.library.path)
+        getDirectoryNames
+        joinPathSegments
         ;
 
     in
@@ -28,10 +20,7 @@ inputs: {
       imports = [
         inputs.disko.nixosModules.default
         inputs.impermanence.nixosModules.impermanence
-      ]
-      ++ map (directory: ./${directory}/module.nix) (
-        attrNames (filterAttrs (const (filetype: filetype == "directory")) (readDir ./.))
-      );
+      ] ++ map (joinPathSegments ./. "module.nix") (getDirectoryNames ./.);
 
       nixpkgs.overlays = [ inputs.self.overlays.default ];
     };
