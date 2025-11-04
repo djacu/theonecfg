@@ -3,29 +3,18 @@ inputs: {
   default =
     let
 
-      inherit (builtins)
-        readDir
-        ;
-
       inherit (inputs.nixpkgs-lib)
         lib
-        ;
-
-      inherit (lib.attrsets)
-        attrNames
-        filterAttrs
         ;
 
       inherit (lib.fixedPoints)
         composeManyExtensions
         ;
 
-      inherit (lib.trivial)
-        const
+      inherit (inputs.self.library.path)
+        getDirectoryNames
+        joinPathSegments
         ;
-
-      getDirectories =
-        path: attrNames (filterAttrs (const (fileType: fileType == "directory")) (readDir path));
 
     in
     composeManyExtensions [
@@ -34,8 +23,8 @@ inputs: {
 
       # auto-add packages
       (final: prev: {
-        theonecfg = final.lib.genAttrs (getDirectories ./.) (
-          dir: final.callPackage ./${dir}/package.nix { }
+        theonecfg = final.lib.genAttrs (getDirectoryNames ./.) (
+          dir: final.callPackage (joinPathSegments ./. "package.nix" dir) { }
         );
       })
 
