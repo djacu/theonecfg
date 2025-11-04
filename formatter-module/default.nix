@@ -31,7 +31,6 @@ mapAttrs (const (
         settings.global.excludes = [
           "*.gitignore"
           ".git-blame-ignore-revs"
-          "README.md"
           "notes/ores.md"
         ];
       };
