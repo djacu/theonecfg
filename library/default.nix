@@ -6,7 +6,7 @@ let
     tryEval
     ;
 
-  inherit (inputs.nixpkgs-unstable)
+  inherit (inputs.nixpkgs-lib)
     lib
     ;
 
