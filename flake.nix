@@ -17,10 +17,13 @@
     nixos-hardware.url = "github:nixos/nixos-hardware";
     nixvimcfg.url = "github:djacu/nixvimcfg";
     nur.url = "github:nix-community/nur";
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs-unstable";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
   };
 
   outputs = inputs: {
     formatter = import ./formatter inputs;
+    formatterModule = import ./formatter-module inputs;
     homeConfigurations = import ./home-configurations inputs;
     homeModules = import ./home-modules inputs;
     legacyPackages = import ./legacy-packages inputs;

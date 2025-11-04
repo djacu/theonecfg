@@ -1,7 +1,17 @@
 inputs:
-inputs.nixpkgs-unstable.lib.genAttrs [
-  "x86_64-linux"
-  "aarch64-linux"
-  "x86_64-darwin"
-  "aarch64-darwin"
-] (system: inputs.nixpkgs-unstable.legacyPackages.${system}.nixfmt-rfc-style)
+let
+
+  inherit (inputs.nixpkgs-lib)
+    lib
+    ;
+
+  inherit (lib.attrsets)
+    mapAttrs
+    ;
+
+  inherit (lib.trivial)
+    const
+    ;
+
+in
+mapAttrs (const (module: module.config.build.wrapper)) inputs.self.formatterModule
