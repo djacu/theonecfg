@@ -17,6 +17,10 @@ let
     genAttrs
     ;
 
+  inherit (lib.fixedPoints)
+    fix
+    ;
+
   inherit (lib.lists)
     last
     map
@@ -28,10 +32,128 @@ let
     versionOlder
     ;
 
-in
-{
+  inherit (lib.trivial)
+    const
+    flip
+    pipe
+    ;
 
-  modules = rec {
+in
+fix (finalLibrary: {
+
+  path = fix (finalPath: {
+
+    /**
+      Get list of directories names under parent.
+
+      # Inputs
+
+      `path`
+
+      : 1\. The parent path.
+
+      # Type
+
+      ```
+      getDirectories :: Path -> [String]
+      ```
+
+      # Examples
+      :::{.example}
+      ## `lib.path.getDirectories` usage example
+
+      ```nix
+      getDirectoryNames ./home-modules
+      => [
+        "djacu"
+        "programs"
+        "services"
+      ]
+      ```
+    */
+    getDirectoryNames = flip pipe [
+      finalPath.getDirectories
+      attrNames
+    ];
+
+    /**
+      Get attribute set of directories under parent.
+
+      # Inputs
+
+      `path`
+
+      : 1\. The parent path.
+
+      # Type
+
+      ```
+      getDirectories :: Path -> AttrSet
+      ```
+
+      # Examples
+      :::{.example}
+      ## `lib.path.getDirectories` usage example
+
+      ```nix
+      getDirectories ./home-modules
+      => {
+        djacu = "directory";
+        programs = "directory";
+        services = "directory";
+      }
+      ```
+    */
+    getDirectories = path: (filterAttrs (const (fileType: fileType == "directory")) (readDir path));
+
+    /**
+      Join a path `prefix`, a middle segment `middle`, and a trailing segment
+      `suffix` with “/”, producing an absolute path string.
+
+      # Inputs
+
+      `prefix`
+
+      : 1\. A Nix path.
+
+      `suffix`
+
+      : 2\. A string that may itself be a subpath (e.g., "a/b.nix").
+
+      `middle`
+
+      : 3\. A string segment inserted between `prefix` and `suffix` that may be nested paths.
+
+      # Type
+
+      ```
+      joinPathSegments :: Path -> String -> String -> String
+      ```
+
+      # Examples
+      :::{.example}
+      ## `lib.path.joinPathSegments` usage example
+
+      ```nix
+      joinPathSegments ./home-modules "module.nix" "programs"
+      => "/nix/store/p8anp3wlicmsayagghjq7nrq61ycqafl-home-modules/programs/module.nix"
+      # middle with subpath
+      joinPathSegments ./home-modules "module.nix" "hardware/nvidia"
+      "/nix/store/p8anp3wlicmsayagghjq7nrq61ycqafl-home-modules/hardware/nvidia/module.nix"
+      # suffix with subpath
+      joinPathSegments ./home-modules "zoxide/module.nix" "programs"
+      => "/nix/store/p8anp3wlicmsayagghjq7nrq61ycqafl-home-modules/programs/zoxide/module.nix"
+      ```
+
+      :::
+    */
+    joinPathSegments =
+      prefix: suffix: middle:
+      "${prefix}/${middle}/${suffix}";
+
+  });
+
+  modules = fix (finalModules: {
 
     /**
       Get non-user directory names given a list of users and a path.
@@ -66,51 +188,6 @@ in
     getNonUsers =
       users: path:
       attrNames (removeAttrs (filterAttrs (_: fileType: fileType == "directory") (readDir path)) users);
-
-    /**
-      Join a path `prefix`, a middle segment `middle`, and a trailing segment
-      `suffix` with “/”, producing an absolute path string.
-
-      # Inputs
-
-      `prefix`
-
-      : 1\. A Nix path.
-
-      `suffix`
-
-      : 2\. A string that may itself be a subpath (e.g., "a/b.nix").
-
-      `middle`
-
-      : 3\. A string segment inserted between `prefix` and `suffix` that may be nested paths.
-
-      # Type
-
-      ```
-      joinPathSegments :: Path -> String -> String -> String
-      ```
-
-      # Examples
-      :::{.example}
-      ## `lib.modules.joinPathSegments` usage example
-
-      ```nix
-      joinPathSegments ./home-modules "module.nix" "programs"
-      => "/nix/store/p8anp3wlicmsayagghjq7nrq61ycqafl-home-modules/programs/module.nix"
-      # middle with subpath
-      joinPathSegments ./home-modules "module.nix" "hardware/nvidia"
-      "/nix/store/p8anp3wlicmsayagghjq7nrq61ycqafl-home-modules/hardware/nvidia/module.nix"
-      # suffix with subpath
-      .joinPathSegments ./home-modules "zoxide/module.nix" "programs"
-      => "/nix/store/p8anp3wlicmsayagghjq7nrq61ycqafl-home-modules/programs/zoxide/module.nix"
-      ```
-
-      :::
-    */
-    joinPathSegments =
-      prefix: suffix: middle:
-      "${prefix}/${middle}/${suffix}";
 
     /**
       Make standalone home-manager modules for each user. Each attribute in the
@@ -165,12 +242,14 @@ in
     mkUserModules =
       users: path:
       let
-        nonUserModules = map (joinPathSegments path "module.nix") (getNonUsers users path);
+        nonUserModules = map (finalLibrary.path.joinPathSegments path "module.nix") (
+          finalModules.getNonUsers users path
+        );
       in
       genAttrs users (
         userName:
         let
-          userModules = [ (joinPathSegments path "module.nix" userName) ];
+          userModules = [ (finalLibrary.path.joinPathSegments path "module.nix" userName) ];
         in
         {
           imports = userModules ++ nonUserModules;
@@ -180,9 +259,9 @@ in
         }
       );
 
-  };
+  });
 
-  zfs = rec {
+  zfs = fix (finalZfs: {
     /**
       Check if the defined ZFS package for boot is unstable.
 
@@ -220,7 +299,7 @@ in
     kernelPackageIsNotBroken =
       args: kernelPackages:
       let
-        isUnstable = bootPackageIsUnstable args;
+        isUnstable = finalZfs.bootPackageIsUnstable args;
       in
       (!isUnstable && !kernelPackages.zfs.meta.broken)
       || (isUnstable && !kernelPackages.zfs_unstable.meta.broken);
@@ -245,7 +324,7 @@ in
         name: kernelPackages:
         (match "linux_[0-9]+_[0-9]+" name) != null
         && (tryEval kernelPackages).success
-        && (kernelPackageIsNotBroken args kernelPackages)
+        && (finalZfs.kernelPackageIsNotBroken args kernelPackages)
       ) args.pkgs.linuxKernel.packages;
 
     /**
@@ -270,9 +349,9 @@ in
       args:
       last (
         sort (a: b: (versionOlder a.kernel.version b.kernel.version)) (
-          attrValues (compatibleKernelPackages args)
+          attrValues (finalZfs.compatibleKernelPackages args)
         )
       );
-  };
+  });
 
-}
+})
