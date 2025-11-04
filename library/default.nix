@@ -15,6 +15,7 @@ let
     attrValues
     filterAttrs
     genAttrs
+    removeAttrs
     ;
 
   inherit (lib.fixedPoints)
@@ -187,7 +188,12 @@ fix (finalLibrary: {
     */
     getNonUsers =
       users: path:
-      attrNames (removeAttrs (filterAttrs (_: fileType: fileType == "directory") (readDir path)) users);
+      pipe path [
+        readDir
+        (filterAttrs (const (filetype: filetype == "directory")))
+        (flip removeAttrs users)
+        attrNames
+      ];
 
     /**
       Make standalone home-manager modules for each user. Each attribute in the
