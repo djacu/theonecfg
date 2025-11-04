@@ -25,14 +25,13 @@ inputs: {
 
     in
     {
-      imports =
-        [
-          inputs.disko.nixosModules.default
-          inputs.impermanence.nixosModules.impermanence
-        ]
-        ++ map (directory: ./${directory}/module.nix) (
-          attrNames (filterAttrs (const (filetype: filetype == "directory")) (readDir ./.))
-        );
+      imports = [
+        inputs.disko.nixosModules.default
+        inputs.impermanence.nixosModules.impermanence
+      ]
+      ++ map (directory: ./${directory}/module.nix) (
+        attrNames (filterAttrs (const (filetype: filetype == "directory")) (readDir ./.))
+      );
 
       nixpkgs.overlays = [ inputs.self.overlays.default ];
     };

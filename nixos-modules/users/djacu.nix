@@ -15,7 +15,8 @@ in
       isNormalUser = true;
       extraGroups = [
         "wheel"
-      ] ++ (lib.optional config.networking.networkmanager.enable "networkmanager");
+      ]
+      ++ (lib.optional config.networking.networkmanager.enable "networkmanager");
       shell = pkgs.fish;
     };
     programs.fish.enable = true;
