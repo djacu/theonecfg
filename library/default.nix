@@ -45,6 +45,42 @@ fix (finalLibrary: {
   path = fix (finalPath: {
 
     /**
+      Filter a read directory for directories only.
+
+      # Inputs
+
+      `path`
+
+      : 1\. The parent path.
+
+      # Type
+
+      ```
+      getDirectories :: Path -> AttrSet
+      ```
+
+      # Examples
+      :::{.example}
+      ## `lib.path.getDirectories` usage example
+
+      ```nix
+      x = {
+        "default.nix" = "regular";
+        djacu = "directory";
+        programs = "directory";
+        services = "directory";
+      }
+      filterDirectories x
+      => {
+        djacu = "directory";
+        programs = "directory";
+        services = "directory";
+      }
+      ```
+    */
+    filterDirectories = filterAttrs (const (fileType: fileType == "directory"));
+
+    /**
       Get list of directories names under parent.
 
       # Inputs
@@ -105,7 +141,10 @@ fix (finalLibrary: {
       }
       ```
     */
-    getDirectories = path: (filterAttrs (const (fileType: fileType == "directory")) (readDir path));
+    getDirectories = flip pipe [
+      readDir
+      finalPath.filterDirectories
+    ];
 
     /**
       Join a path `prefix`, a middle segment `middle`, and a trailing segment
@@ -190,7 +229,7 @@ fix (finalLibrary: {
       users: path:
       pipe path [
         readDir
-        (filterAttrs (const (filetype: filetype == "directory")))
+        finalLibrary.path.filterDirectories
         (flip removeAttrs users)
         attrNames
       ];
