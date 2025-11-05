@@ -45,23 +45,23 @@ fix (finalLibrary: {
   path = fix (finalPath: {
 
     /**
-      Filter a read directory for directories only.
+      Filter the contents of a directory path for directories only.
 
       # Inputs
 
-      `path`
+      `contents`
 
-      : 1\. The parent path.
+      : 1\. The contents of a directory path.
 
       # Type
 
       ```
-      getDirectories :: Path -> AttrSet
+      getDirectories :: AttrSet -> AttrSet
       ```
 
       # Examples
       :::{.example}
-      ## `lib.path.getDirectories` usage example
+      ## `lib.path.filterDirectories` usage example
 
       ```nix
       x = {
@@ -77,6 +77,8 @@ fix (finalLibrary: {
         services = "directory";
       }
       ```
+
+      :::
     */
     filterDirectories = filterAttrs (const (fileType: fileType == "directory"));
 
