@@ -32,5 +32,6 @@
     nixosModules = import ./nixos-modules inputs;
     overlays = import ./overlays inputs;
     packages = import ./packages inputs;
+    theonecfg = import ./theonecfg inputs;
   };
 }
