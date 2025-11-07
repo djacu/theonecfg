@@ -1,33 +1,57 @@
-inputs: {
+inputs:
+let
 
-  default =
-    let
+  # inherits
 
-      inherit (inputs.nixpkgs-lib)
-        lib
-        ;
+  inherit (inputs.nixpkgs-lib)
+    lib
+    ;
 
-      inherit (lib.fixedPoints)
-        composeManyExtensions
-        ;
+  inherit (lib.attrsets)
+    attrValues
+    genAttrs
+    ;
 
-      inherit (inputs.self.library.path)
-        getDirectoryNames
-        joinPathSegments
-        ;
+  inherit (lib.filesystem)
+    packagesFromDirectoryRecursive
+    ;
 
-    in
-    composeManyExtensions [
+  inherit (lib.fixedPoints)
+    composeManyExtensions
+    ;
 
+  inherit (inputs.self.library.path)
+    getDirectoryNames
+    joinPathSegments
+    ;
+
+  # overlays
+
+  toplevelOverlays =
+    final: prev:
+    packagesFromDirectoryRecursive {
+      inherit (final) callPackage;
+      inherit (prev) newScope;
+      directory = ../package-sets/top-level;
+    };
+
+  packageOverrides =
+    (
+      parent:
+      (genAttrs (getDirectoryNames parent) (dir: import (joinPathSegments parent "overlay.nix" dir)))
+    )
+      ./package-overrides;
+
+in
+packageOverrides
+// {
+
+  default = composeManyExtensions (
+    (attrValues packageOverrides)
+    ++ [
       inputs.nur.overlays.default
-
-      # auto-add packages
-      (final: prev: {
-        theonecfg = final.lib.genAttrs (getDirectoryNames ./.) (
-          dir: final.callPackage (joinPathSegments ./. "package.nix" dir) { }
-        );
-      })
-
-    ];
+      toplevelOverlays
+    ]
+  );
 
 }
