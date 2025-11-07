@@ -33,6 +33,7 @@ builtins.mapAttrs (
 
     specialArgs = {
       inherit inputs;
+      inherit (inputs.self) theonecfg;
     };
   }
 ) (inputs.self.library.path.getDirectories ./.)

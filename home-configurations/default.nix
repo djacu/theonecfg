@@ -38,6 +38,7 @@ let
           modules = [ inputs.self.homeModules.${user} ] ++ modules;
           extraSpecialArgs = {
             inherit inputs system;
+            inherit (inputs.self) theonecfg;
           };
         };
     });

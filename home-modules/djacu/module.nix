@@ -1,35 +1,26 @@
 {
-  lib,
   config,
-  pkgs,
   inputs,
+  lib,
+  pkgs,
+  theonecfg,
   ...
 }:
 let
-
-  inherit (builtins)
-    readDir
-    ;
-
-  inherit (lib.attrsets)
-    attrNames
-    filterAttrs
-    ;
 
   inherit (lib.lists)
     map
     ;
 
-  inherit (lib.trivial)
-    const
+  inherit (theonecfg.library.path)
+    joinPathSegments
+    getDirectoryNames
     ;
 
   cfg = config.theonecfg.users.djacu;
 in
 {
-  imports = map (directory: ./${directory}/module.nix) (
-    attrNames (filterAttrs (const (filetype: filetype == "directory")) (readDir ./.))
-  );
+  imports = map (joinPathSegments ./. "module.nix") (getDirectoryNames ./.);
 
   options.theonecfg.users.djacu.enable = lib.mkEnableOption "djacu user config";
 
