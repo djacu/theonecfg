@@ -56,7 +56,7 @@ fix (finalLibrary: {
       # Type
 
       ```
-      getDirectories :: AttrSet -> AttrSet
+      filterDirectories :: AttrSet -> AttrSet
       ```
 
       # Examples
@@ -94,12 +94,12 @@ fix (finalLibrary: {
       # Type
 
       ```
-      getDirectories :: Path -> [String]
+      getDirectoryNames :: Path -> [String]
       ```
 
       # Examples
       :::{.example}
-      ## `lib.path.getDirectories` usage example
+      ## `lib.path.getDirectoryNames` usage example
 
       ```nix
       getDirectoryNames ./home-modules
