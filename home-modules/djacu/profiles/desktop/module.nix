@@ -21,7 +21,6 @@ in
   config = mkIf (cfg.enable && cfg.profiles.desktop.enable) {
 
     theonecfg.users.djacu.firefox.enable = true;
-    theonecfg.users.djacu.gpg.enable = true;
 
     theonecfg.home.programs.kitty.enable = true;
 

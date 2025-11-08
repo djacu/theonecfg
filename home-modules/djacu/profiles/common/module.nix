@@ -20,6 +20,8 @@ in
 
   config = mkIf (cfg.enable && cfg.profiles.common.enable) {
 
+    theonecfg.users.djacu.git.enable = true;
+    theonecfg.users.djacu.gpg.enable = true;
     theonecfg.users.djacu.nix.enable = true;
 
   };

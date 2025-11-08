@@ -21,7 +21,6 @@ in
 
   config = mkIf (cfg.enable && cfg.profiles.developer.enable) {
 
-    theonecfg.users.djacu.git.enable = true;
     theonecfg.users.djacu.fish.enable = false;
 
     theonecfg.home.programs.fd.enable = true;
