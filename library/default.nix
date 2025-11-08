@@ -15,7 +15,6 @@ let
     attrValues
     filterAttrs
     genAttrs
-    removeAttrs
     ;
 
   inherit (lib.fixedPoints)
@@ -25,11 +24,14 @@ let
   inherit (lib.lists)
     last
     map
+    remove
     sort
     ;
 
   inherit (lib.strings)
+    concatStringsSep
     match
+    typeOf
     versionOlder
     ;
 
@@ -193,69 +195,73 @@ fix (finalLibrary: {
       prefix: suffix: middle:
       "${prefix}/${middle}/${suffix}";
 
+    /**
+      Join a parent path to one or more children.
+
+      # Inputs
+
+      `parent`
+
+      : 1\. A parent path.
+
+      `paths`
+
+      : 2\. The paths to append.
+
+      # Type
+
+      ```
+      joinParentToPaths :: Path -> String -> String
+      joinParentToPaths :: Path -> [ String ] -> String
+      ```
+
+      # Examples
+      :::{.example}
+      ## `lib.path.joinParentToPaths` usage example
+
+      ```nix
+      joinParentToPaths ./home-modules "users"
+      => /home/djacu/dev/djacu/theonecfg/home-modules/users
+      joinParentToPaths ./home-modules [ "users" djacu" "module.nix" "]
+      => /home/djacu/dev/djacu/theonecfg/home-modules/users/djacu/module.nix
+      ```
+
+      :::
+    */
+    joinParentToPaths =
+      parent: paths:
+      if typeOf paths == "string" then
+        parent + ("/" + paths)
+      else
+        parent + ("/" + concatStringsSep "/" paths);
+
   });
 
   modules = fix (finalModules: {
 
     /**
-      Get non-user directory names given a list of users and a path.
-
-      # Inputs
-
-      `users`
-
-      : 1\. Known users whose directories will be filtered out in the return.
-
-      `path`
-
-      : 2\. Path to all home-manager modules.
-
-      # Type
-
-      ```
-      getNonUsers :: [String] -> Path -> [String]
-      ```
-
-      # Example
-      :::{.example}
-      ## `lib.modules.getNonUsers` usage example
-
-      ```nix
-      getNonUsers [ "djacu" ] ./home-modules
-      => { programs = "directory"; services = "directory"; }
-      ```
-
-      :::
-    */
-    getNonUsers =
-      users: path:
-      pipe path [
-        readDir
-        finalLibrary.path.filterDirectories
-        (flip removeAttrs users)
-        attrNames
-      ];
-
-    /**
       Make standalone home-manager modules for each user. Each attribute in the
       output will contain shared modules and user modules specific to that
-      user. Each known user must have a directory at the root of `path` that
-      matches the name given in users.
+      user. Each user must have a directory at the root of users directory.
 
       # Inputs
 
-      `users`
+      `inputs`
 
-      : 1\. Known users for which to create home-manager modules.
+      : 1.\ Flake inputs; the argument passed to flake outputs.
 
-      `path`
+      `parentDirectory`
 
       : 2\. Path to all home-manager modules.
+
+      `usersDirName`
+
+      : 3\. Name of the users directory.
 
       # Type
 
       ```
-      mkUserModules :: [String] -> Path -> {<homeModule>}
+      mkUserModules :: AttrSet -> Path -> String -> {<homeModule>}
       ```
 
       # Examples
@@ -263,12 +269,13 @@ fix (finalLibrary: {
       ## `lib.modules.mkUserModules` usage example
 
       ```nix
-      mkUserModules [ "djacu" "ucajd" ] ./home-modules
+      mkUserModules inputs ./home-modules "users"
       => {
            djacu = {
              _module = { ... };
              imports = [
-               "/nix/store/...-home-modules/djacu/module.nix"
+               "/nix/store/...-home-modules/users/djacu/module.nix"
+               "/nix/store/...-home-modules/packages/module.nix"
                "/nix/store/...-home-modules/programs/module.nix"
                "/nix/store/...-home-modules/services/module.nix"
              ];
@@ -276,7 +283,8 @@ fix (finalLibrary: {
            ucajd = {
              _module = { ... };
              imports = [
-               "/nix/store/...-home-modules/ucajd/module.nix"
+               "/nix/store/...-home-modules/users/ucajd/module.nix"
+               "/nix/store/...-home-modules/packages/module.nix"
                "/nix/store/...-home-modules/programs/module.nix"
                "/nix/store/...-home-modules/services/module.nix"
              ];
@@ -287,23 +295,37 @@ fix (finalLibrary: {
       :::
     */
     mkUserModules =
-      users: path:
+      inputs: parentDirectory: usersDirName:
       let
-        nonUserModules = map (finalLibrary.path.joinPathSegments path "module.nix") (
-          finalModules.getNonUsers users path
-        );
+        inherit (finalLibrary.path)
+          joinParentToPaths
+          getDirectoryNames
+          ;
+
+        usersDirectory = joinParentToPaths parentDirectory [ usersDirName ];
+        usernames = getDirectoryNames usersDirectory;
+
+        nonusers = pipe parentDirectory [
+          getDirectoryNames
+          (remove usersDirName)
+        ];
+        nonUserModules = map (flip pipe [
+          (joinParentToPaths parentDirectory)
+          (flip joinParentToPaths "module.nix")
+        ]) nonusers;
+
       in
-      genAttrs users (
-        userName:
-        let
-          userModules = [ (finalLibrary.path.joinPathSegments path "module.nix" userName) ];
-        in
-        {
-          imports = userModules ++ nonUserModules;
-          _module.args = {
-            inherit inputs;
-          };
-        }
+      genAttrs usernames (
+        flip pipe [
+          (joinParentToPaths usersDirectory)
+          (flip joinParentToPaths "module.nix")
+          (userModule: {
+            imports = [ userModule ] ++ nonUserModules;
+            _module.args = {
+              inherit inputs;
+            };
+          })
+        ]
       );
 
   });
