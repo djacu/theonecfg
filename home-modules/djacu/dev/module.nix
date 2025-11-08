@@ -1,7 +1,6 @@
 {
   lib,
   config,
-  pkgs,
   ...
 }:
 let
@@ -19,44 +18,11 @@ in
     theonecfg.home.programs.nixvimcfg.enable = true;
     theonecfg.home.programs.tmux.enable = true;
 
-    home.packages = with pkgs; [
+    theonecfg.packages.admin.enable = true;
+    theonecfg.packages.developer.enable = true;
+    theonecfg.packages.networking.enable = true;
+    theonecfg.packages.nix.enable = true;
+    theonecfg.packages.productivity.enable = true;
 
-      ansifilter
-      as-tree
-      bat
-      bc
-      bintools
-      bottom
-      curl
-      dig
-      dnsutils
-      dt
-      file
-      gh
-      grex
-      gron
-      htmlq
-      iputils
-      jo
-      jq
-      lsof
-      man-pages
-      man-pages-posix
-      mdcat
-      nix-diff
-      nix-output-monitor
-      nix-prefetch-scripts
-      nix-tree
-      nurl
-      procs
-      pstree
-      ripgrep
-      sd
-      tealdeer
-      traceroute
-      yj
-      zathura
-
-    ];
   };
 }
