@@ -43,7 +43,12 @@ in
       pkgs.ripgrep
       pkgs.sd
       pkgs.tealdeer
+      pkgs.tree
+      pkgs.unzip
+      pkgs.usbutils
+      pkgs.w3m
       pkgs.yj
+      pkgs.zip
 
     ];
   };

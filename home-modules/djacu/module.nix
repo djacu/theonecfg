@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   theonecfg,
   ...
 }:
@@ -23,22 +22,12 @@ in
 
   options.theonecfg.users.djacu.enable = lib.mkEnableOption "djacu user config";
 
-  config = lib.mkIf cfg.enable (
-    lib.mkMerge [
-      {
-        home.username = lib.mkDefault "djacu";
-        home.homeDirectory = "/home/${config.home.username}";
+  config = lib.mkIf cfg.enable {
 
-        programs.home-manager.enable = true;
+    home.username = lib.mkDefault "djacu";
+    home.homeDirectory = "/home/${config.home.username}";
 
-        home.packages = with pkgs; [
-          tree
-          unzip
-          usbutils
-          w3m
-          zip
-        ];
-      }
-    ]
-  );
+    programs.home-manager.enable = true;
+
+  };
 }
