@@ -1,9 +1,9 @@
 { lib, config, ... }:
 let
-  cfg = config.theonecfg.home.programs.kitty;
+  cfg = config.theonecfg.programs.kitty;
 in
 {
-  options.theonecfg.home.programs.kitty.enable = lib.mkEnableOption "kitty config";
+  options.theonecfg.programs.kitty.enable = lib.mkEnableOption "kitty config";
 
   config = lib.mkIf cfg.enable {
     programs.kitty.enable = true;

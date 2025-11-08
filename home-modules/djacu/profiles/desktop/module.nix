@@ -22,7 +22,7 @@ in
 
     theonecfg.users.djacu.firefox.enable = true;
 
-    theonecfg.home.programs.kitty.enable = true;
+    theonecfg.programs.kitty.enable = true;
 
     theonecfg.packages.messaging.enable = true;
     theonecfg.packages.productivity.enable = true;

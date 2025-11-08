@@ -23,10 +23,10 @@ in
 
     theonecfg.users.djacu.fish.enable = false;
 
-    theonecfg.home.programs.fd.enable = true;
-    theonecfg.home.programs.fish.enable = true;
-    theonecfg.home.programs.nixvimcfg.enable = true;
-    theonecfg.home.programs.tmux.enable = true;
+    theonecfg.programs.fd.enable = true;
+    theonecfg.programs.fish.enable = true;
+    theonecfg.programs.nixvimcfg.enable = true;
+    theonecfg.programs.tmux.enable = true;
 
     theonecfg.packages.admin.enable = true;
     theonecfg.packages.developer.enable = true;

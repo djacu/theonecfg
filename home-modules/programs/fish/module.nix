@@ -11,11 +11,11 @@ let
     mkMerge
     ;
 
-  cfg = config.theonecfg.home.programs.fish;
+  cfg = config.theonecfg.programs.fish;
 
 in
 {
-  options.theonecfg.home.programs.fish.enable = lib.mkEnableOption "fish config";
+  options.theonecfg.programs.fish.enable = lib.mkEnableOption "fish config";
 
   config = mkIf cfg.enable (mkMerge [
 
@@ -26,7 +26,7 @@ in
       };
     }
 
-    (mkIf config.theonecfg.home.programs.kitty.enable {
+    (mkIf config.theonecfg.programs.kitty.enable {
       programs.kitty = {
         shellIntegration.enableFishIntegration = true;
       };

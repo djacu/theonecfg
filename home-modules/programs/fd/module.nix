@@ -5,10 +5,10 @@
   ...
 }:
 let
-  cfg = config.theonecfg.home.programs.fd;
+  cfg = config.theonecfg.programs.fd;
 in
 {
-  options.theonecfg.home.programs.fd.enable = lib.mkEnableOption "fd config";
+  options.theonecfg.programs.fd.enable = lib.mkEnableOption "fd config";
 
   config = lib.mkIf cfg.enable {
     home.packages = with pkgs; [ fd ];
