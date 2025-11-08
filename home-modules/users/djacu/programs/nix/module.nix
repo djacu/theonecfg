@@ -12,9 +12,9 @@ let
 in
 {
 
-  options.theonecfg.users.djacu.nix.enable = lib.mkEnableOption "djacu nix config";
+  options.theonecfg.users.djacu.programs.nix.enable = lib.mkEnableOption "djacu nix config";
 
-  config = lib.mkIf (cfg.enable && cfg.nix.enable) {
+  config = lib.mkIf (cfg.enable && cfg.programs.nix.enable) {
     nix = {
       package = pkgs.nix;
       registry.nixpkgs.flake = inputs.nixpkgs-unstable;

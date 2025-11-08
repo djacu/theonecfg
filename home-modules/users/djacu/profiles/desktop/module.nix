@@ -20,7 +20,7 @@ in
 
   config = mkIf (cfg.enable && cfg.profiles.desktop.enable) {
 
-    theonecfg.users.djacu.firefox.enable = true;
+    theonecfg.users.djacu.programs.firefox.enable = true;
 
     theonecfg.programs.kitty.enable = true;
 

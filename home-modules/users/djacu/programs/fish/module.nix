@@ -9,13 +9,17 @@ let
     mkIf
     ;
 
-  cfg = config.theonecfg.users.djacu.fish;
+  inherit (lib.options)
+    mkEnableOption
+    ;
+
+  cfg = config.theonecfg.users.djacu;
 
 in
 {
-  options.theonecfg.users.djacu.fish.enable = lib.mkEnableOption "djacu fish config";
+  options.theonecfg.users.djacu.programs.fish.enable = mkEnableOption "djacu fish config";
 
-  config = mkIf cfg.enable {
+  config = mkIf (cfg.enable && cfg.programs.fish.enable) {
     # Fish startup guard: prefer forwarded SSH_AUTH_SOCK, else local gpg socket
     home.file.".config/fish/conf.d/10-ssh-auth-sock.fish".text = ''
       function __forwarded_agent --description "Detect forwarded SSH agent"

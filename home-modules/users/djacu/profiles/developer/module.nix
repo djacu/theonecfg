@@ -21,7 +21,7 @@ in
 
   config = mkIf (cfg.enable && cfg.profiles.developer.enable) {
 
-    theonecfg.users.djacu.fish.enable = false;
+    theonecfg.users.djacu.programs.fish.enable = false;
 
     theonecfg.programs.fd.enable = true;
     theonecfg.programs.fish.enable = true;

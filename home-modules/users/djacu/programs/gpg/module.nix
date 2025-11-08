@@ -5,12 +5,12 @@
   ...
 }:
 let
-  cfg = config.theonecfg.users.djacu.gpg;
+  cfg = config.theonecfg.users.djacu;
 in
 {
-  options.theonecfg.users.djacu.gpg.enable = lib.mkEnableOption "gpg config";
+  options.theonecfg.users.djacu.programs.gpg.enable = lib.mkEnableOption "gpg config";
 
-  config = lib.mkIf cfg.enable {
+  config = lib.mkIf (cfg.enable && cfg.programs.gpg.enable) {
 
     programs.gpg = {
       enable = true;

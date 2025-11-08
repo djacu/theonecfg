@@ -6,10 +6,10 @@
 }:
 let
   cfg = config.theonecfg.users.djacu;
-  cfgFirefox = cfg.firefox;
+  cfgFirefox = cfg.programs.firefox;
 in
 {
-  options.theonecfg.users.djacu.firefox = {
+  options.theonecfg.users.djacu.programs.firefox = {
     enable = lib.mkEnableOption "djacu firefox config";
     tridactyl.enable = lib.mkEnableOption "djacu firefox tridactyl config" // {
       default = cfgFirefox.enable;

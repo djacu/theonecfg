@@ -3,9 +3,9 @@ let
   cfg = config.theonecfg.users.djacu;
 in
 {
-  options.theonecfg.users.djacu.git.enable = lib.mkEnableOption "djacu git config";
+  options.theonecfg.users.djacu.programs.git.enable = lib.mkEnableOption "djacu git config";
 
-  config = lib.mkIf (cfg.enable && cfg.git.enable) {
+  config = lib.mkIf (cfg.enable && cfg.programs.git.enable) {
     programs.git = {
       enable = true;
       userName = "Daniel Baker";
