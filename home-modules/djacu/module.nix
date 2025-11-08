@@ -10,6 +10,14 @@ let
     map
     ;
 
+  inherit (lib.modules)
+    mkIf
+    ;
+
+  inherit (lib.options)
+    mkEnableOption
+    ;
+
   inherit (theonecfg.library.path)
     joinPathSegments
     getDirectoryNames
@@ -20,11 +28,11 @@ in
 {
   imports = map (joinPathSegments ./. "module.nix") (getDirectoryNames ./.);
 
-  options.theonecfg.users.djacu.enable = lib.mkEnableOption "djacu user config";
+  options.theonecfg.users.djacu.enable = mkEnableOption "djacu user config";
 
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
 
-    home.username = lib.mkDefault "djacu";
+    home.username = "djacu";
     home.homeDirectory = "/home/${config.home.username}";
 
     programs.home-manager.enable = true;
