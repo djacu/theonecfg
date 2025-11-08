@@ -1,15 +1,25 @@
 {
-  lib,
   config,
+  lib,
   ...
 }:
 let
+
+  inherit (lib.modules)
+    mkIf
+    ;
+
+  inherit (lib.options)
+    mkEnableOption
+    ;
+
   cfg = config.theonecfg.users.djacu;
+
 in
 {
-  options.theonecfg.users.djacu.dev.enable = lib.mkEnableOption "djacu dev config";
+  options.theonecfg.users.djacu.profiles.developer.enable = mkEnableOption "djacu developer profile";
 
-  config = lib.mkIf (cfg.enable && cfg.dev.enable) {
+  config = mkIf (cfg.enable && cfg.profiles.developer.enable) {
 
     theonecfg.users.djacu.git.enable = true;
     theonecfg.users.djacu.fish.enable = false;
