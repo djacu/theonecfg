@@ -32,7 +32,6 @@ builtins.mapAttrs (
     ];
 
     specialArgs = {
-      inherit inputs;
       inherit (inputs.self) theonecfg;
     };
   }
