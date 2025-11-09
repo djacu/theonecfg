@@ -5,6 +5,7 @@
       config,
       inputs,
       pkgs,
+      theonecfg,
       ...
     }:
     let
@@ -16,7 +17,7 @@
         ./hardware.nix
         ./impermanence.nix
 
-        inputs.nixos-hardware.nixosModules.lenovo-thinkpad-t480
+        theonecfg.nixosHardware.lenovo-thinkpad-t480
       ];
       config = {
         nixpkgs.hostPlatform = "x86_64-linux";
