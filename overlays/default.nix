@@ -42,8 +42,13 @@ let
     )
       ./package-overrides;
 
+  inputOverlays = genAttrs (getDirectoryNames ../overlays/input-overlays) (
+    dir: import ../overlays/input-overlays/${dir}/overlay.nix inputs
+  );
+
 in
 packageOverrides
+// inputOverlays
 // {
 
   default = composeManyExtensions (
@@ -52,6 +57,7 @@ packageOverrides
       inputs.nur.overlays.default
       toplevelOverlays
     ]
+    ++ (attrValues inputOverlays)
   );
 
 }

@@ -1,8 +1,7 @@
 {
   lib,
   config,
-  inputs,
-  system,
+  pkgs,
   ...
 }:
 let
@@ -12,7 +11,7 @@ in
   options.theonecfg.programs.nixvimcfg.enable = lib.mkEnableOption "nixvimcfg config";
 
   config = lib.mkIf cfg.enable {
-    home.packages = [ inputs.nixvimcfg.packages.${system}.default ];
+    home.packages = [ pkgs.theonecfg.nixvimcfg ];
 
     home.sessionVariables = {
       EDITOR = "nvim";
