@@ -297,35 +297,30 @@ fix (finalLibrary: {
     mkUserModules =
       inputs: parentDirectory: usersDirName:
       let
+
         inherit (finalLibrary.path)
           joinParentToPaths
           getDirectoryNames
           ;
 
-        usersDirectory = joinParentToPaths parentDirectory [ usersDirName ];
-        usernames = getDirectoryNames usersDirectory;
-
-        nonusers = pipe parentDirectory [
-          getDirectoryNames
-          (remove usersDirName)
-        ];
-        nonUserModules = map (flip pipe [
-          (joinParentToPaths parentDirectory)
-          (flip joinParentToPaths "module.nix")
-        ]) nonusers;
+        __mul =
+          g: f: x:
+          g (f x);
 
       in
-      genAttrs usernames (
-        flip pipe [
-          (joinParentToPaths usersDirectory)
-          (flip joinParentToPaths "module.nix")
-          (userModule: {
-            imports = [ userModule ] ++ nonUserModules;
-            _module.args = {
-              inherit inputs;
-            };
-          })
-        ]
+      genAttrs (getDirectoryNames (joinParentToPaths parentDirectory [ usersDirName ])) (
+        (userModule: {
+          imports =
+            [ userModule ]
+            ++ map ((flip joinParentToPaths "module.nix") * (joinParentToPaths parentDirectory)) (
+              ((remove usersDirName) * getDirectoryNames) parentDirectory
+            );
+          _module.args = {
+            inherit inputs;
+          };
+        })
+        * (flip joinParentToPaths "module.nix")
+        * (joinParentToPaths (joinParentToPaths parentDirectory [ usersDirName ]))
       );
 
   });
