@@ -3,7 +3,6 @@
   modules =
     {
       config,
-      inputs,
       lib,
       pkgs,
       ...
@@ -13,8 +12,6 @@
         ./disko.nix
         ./hardware.nix
         ./impermanence.nix
-
-        inputs.nixos-hardware.nixosModules.framework-11th-gen-intel
       ];
       config = {
         nixpkgs.hostPlatform = "x86_64-linux";
