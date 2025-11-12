@@ -29,11 +29,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1738453229,
-        "narHash": "sha256-7H9XgNiGLKN1G1CgRh0vUL4AheZSYzPm+zmZ7vxbJdo=",
+        "lastModified": 1759362264,
+        "narHash": "sha256-wfG0S7pltlYyZTM+qqlhJ7GMw2fTF4mLKCIVhLii/4M=",
         "owner": "hercules-ci",
         "repo": "flake-parts",
-        "rev": "32ea77a06711b758da0ad9bd6a844c5740a87abd",
+        "rev": "758cf7296bee11f1706a574c77d072b8a7baa881",
         "type": "github"
       },
       "original": {
@@ -116,16 +116,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1739214665,
-        "narHash": "sha256-26L8VAu3/1YRxS8MHgBOyOM8xALdo6N0I04PgorE7UM=",
-        "owner": "nixos",
+        "lastModified": 1761440988,
+        "narHash": "sha256-2qsow3cQIgZB2g8Cy8cW+L9eXDHP6a1PsvOschk5y+E=",
+        "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "64e75cd44acf21c7933d61d7721e812eac1b5a0a",
+        "rev": "de69d2ba6c70e747320df9c096523b623d3a4c35",
         "type": "github"
       },
       "original": {
-        "owner": "nixos",
-        "ref": "nixos-unstable",
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -195,39 +195,19 @@
     },
     "nixvim": {
       "inputs": {
-        "devshell": [
-          "nixvimcfg"
-        ],
-        "flake-compat": [
-          "nixvimcfg"
-        ],
         "flake-parts": "flake-parts",
-        "git-hooks": [
-          "nixvimcfg"
-        ],
-        "home-manager": [
-          "nixvimcfg"
-        ],
-        "nix-darwin": [
-          "nixvimcfg"
-        ],
-        "nixpkgs": [
-          "nixvimcfg",
-          "nixpkgs"
-        ],
+        "nixpkgs": "nixpkgs",
         "nuschtosSearch": [
           "nixvimcfg"
         ],
-        "treefmt-nix": [
-          "nixvimcfg"
-        ]
+        "systems": "systems"
       },
       "locked": {
-        "lastModified": 1739353096,
-        "narHash": "sha256-w/T2uYCoq4k6K46GX2CMGWsKfMvcqnxC41LIgnvGifE=",
+        "lastModified": 1760616351,
+        "narHash": "sha256-z6+MKQBXfeZTdUK+PXbmBydaUuJK+k3iFnTanRvdkXg=",
         "owner": "nix-community",
         "repo": "nixvim",
-        "rev": "78b6f8e1e5b37a7789216e17a96ebc117660f0e7",
+        "rev": "5275e258bf89e4947409ba36e362031ca491c67c",
         "type": "github"
       },
       "original": {
@@ -238,15 +218,30 @@
     },
     "nixvimcfg": {
       "inputs": {
-        "nixpkgs": "nixpkgs",
-        "nixvim": "nixvim"
+        "flake-parts": [
+          "nixvimcfg",
+          "nixvim",
+          "flake-parts"
+        ],
+        "nixpkgs": [
+          "nixvimcfg",
+          "nixvim",
+          "nixpkgs"
+        ],
+        "nixvim": "nixvim",
+        "systems": [
+          "nixvimcfg",
+          "nixvim",
+          "systems"
+        ],
+        "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1739427635,
-        "narHash": "sha256-/at3ZxV6dU9+SKJ5cD6Yh64CfVy3dMsgNhGJcgDtD0E=",
+        "lastModified": 1761622479,
+        "narHash": "sha256-eBMqBE9cCyeb/9427B406BAuueDOoVBYu+Skg4IpERY=",
         "owner": "djacu",
         "repo": "nixvimcfg",
-        "rev": "fa86e09a62482673b0b71f8af4c459bf306e8697",
+        "rev": "21c5bbc940cca80d882b01ed7bed2f8d07618110",
         "type": "github"
       },
       "original": {
@@ -285,10 +280,46 @@
         "nixpkgs-unstable": "nixpkgs-unstable",
         "nixvimcfg": "nixvimcfg",
         "nur": "nur",
-        "treefmt-nix": "treefmt-nix"
+        "treefmt-nix": "treefmt-nix_2"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
       }
     },
     "treefmt-nix": {
+      "inputs": {
+        "nixpkgs": [
+          "nixvimcfg",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1760120816,
+        "narHash": "sha256-gq9rdocpmRZCwLS5vsHozwB6b5nrOBDNc2kkEaTXHfg=",
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "rev": "761ae7aff00907b607125b2f57338b74177697ed",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "treefmt-nix_2": {
       "inputs": {
         "nixpkgs": [
           "nixpkgs-unstable"
