@@ -22,6 +22,8 @@ in
 
     theonecfg.users.djacu.programs.git.enable = true;
     theonecfg.users.djacu.programs.gpg.enable = true;
+    theonecfg.users.djacu.programs.gpg.gitIntegration.enable = true;
+    theonecfg.users.djacu.programs.gpg.sshIntegration.enable = true;
     theonecfg.users.djacu.programs.nix.enable = true;
 
   };
