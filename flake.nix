@@ -2,13 +2,10 @@
   inputs = {
     disko.url = "github:nix-community/disko/";
     disko.inputs.nixpkgs.follows = "nixpkgs-unstable";
-    home-manager-2411.url = "github:nix-community/home-manager/release-24.11";
-    home-manager-2411.inputs.nixpkgs.follows = "nixpkgs-2411";
     home-manager-2505.url = "github:nix-community/home-manager/release-25.05";
     home-manager-2505.inputs.nixpkgs.follows = "nixpkgs-2505";
     impermanence.url = "github:nix-community/impermanence";
     nixpkgs-lib.url = "github:nix-community/nixpkgs.lib";
-    nixpkgs-2411.url = "github:nixos/nixpkgs/nixos-24.11";
     nixpkgs-2505.url = "github:nixos/nixpkgs/nixos-25.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nixos-hardware.url = "github:nixos/nixos-hardware";
