@@ -1,6 +1,6 @@
 {
   system = "x86_64-linux";
-  release = "2405";
+  release = "2505";
   modules = [
     {
 
