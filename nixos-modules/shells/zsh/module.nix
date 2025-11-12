@@ -1,11 +1,26 @@
-{ lib, config, ... }:
+{
+  config,
+  lib,
+  ...
+}:
 let
-  cfg = config.theonecfg.zsh;
+
+  inherit (lib.modules)
+    mkIf
+    ;
+
+  inherit (lib.options)
+    mkEnableOption
+    ;
+
+  cfg = config.theonecfg.shells.zsh;
+
 in
 {
-  options.theonecfg.zsh.enable = lib.mkEnableOption "zsh setup";
 
-  config = lib.mkIf cfg.enable {
+  options.theonecfg.shells.zsh.enable = mkEnableOption "zsh setup";
+
+  config = mkIf cfg.enable {
     programs.zsh = {
       enable = true;
       autosuggestions.enable = true;
@@ -35,4 +50,5 @@ in
       touch .zshrc
     '';
   };
+
 }

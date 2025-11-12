@@ -5,22 +5,32 @@
   ...
 }:
 let
+
   inherit (lib)
-    concatStringsSep
-    literalExpression
-    mkOption
-    mkEnableOption
-    mkIf
     types
     ;
 
-  cfg = config.theonecfg.zoxide;
+  inherit (lib.modules)
+    mkIf
+    ;
 
+  inherit (lib.options)
+    literalExpression
+    mkEnableOption
+    mkOption
+    ;
+
+  inherit (lib.strings)
+    concatStringsSep
+    ;
+
+  cfg = config.theonecfg.features.zoxide;
   cfgOptions = concatStringsSep " " cfg.options;
+
 in
 {
 
-  options.theonecfg.zoxide = {
+  options.theonecfg.features.zoxide = {
     enable = mkEnableOption "zoxide";
 
     package = mkOption {

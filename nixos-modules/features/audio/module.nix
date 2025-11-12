@@ -1,7 +1,7 @@
 {
+  config,
   lib,
   pkgs,
-  config,
   ...
 }:
 let
@@ -14,18 +14,19 @@ let
     mkEnableOption
     ;
 
-  cfg = config.theonecfg.audio;
+  cfg = config.theonecfg.features.audio;
 
 in
 {
-  options.theonecfg.audio.enable = mkEnableOption "audio setup";
+
+  options.theonecfg.features.audio.enable = mkEnableOption "theonecfg audio setup";
 
   config = mkIf cfg.enable {
 
     # for pactl
-    environment.systemPackages = with pkgs; [
-      pulseaudio
-      pamixer
+    environment.systemPackages = [
+      pkgs.pulseaudio
+      pkgs.pamixer
     ];
 
     services.pipewire = {
@@ -40,4 +41,5 @@ in
     security.rtkit.enable = true;
 
   };
+
 }

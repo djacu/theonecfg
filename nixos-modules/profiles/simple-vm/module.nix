@@ -1,11 +1,25 @@
-{ lib, config, ... }:
+{
+  config,
+  lib,
+  ...
+}:
 let
-  cfg = config.theonecfg.simple-vm;
+
+  inherit (lib.modules)
+    mkIf
+    ;
+
+  inherit (lib.options)
+    mkEnableOption
+    ;
+
+  cfg = config.theonecfg.profiles.simple-vm;
+
 in
 {
-  options.theonecfg.simple-vm.enable = lib.mkEnableOption "simple vm config";
+  options.theonecfg.profiles.simple-vm.enable = mkEnableOption "simple vm config";
 
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
     # Configure networking
     networking.useDHCP = false;
     networking.interfaces.eth0.useDHCP = true;

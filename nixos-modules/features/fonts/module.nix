@@ -1,25 +1,35 @@
 {
+  config,
   lib,
   pkgs,
-  config,
   ...
 }:
 let
+
   inherit (lib)
-    literalExpression
-    mkOption
-    mkEnableOption
-    mkIf
-    mkMerge
     types
     ;
 
-  cfg = config.theonecfg.fonts;
+  inherit (lib.modules)
+    mkIf
+    mkMerge
+    ;
+
+  inherit (lib.options)
+    literalExpression
+    mkEnableOption
+    mkOption
+    ;
+
+  cfg = config.theonecfg.features.fonts;
+
 in
 {
-  options.theonecfg.fonts = {
-    dev = {
-      enable = mkEnableOption "developer fonts";
+
+  options.theonecfg.features.fonts = {
+
+    desktop = {
+      enable = mkEnableOption "theonecfg desktop fonts";
 
       packages = mkOption {
         type = types.listOf types.package;
@@ -69,19 +79,23 @@ in
       };
     };
 
-    server.enable = mkEnableOption "server fonts";
+    server.enable = mkEnableOption "theonecfg server fonts";
+
   };
 
   config = mkMerge [
-    (mkIf cfg.dev.enable {
-      fonts.packages = cfg.dev.packages;
-      fonts.fontconfig.defaultFonts = cfg.dev.fontconfig.defaults;
+
+    (mkIf cfg.desktop.enable {
+      fonts.packages = cfg.desktop.packages;
+      fonts.fontconfig.defaultFonts = cfg.desktop.fontconfig.defaults;
     })
 
-    (lib.mkIf cfg.server.enable {
+    (mkIf cfg.server.enable {
       fonts.enableDefaultPackages = false;
       fonts.fontconfig.enable = false;
       fonts.fontDir.enable = false;
     })
+
   ];
+
 }

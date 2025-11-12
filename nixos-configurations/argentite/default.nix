@@ -40,10 +40,9 @@
         users.mutableUsers = false;
         users.users.root.initialHashedPassword = "$6$efX.JpKjAey2jrYG$kOt..AuFrPPIVTDncVj7vNkIo4MR/9mYG2SaDV2xpSNDEmk8DRxVNmuMI6hcW.CmD6ZDqdIKCj2MAyHnIdrkl/";
 
-        theonecfg.common.enable = true;
-        theonecfg.basicNetwork.enable = true;
-        theonecfg.desktop.enable = true;
-        theonecfg.nvidia-1080ti.enable = true;
+        theonecfg.hardware.nvidia-1080ti.enable = true;
+        theonecfg.profiles.common.enable = true;
+        theonecfg.profiles.desktop.enable = true;
 
         theonecfg.users.djacu.enable = true;
         users.users.djacu.initialHashedPassword = "$6$TI48LHPoldY069pW$YTQAaocNJcn9dmt5dmyHkhy.wuWjYwoMqTcwgfGlOEAFRZ/vQMM565zE.xZB.dL7pTRZn71zjv9lAeW4YAoq40";

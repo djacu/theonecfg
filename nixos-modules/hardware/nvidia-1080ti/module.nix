@@ -4,12 +4,22 @@
   ...
 }:
 let
-  cfg = config.theonecfg.nvidia-1080ti;
+
+  inherit (lib.modules)
+    mkIf
+    ;
+
+  inherit (lib.options)
+    mkEnableOption
+    ;
+
+  cfg = config.theonecfg.hardware.nvidia-1080ti;
+
 in
 {
-  options.theonecfg.nvidia-1080ti.enable = lib.mkEnableOption "simple vm config";
+  options.theonecfg.hardware.nvidia-1080ti.enable = mkEnableOption "theonecfg nvidia 1080ti config";
 
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
     nixpkgs.config.allowUnfree = true;
 
     # Enable OpenGL
