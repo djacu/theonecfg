@@ -1,7 +1,12 @@
 {
-  release = "2405";
+  release = "2505";
   modules =
-    { config, lib, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     {
       imports = [
         ./hardware.nix
@@ -17,7 +22,7 @@
         boot.loader.efi.efiSysMountPoint = "/boot";
 
         # ZFS
-        boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
+        boot.kernelPackages = pkgs.linuxPackages_6_15;
         boot.supportedFilesystems = [ "zfs" ];
         boot.zfs.devNodes = "/dev/disk/by-id";
         boot.zfs.extraPools = [ "scheelite-tank0" ];
