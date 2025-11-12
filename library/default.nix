@@ -26,12 +26,12 @@ let
     map
     remove
     sort
+    toList
     ;
 
   inherit (lib.strings)
     concatStringsSep
     match
-    typeOf
     versionOlder
     ;
 
@@ -211,8 +211,7 @@ fix (finalLibrary: {
       # Type
 
       ```
-      joinParentToPaths :: Path -> String -> String
-      joinParentToPaths :: Path -> [ String ] -> String
+      joinParentToPaths :: Path -> String | [ String ] -> String
       ```
 
       # Examples
@@ -228,12 +227,7 @@ fix (finalLibrary: {
 
       :::
     */
-    joinParentToPaths =
-      parent: paths:
-      if typeOf paths == "string" then
-        parent + ("/" + paths)
-      else
-        parent + ("/" + concatStringsSep "/" paths);
+    joinParentToPaths = parent: paths: parent + ("/" + concatStringsSep "/" (toList paths));
 
   });
 
