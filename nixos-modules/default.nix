@@ -20,7 +20,8 @@ inputs: {
       imports = [
         inputs.disko.nixosModules.default
         inputs.impermanence.nixosModules.impermanence
-      ] ++ map (joinPathSegments ./. "module.nix") (getDirectoryNames ./.);
+      ]
+      ++ map (joinPathSegments ./. "module.nix") (getDirectoryNames ./.);
 
       nixpkgs.overlays = [ inputs.self.overlays.default ];
     };
