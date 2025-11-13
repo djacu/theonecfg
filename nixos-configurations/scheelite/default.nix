@@ -1,7 +1,12 @@
 {
-  release = "2405";
+  release = "2505";
   modules =
-    { config, lib, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     {
       imports = [
         ./hardware.nix
@@ -17,7 +22,7 @@
         boot.loader.efi.efiSysMountPoint = "/boot";
 
         # ZFS
-        boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
+        boot.kernelPackages = pkgs.linuxPackages_6_15;
         boot.supportedFilesystems = [ "zfs" ];
         boot.zfs.devNodes = "/dev/disk/by-id";
         boot.zfs.extraPools = [ "scheelite-tank0" ];
@@ -38,11 +43,10 @@
         users.mutableUsers = false;
         users.users.root.initialHashedPassword = "$6$efX.JpKjAey2jrYG$kOt..AuFrPPIVTDncVj7vNkIo4MR/9mYG2SaDV2xpSNDEmk8DRxVNmuMI6hcW.CmD6ZDqdIKCj2MAyHnIdrkl/";
 
-        theonecfg.common.enable = true;
-        theonecfg.audio.enable = true;
-        theonecfg.dev.enable = true;
-        theonecfg.fonts.dev.enable = true;
         networking.useDHCP = lib.mkDefault true;
+
+        theonecfg.profiles.common.enable = true;
+        theonecfg.profiles.server.enable = true;
 
         theonecfg.users.djacu.enable = true;
         users.users.djacu.initialHashedPassword = "$y$j9T$W5JJISgEkrLM1NRu.uGR4/$2GXSsgkFimX46x.h.MqUEiLCuWl9kmV0dJoZtX6e78/";

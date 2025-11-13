@@ -1,28 +1,24 @@
 {
-  release = "2411";
+  release = "2505";
   modules =
     {
-      config,
-      inputs,
       pkgs,
+      theonecfg,
       ...
     }:
-    let
-      theonecfgLib = inputs.self.library;
-    in
     {
       imports = [
         ./disko.nix
         ./hardware.nix
         ./impermanence.nix
 
-        inputs.nixos-hardware.nixosModules.lenovo-thinkpad-t480
+        theonecfg.nixosHardware.lenovo-thinkpad-t480
       ];
       config = {
         nixpkgs.hostPlatform = "x86_64-linux";
         system.stateVersion = "24.05";
 
-        boot.kernelPackages = theonecfgLib.zfs.latestKernelPackage { inherit config pkgs; };
+        boot.kernelPackages = pkgs.linuxPackages_6_15;
         boot.loader.systemd-boot.enable = true;
         boot.loader.efi.canTouchEfiVariables = true;
         boot.loader.efi.efiSysMountPoint = "/boot";
@@ -45,9 +41,8 @@
         users.mutableUsers = false;
         users.users.root.initialHashedPassword = "$6$efX.JpKjAey2jrYG$kOt..AuFrPPIVTDncVj7vNkIo4MR/9mYG2SaDV2xpSNDEmk8DRxVNmuMI6hcW.CmD6ZDqdIKCj2MAyHnIdrkl/";
 
-        theonecfg.common.enable = true;
-        theonecfg.basicNetwork.enable = true;
-        theonecfg.desktop.enable = true;
+        theonecfg.profiles.common.enable = true;
+        theonecfg.profiles.desktop.enable = true;
 
         theonecfg.users.djacu.enable = true;
         users.users.djacu.initialHashedPassword = "$6$XfxMt044Az$jyfPvBMkcpPN.s9ZiVQyBjnU5g3x2cFZjBO3okgTENI2YjP6XokJr7QIaREPIcXiS4z5N9HnavEJEk.tneT670";

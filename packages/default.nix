@@ -1,13 +1,24 @@
 inputs:
-builtins.listToAttrs (
-  map (system: {
-    name = system;
-    value =
-      let
-        pkgs = inputs.self.legacyPackages.${system};
-      in
-      {
-        inherit (pkgs.theonecfg) nom-check;
-      };
-  }) (builtins.attrNames inputs.self.legacyPackages)
-)
+let
+
+  inherit (inputs.nixpkgs-lib)
+    lib
+    ;
+
+  inherit (lib.attrsets)
+    mapAttrs
+    ;
+
+  inherit (lib.trivial)
+    const
+    ;
+
+in
+
+mapAttrs (const (pkgs: {
+
+  inherit (pkgs.theonecfg)
+    nom-check
+    ;
+
+})) inputs.self.legacyPackages

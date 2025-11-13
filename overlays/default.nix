@@ -1,28 +1,63 @@
-inputs: {
+inputs:
+let
 
-  default =
+  # inherits
 
-    let
+  inherit (inputs.nixpkgs-lib)
+    lib
+    ;
 
-      inherit (inputs.nixpkgs-unstable.lib) composeManyExtensions filterAttrs;
-      inherit (builtins) attrNames readDir;
+  inherit (lib.attrsets)
+    attrValues
+    genAttrs
+    ;
 
-      getDirectories =
-        path: attrNames (filterAttrs (_: fileType: fileType == "directory") (readDir path));
+  inherit (lib.filesystem)
+    packagesFromDirectoryRecursive
+    ;
 
-    in
+  inherit (lib.fixedPoints)
+    composeManyExtensions
+    ;
 
-    composeManyExtensions [
+  inherit (inputs.self.library.path)
+    getDirectoryNames
+    joinPathSegments
+    ;
 
+  # overlays
+
+  toplevelOverlays =
+    final: prev:
+    packagesFromDirectoryRecursive {
+      inherit (final) callPackage;
+      inherit (prev) newScope;
+      directory = ../package-sets/top-level;
+    };
+
+  packageOverrides =
+    (
+      parent:
+      (genAttrs (getDirectoryNames parent) (dir: import (joinPathSegments parent "overlay.nix" dir)))
+    )
+      ./package-overrides;
+
+  inputOverlays = genAttrs (getDirectoryNames ../overlays/input-overlays) (
+    dir: import ../overlays/input-overlays/${dir}/overlay.nix inputs
+  );
+
+in
+packageOverrides
+// inputOverlays
+// {
+
+  default = composeManyExtensions (
+    (attrValues packageOverrides)
+    ++ [
       inputs.nur.overlays.default
-
-      # auto-add packages
-      (final: prev: {
-        theonecfg = final.lib.genAttrs (getDirectories ./.) (
-          dir: final.callPackage ./${dir}/package.nix { }
-        );
-      })
-
-    ];
+      toplevelOverlays
+    ]
+    ++ (attrValues inputOverlays)
+  );
 
 }

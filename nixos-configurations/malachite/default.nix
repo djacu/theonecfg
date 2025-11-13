@@ -3,9 +3,9 @@
   modules =
     {
       config,
-      inputs,
       lib,
       pkgs,
+      theonecfg,
       ...
     }:
     {
@@ -14,7 +14,7 @@
         ./hardware.nix
         ./impermanence.nix
 
-        inputs.nixos-hardware.nixosModules.framework-11th-gen-intel
+        theonecfg.nixosHardware.framework-11th-gen-intel
       ];
       config = {
         nixpkgs.hostPlatform = "x86_64-linux";
@@ -43,9 +43,8 @@
         users.mutableUsers = false;
         users.users.root.initialHashedPassword = "$6$efX.JpKjAey2jrYG$kOt..AuFrPPIVTDncVj7vNkIo4MR/9mYG2SaDV2xpSNDEmk8DRxVNmuMI6hcW.CmD6ZDqdIKCj2MAyHnIdrkl/";
 
-        theonecfg.common.enable = true;
-        theonecfg.basicNetwork.enable = true;
-        theonecfg.desktop.enable = true;
+        theonecfg.profiles.common.enable = true;
+        theonecfg.profiles.desktop.enable = true;
 
         theonecfg.users.djacu.enable = true;
         users.users.djacu.initialHashedPassword = "$6$iyFE.L69qMM0gMOK$Yfy/1JtQ00WG7SEgmlM/PrEwlraHqoxuPFB68kUTuFBcI0QxPsCi3UbQRO69SPkMT9lhxuLBtIjPr4pSwVkir0";

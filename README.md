@@ -90,6 +90,8 @@ Packages that can be built or run.
 `home-manager` may not be available after bootstrap.
 It can be run directly from the repository using `nix run`.
 
-`nix run github:nix-community/home-manager -- switch --flake .#<host>-<user>`
+```shell-session
+nix run github:nix-community/home-manager -- switch --flake .#<host>-<user>
+```
 
 [^1]: https://discourse.nixos.org/t/zfs-install-legacy-or-not/26047/2?u=djacu

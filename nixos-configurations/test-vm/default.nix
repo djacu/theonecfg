@@ -1,5 +1,5 @@
 {
-  release = "2405";
+  release = "2505";
   modules =
     { modulesPath, ... }:
     {
@@ -17,7 +17,7 @@
         "/".device = "/dev/hda1";
       };
 
-      theonecfg.simple-vm.enable = true;
-      theonecfg.common.enable = true;
+      theonecfg.profiles.simple-vm.enable = true;
+      theonecfg.profiles.common.enable = true;
     };
 }

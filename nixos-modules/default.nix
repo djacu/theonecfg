@@ -1,26 +1,26 @@
 inputs: {
   default =
-    { ... }:
+    {
+      lib,
+      ...
+    }:
+    let
+
+      inherit (lib.lists)
+        map
+        ;
+
+      inherit (inputs.self.library.path)
+        getDirectoryNames
+        joinPathSegments
+        ;
+
+    in
     {
       imports = [
-        ./audio.nix
-        ./basic-network.nix
-        ./common.nix
-        ./desktop.nix
-        ./dev.nix
-        ./fonts.nix
-        ./hypr.nix
-        ./nvidia-1080ti.nix
-        ./plasma.nix
-        ./vm.nix
-        ./zoxide.nix
-        ./zsh.nix
-
-        ./users
-
         inputs.disko.nixosModules.default
         inputs.impermanence.nixosModules.impermanence
-      ];
+      ] ++ map (joinPathSegments ./. "module.nix") (getDirectoryNames ./.);
 
       nixpkgs.overlays = [ inputs.self.overlays.default ];
     };
