@@ -2,9 +2,14 @@
   config,
   lib,
   pkgs,
+  theonecfg,
   ...
 }:
 let
+
+  inherit (builtins)
+    toString
+    ;
 
   inherit (lib.options)
     mkEnableOption
@@ -19,6 +24,8 @@ let
   cfgGpg = cfg.programs.gpg;
   cfgSshIntegration = cfg.programs.gpg.sshIntegration;
   cfgGitIntegration = cfg.programs.gpg.gitIntegration;
+
+  uid = toString theonecfg.knownUsers.${config.home.username}.uid;
 
 in
 {
@@ -93,8 +100,8 @@ in
         XDG_RUNTIME_DIR = "/run/user/$UID";
         # SSH_AUTH_SOCK = "${builtins.getEnv "XDG_RUNTIME_DIR"}/gnupg/S.gpg-agent.ssh";
         SSH_AUTH_SOCK = "$(gpgconf --list-dirs agent-ssh-socket)";
-        GPG_AGENT_SOCK = "/run/user/1000/gnupg/S.gpg-agent";
-        GPG_EXTRA_SOCK = "/run/user/1000/gnupg/S.gpg-agent.extra";
+        GPG_AGENT_SOCK = "/run/user/${uid}/gnupg/S.gpg-agent";
+        GPG_EXTRA_SOCK = "/run/user/${uid}/gnupg/S.gpg-agent.extra";
       };
       # home.sessionVariables = {
       #   SSH_AUTH_SOCK = "$(gpgconf --list-dirs agent-ssh-socket)";

@@ -10,9 +10,11 @@ inputs: {
     "test-vm"
   ];
 
-  knownUsers = [
-    "djacu"
-  ];
+  knownUsers = {
+    djacu = {
+      uid = 1000;
+    };
+  };
 
   nixosHardware = {
     inherit (inputs.nixos-hardware.nixosModules)

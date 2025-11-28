@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  theonecfg,
   ...
 }:
 let
@@ -23,6 +24,10 @@ in
 
       {
         users.users.${username} = {
+
+          inherit (theonecfg.knownUsers.${username})
+            uid
+            ;
 
           isNormalUser = true;
 
