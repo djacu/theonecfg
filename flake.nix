@@ -16,6 +16,7 @@
   };
 
   outputs = inputs: {
+    checks = import ./checks inputs;
     formatter = import ./formatter inputs;
     formatterModule = import ./formatter-module inputs;
     homeConfigurations = import ./home-configurations inputs;
