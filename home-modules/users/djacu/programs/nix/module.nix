@@ -1,8 +1,8 @@
 {
   config,
-  inputs,
   lib,
   pkgs,
+  theonecfg,
   ...
 }:
 let
@@ -17,9 +17,9 @@ in
   config = lib.mkIf (cfg.enable && cfg.programs.nix.enable) {
     nix = {
       package = pkgs.nix;
-      registry.nixpkgs.flake = inputs.nixpkgs-unstable;
+      registry.nixpkgs.flake = theonecfg.release.nixpkgs;
       settings = {
-        nix-path = [ "nixpkgs=${inputs.nixpkgs-unstable}" ];
+        nix-path = [ "nixpkgs=${theonecfg.release.nixpkgs}" ];
         experimental-features = [
           "nix-command"
           "flakes"

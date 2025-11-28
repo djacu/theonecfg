@@ -37,7 +37,6 @@ let
           };
           modules = [ inputs.self.homeModules.${user} ] ++ hostUserInfo.modules;
           extraSpecialArgs = {
-            inherit inputs;
             theonecfg = inputs.self.theonecfg // {
               inherit (hostUserInfo) release;
             };

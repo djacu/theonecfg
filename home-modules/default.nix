@@ -1,6 +1,1 @@
-inputs:
-let
-  inherit (inputs.self) library;
-
-in
-library.modules.mkUserModules inputs ./. "users"
+inputs: inputs.self.library.modules.mkUserModules ./. "users"

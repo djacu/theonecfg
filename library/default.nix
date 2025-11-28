@@ -195,17 +195,13 @@ fix (finalLibrary: {
 
       # Inputs
 
-      `inputs`
-
-      : 1.\ Flake inputs; the argument passed to flake outputs.
-
       `parentDirectory`
 
-      : 2\. Path to all home-manager modules.
+      : 1\. Path to all home-manager modules.
 
       `usersDirName`
 
-      : 3\. Name of the users directory.
+      : 2\. Name of the users directory.
 
       # Type
 
@@ -218,7 +214,7 @@ fix (finalLibrary: {
       ## `lib.modules.mkUserModules` usage example
 
       ```nix
-      mkUserModules inputs ./home-modules "users"
+      mkUserModules ./home-modules "users"
       => {
            djacu = {
              _module = { ... };
@@ -244,7 +240,7 @@ fix (finalLibrary: {
       :::
     */
     mkUserModules =
-      inputs: parentDirectory: usersDirName:
+      parentDirectory: usersDirName:
       let
         inherit (finalLibrary.path)
           joinParentToPaths
@@ -270,9 +266,6 @@ fix (finalLibrary: {
           (flip joinParentToPaths "module.nix")
           (userModule: {
             imports = [ userModule ] ++ nonUserModules;
-            _module.args = {
-              inherit inputs;
-            };
           })
         ]
       );
