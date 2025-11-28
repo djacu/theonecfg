@@ -27,9 +27,9 @@ in
 genAttrs (getDirectoryNames ./.) (
   host:
   let
-    hostInfo = import ./${host};
+    hostInfo = import ./${host} inputs;
   in
-  inputs."nixpkgs-${hostInfo.release}".lib.nixosSystem {
+  hostInfo.release.nixpkgs.lib.nixosSystem {
     modules = [
       (
         { config, ... }:

@@ -1,6 +1,10 @@
-{
+inputs: {
   system = "x86_64-linux";
-  release = "2505";
+  release = rec {
+    number = "2505";
+    nixpkgs = inputs."nixpkgs-${number}";
+    home-manager = inputs."home-manager-${number}";
+  };
   modules = [
     {
 

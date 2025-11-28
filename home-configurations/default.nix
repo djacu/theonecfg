@@ -28,17 +28,19 @@ let
       name = host + "-" + user;
       value =
         let
-          hostUserInfo = import ./${host}/${user};
+          hostUserInfo = import ./${host}/${user} inputs;
         in
-        inputs."home-manager-${hostUserInfo.release}".lib.homeManagerConfiguration {
-          pkgs = import inputs."nixpkgs-${hostUserInfo.release}" {
+        hostUserInfo.release.home-manager.lib.homeManagerConfiguration {
+          pkgs = import hostUserInfo.release.nixpkgs {
             inherit (hostUserInfo) system;
             overlays = [ inputs.self.overlays.default ];
           };
           modules = [ inputs.self.homeModules.${user} ] ++ hostUserInfo.modules;
           extraSpecialArgs = {
             inherit inputs;
-            inherit (inputs.self) theonecfg;
+            theonecfg = inputs.self.theonecfg // {
+              inherit (hostUserInfo) release;
+            };
           };
         };
     });
