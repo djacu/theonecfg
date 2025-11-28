@@ -1,29 +1,50 @@
 {
+  config,
   lib,
   pkgs,
-  config,
   ...
 }:
 let
-  cfg = config.theonecfg.users.djacu;
+
+  inherit (builtins)
+    baseNameOf
+    ;
+
+  username = baseNameOf ./.;
+
+  cfg = config.theonecfg.users.${username};
+
 in
 {
-  options.theonecfg.users.djacu.enable = lib.mkEnableOption "user djacu setup";
+  options.theonecfg.users.${username}.enable = lib.mkEnableOption "user ${username} setup";
 
-  config = lib.mkIf cfg.enable {
-    users.users.djacu = {
-      isNormalUser = true;
-      extraGroups = [
-        "wheel"
-      ]
-      ++ (lib.optional config.networking.networkmanager.enable "networkmanager");
-      shell = pkgs.fish;
-    };
-    programs.fish.enable = true;
+  config = lib.mkIf cfg.enable (
+    lib.mkMerge [
 
-    users.users.djacu.openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEbH7DL3UpeYHm+J3YHJTIsnk/vdo5JgEzwD/Bf1tupp yubikey"
-    ];
+      {
+        users.users.${username} = {
 
-  };
+          isNormalUser = true;
+
+          extraGroups = [
+            "wheel"
+          ]
+          ++ (lib.optional config.networking.networkmanager.enable "networkmanager");
+
+        };
+      }
+
+      {
+        users.users.${username}.shell = pkgs.fish;
+        programs.fish.enable = true;
+      }
+
+      {
+        users.users.${username}.openssh.authorizedKeys.keys = [
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEbH7DL3UpeYHm+J3YHJTIsnk/vdo5JgEzwD/Bf1tupp yubikey"
+        ];
+      }
+
+    ]
+  );
 }

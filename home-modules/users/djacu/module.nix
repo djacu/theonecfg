@@ -6,6 +6,10 @@
 }:
 let
 
+  inherit (builtins)
+    baseNameOf
+    ;
+
   inherit (lib.lists)
     map
     ;
@@ -40,7 +44,7 @@ in
 
   config = mkIf cfg.enable {
 
-    home.username = "djacu";
+    home.username = baseNameOf ./.;
     home.homeDirectory = "/home/${config.home.username}";
 
     programs.home-manager.enable = true;
