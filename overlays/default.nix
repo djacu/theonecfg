@@ -22,7 +22,7 @@ let
 
   inherit (inputs.self.library.path)
     getDirectoryNames
-    joinPathSegments
+    joinParentToPaths
     ;
 
   # overlays
@@ -38,7 +38,15 @@ let
   packageOverrides =
     (
       parent:
-      (genAttrs (getDirectoryNames parent) (dir: import (joinPathSegments parent "overlay.nix" dir)))
+      (genAttrs (getDirectoryNames parent) (
+        dir:
+        import (
+          joinParentToPaths parent [
+            dir
+            "overlay.nix"
+          ]
+        )
+      ))
     )
       ./package-overrides;
 

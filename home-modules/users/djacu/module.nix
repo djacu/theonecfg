@@ -18,15 +18,23 @@ let
     mkEnableOption
     ;
 
+  inherit (lib.trivial)
+    flip
+    pipe
+    ;
+
   inherit (theonecfg.library.path)
-    joinPathSegments
     getDirectoryNames
+    joinParentToPaths
     ;
 
   cfg = config.theonecfg.users.djacu;
 in
 {
-  imports = map (joinPathSegments ./. "module.nix") (getDirectoryNames ./.);
+  imports = map (flip pipe [
+    (joinParentToPaths ./.)
+    (flip joinParentToPaths "module.nix")
+  ]) (getDirectoryNames ./.);
 
   options.theonecfg.users.djacu.enable = mkEnableOption "djacu user config";
 

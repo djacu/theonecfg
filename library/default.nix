@@ -151,51 +151,6 @@ fix (finalLibrary: {
     ];
 
     /**
-      Join a path `prefix`, a middle segment `middle`, and a trailing segment
-      `suffix` with “/”, producing an absolute path string.
-
-      # Inputs
-
-      `prefix`
-
-      : 1\. A Nix path.
-
-      `suffix`
-
-      : 2\. A string that may itself be a subpath (e.g., "a/b.nix").
-
-      `middle`
-
-      : 3\. A string segment inserted between `prefix` and `suffix` that may be nested paths.
-
-      # Type
-
-      ```
-      joinPathSegments :: Path -> String -> String -> String
-      ```
-
-      # Examples
-      :::{.example}
-      ## `lib.path.joinPathSegments` usage example
-
-      ```nix
-      joinPathSegments ./home-modules "module.nix" "programs"
-      => "/nix/store/p8anp3wlicmsayagghjq7nrq61ycqafl-home-modules/programs/module.nix"
-      # middle with subpath
-      joinPathSegments ./home-modules "module.nix" "hardware/nvidia"
-      "/nix/store/p8anp3wlicmsayagghjq7nrq61ycqafl-home-modules/hardware/nvidia/module.nix"
-      # suffix with subpath
-      joinPathSegments ./home-modules "zoxide/module.nix" "programs"
-      => "/nix/store/p8anp3wlicmsayagghjq7nrq61ycqafl-home-modules/programs/zoxide/module.nix"
-      ```
-
-      :::
-    */
-    joinPathSegments =
-      prefix: suffix: middle:
-      "${prefix}/${middle}/${suffix}";
-
-    /**
       Join a parent path to one or more children.
 
       # Inputs

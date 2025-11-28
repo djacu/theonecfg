@@ -10,9 +10,14 @@ inputs: {
         map
         ;
 
+      inherit (lib.trivial)
+        flip
+        pipe
+        ;
+
       inherit (inputs.self.library.path)
         getDirectoryNames
-        joinPathSegments
+        joinParentToPaths
         ;
 
     in
@@ -21,7 +26,10 @@ inputs: {
         inputs.disko.nixosModules.default
         inputs.impermanence.nixosModules.impermanence
       ]
-      ++ map (joinPathSegments ./. "module.nix") (getDirectoryNames ./.);
+      ++ map (flip pipe [
+        (joinParentToPaths ./.)
+        (flip joinParentToPaths "module.nix")
+      ]) (getDirectoryNames ./.);
 
       nixpkgs.overlays = [ inputs.self.overlays.default ];
     };

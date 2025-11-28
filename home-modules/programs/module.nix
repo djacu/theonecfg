@@ -10,11 +10,17 @@ let
     ;
 
   inherit (theonecfg.library.path)
-    joinPathSegments
+    joinParentToPaths
     getDirectoryNames
     ;
 
 in
 {
-  imports = map (joinPathSegments ./. "module.nix") (getDirectoryNames ./.);
+  imports = map (
+    dir:
+    joinParentToPaths ./. [
+      dir
+      "module.nix"
+    ]
+  ) (getDirectoryNames ./.);
 }
