@@ -28,14 +28,14 @@ let
       name = host + "-" + user;
       value =
         let
-          inherit (import ./${host}/${user}) system modules release;
+          hostUserInfo = import ./${host}/${user};
         in
-        inputs."home-manager-${release}".lib.homeManagerConfiguration {
-          pkgs = import inputs."nixpkgs-${release}" {
-            inherit system;
+        inputs."home-manager-${hostUserInfo.release}".lib.homeManagerConfiguration {
+          pkgs = import inputs."nixpkgs-${hostUserInfo.release}" {
+            inherit (hostUserInfo) system;
             overlays = [ inputs.self.overlays.default ];
           };
-          modules = [ inputs.self.homeModules.${user} ] ++ modules;
+          modules = [ inputs.self.homeModules.${user} ] ++ hostUserInfo.modules;
           extraSpecialArgs = {
             inherit inputs;
             inherit (inputs.self) theonecfg;

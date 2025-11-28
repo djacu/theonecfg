@@ -1,38 +1,54 @@
-let
-  knownConfigurations = [
-    "argentite"
-    "malachite"
-    "cassiterite"
-    "scheelite"
-    "test-vm"
-  ];
-in
 inputs:
-builtins.mapAttrs (
-  hostDirectory: _:
+
+let
+
+  inherit (inputs.nixpkgs-lib)
+    lib
+    ;
+
+  inherit (lib.attrsets)
+    genAttrs
+    ;
+
+  inherit (lib.lists)
+    elem
+    ;
+
+  inherit (inputs.self.library.path)
+    getDirectoryNames
+    ;
+
+  inherit (inputs.self.theonecfg)
+    knownHosts
+    ;
+
+in
+
+genAttrs (getDirectoryNames ./.) (
+  host:
   let
-    inherit (import ./${hostDirectory}) release modules;
+    hostInfo = import ./${host};
   in
-  inputs."nixpkgs-${release}".lib.nixosSystem {
+  inputs."nixpkgs-${hostInfo.release}".lib.nixosSystem {
     modules = [
       (
         { config, ... }:
         {
           assertions = [
             {
-              assertion = builtins.elem config.networking.hostName knownConfigurations;
+              assertion = elem config.networking.hostName knownHosts;
               message = "Hostname is not known!";
             }
           ];
-          networking.hostName = hostDirectory;
+          networking.hostName = host;
         }
       )
       inputs.self.nixosModules.default
-      modules
+      hostInfo.modules
     ];
 
     specialArgs = {
       inherit (inputs.self) theonecfg;
     };
   }
-) (inputs.self.library.path.getDirectories ./.)
+)
