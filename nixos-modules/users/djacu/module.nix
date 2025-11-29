@@ -39,9 +39,14 @@ in
         };
       }
 
+      # TODO @djacu DO BETTER
       {
         users.users.${username}.shell = pkgs.fish;
         programs.fish.enable = true;
+
+        environment.systemPackages = [
+          pkgs.sops
+        ];
       }
 
       {
