@@ -11,6 +11,8 @@
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nixvimcfg.url = "github:djacu/nixvimcfg";
     nur.url = "github:nix-community/nur";
+    sops-nix.inputs.nixpkgs.follows = "nixpkgs-2505";
+    sops-nix.url = "github:Mic92/sops-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs-unstable";
     treefmt-nix.url = "github:numtide/treefmt-nix";
   };
