@@ -1,14 +1,14 @@
 {
   inputs = {
-    disko.url = "github:nix-community/disko/";
     disko.inputs.nixpkgs.follows = "nixpkgs-unstable";
-    home-manager-2505.url = "github:nix-community/home-manager/release-25.05";
+    disko.url = "github:nix-community/disko/";
     home-manager-2505.inputs.nixpkgs.follows = "nixpkgs-2505";
+    home-manager-2505.url = "github:nix-community/home-manager/release-25.05";
     impermanence.url = "github:nix-community/impermanence";
-    nixpkgs-lib.url = "github:nix-community/nixpkgs.lib";
-    nixpkgs-2505.url = "github:nixos/nixpkgs/nixos-25.05";
-    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nixos-hardware.url = "github:nixos/nixos-hardware";
+    nixpkgs-2505.url = "github:nixos/nixpkgs/nixos-25.05";
+    nixpkgs-lib.url = "github:nix-community/nixpkgs.lib";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nixvimcfg.url = "github:djacu/nixvimcfg";
     nur.url = "github:nix-community/nur";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs-unstable";
