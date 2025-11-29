@@ -7,6 +7,7 @@ let
     ;
 
   inherit (lib.attrsets)
+    attrNames
     genAttrs
     ;
 
@@ -36,7 +37,7 @@ genAttrs (getDirectoryNames ./.) (
         {
           assertions = [
             {
-              assertion = elem config.networking.hostName knownHosts;
+              assertion = elem config.networking.hostName (attrNames knownHosts);
               message = "Hostname is not known!";
             }
           ];

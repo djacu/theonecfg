@@ -2,13 +2,28 @@ inputs: {
 
   inherit (inputs.self) library;
 
-  knownHosts = [
-    "argentite"
-    "malachite"
-    "cassiterite"
-    "scheelite"
-    "test-vm"
-  ];
+  knownHosts = {
+    argentite = {
+      type = "desktop";
+      forwardAgent = true;
+    };
+    cassiterite = {
+      type = "laptop";
+      forwardAgent = true;
+    };
+    malachite = {
+      type = "laptop";
+      forwardAgent = true;
+    };
+    scheelite = {
+      type = "server";
+      forwardAgent = true;
+    };
+    test-vm = {
+      type = "virtual";
+      forwardAgent = false;
+    };
+  };
 
   knownUsers = {
     djacu = {
