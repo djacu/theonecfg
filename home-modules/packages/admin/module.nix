@@ -41,6 +41,7 @@ in
       pkgs.procs
       pkgs.pstree
       pkgs.ripgrep
+      pkgs.sops
       pkgs.sd
       pkgs.tealdeer
       pkgs.tree
