@@ -11,6 +11,13 @@ let
     toString
     ;
 
+  inherit (lib.attrsets)
+    attrNames
+    filterAttrs
+    genAttrs
+    getAttr
+    ;
+
   inherit (lib.options)
     mkEnableOption
     ;
@@ -20,12 +27,34 @@ let
     mkMerge
     ;
 
+  inherit (lib.trivial)
+    const
+    flip
+    ;
+
   cfg = config.theonecfg.users.djacu;
   cfgGpg = cfg.programs.gpg;
   cfgSshIntegration = cfg.programs.gpg.sshIntegration;
   cfgGitIntegration = cfg.programs.gpg.gitIntegration;
 
   uid = toString theonecfg.knownUsers.${config.home.username}.uid;
+
+  forwardedHosts = attrNames (filterAttrs (const (getAttr "forwardAgent")) theonecfg.knownHosts);
+
+  mkHostMatchBlock = flip genAttrs (host: {
+    hostname = host;
+    forwardAgent = true;
+    remoteForwards = [
+      {
+        bind.address = config.home.sessionVariables.GPG_AGENT_SOCK;
+        host.address = config.home.sessionVariables.GPG_EXTRA_SOCK;
+      }
+      {
+        bind.address = config.home.sessionVariables.GPG_AGENT_SOCK + ".ssh";
+        host.address = config.home.sessionVariables.GPG_AGENT_SOCK + ".ssh";
+      }
+    ];
+  });
 
 in
 {
@@ -121,34 +150,7 @@ in
       #   controlPath = "~/.ssh/master-%r@%n:%p";
       #   controlPersist = "no";
       # };
-      programs.ssh.matchBlocks.malachite = {
-        hostname = "malachite";
-        forwardAgent = true;
-        remoteForwards = [
-          {
-            bind.address = config.home.sessionVariables.GPG_AGENT_SOCK;
-            host.address = config.home.sessionVariables.GPG_EXTRA_SOCK;
-          }
-          {
-            bind.address = config.home.sessionVariables.GPG_AGENT_SOCK + ".ssh";
-            host.address = config.home.sessionVariables.GPG_AGENT_SOCK + ".ssh";
-          }
-        ];
-      };
-      programs.ssh.matchBlocks.argentite = {
-        hostname = "argentite";
-        forwardAgent = true;
-        remoteForwards = [
-          {
-            bind.address = config.home.sessionVariables.GPG_AGENT_SOCK;
-            host.address = config.home.sessionVariables.GPG_EXTRA_SOCK;
-          }
-          {
-            bind.address = config.home.sessionVariables.GPG_AGENT_SOCK + ".ssh";
-            host.address = config.home.sessionVariables.GPG_AGENT_SOCK + ".ssh";
-          }
-        ];
-      };
+      programs.ssh.matchBlocks = mkHostMatchBlock forwardedHosts;
 
     })
 
