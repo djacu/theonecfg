@@ -48,6 +48,7 @@ inputs: {
 
         networking.useDHCP = lib.mkDefault true;
 
+        theonecfg.containers.radarr.enable = true;
         theonecfg.profiles.common.enable = true;
         theonecfg.profiles.server.enable = true;
 

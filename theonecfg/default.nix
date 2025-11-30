@@ -38,4 +38,10 @@ inputs: {
       ;
   };
 
+  externalModules = {
+    disko = inputs.disko.nixosModules.default;
+    impermanence = inputs.impermanence.nixosModules.impermanence;
+    sops-nix = inputs.sops-nix.nixosModules.sops;
+  };
+
 }
