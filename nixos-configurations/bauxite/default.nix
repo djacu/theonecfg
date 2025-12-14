@@ -1,0 +1,57 @@
+inputs: {
+  release = rec {
+    number = "2505";
+    nixpkgs = inputs."nixpkgs-${number}";
+  };
+  modules =
+    {
+      config,
+      lib,
+      pkgs,
+      theonecfg,
+      ...
+    }:
+    {
+      imports = [
+        ./disko.nix
+        ./hardware.nix
+        ./impermanence.nix
+        ./lenovo-x13s.nix
+
+        theonecfg.nixosHardware.framework-11th-gen-intel
+      ];
+      config = {
+        nixpkgs.hostPlatform = "aarch64-linux";
+        system.stateVersion = "25.05";
+
+        boot.kernelPackages = pkgs.linuxPackages_6_16;
+        boot.loader.systemd-boot.enable = true;
+        boot.loader.efi.canTouchEfiVariables = true;
+        boot.loader.efi.efiSysMountPoint = "/boot";
+        boot.supportedFilesystems = [ "zfs" ];
+        boot.zfs.devNodes = "/dev/disk/by-id";
+
+        hardware.bluetooth.enable = true;
+
+        networking.hostId = lib.substring 0 8 (builtins.hashString "sha256" config.networking.hostName);
+
+        security.sudo.extraConfig = ''
+          # rollback results in sudo lectures after each reboot
+          Defaults lecture = never
+        '';
+
+        services.zfs.autoScrub.enable = true;
+
+        time.timeZone = "America/Los_Angeles";
+
+        users.mutableUsers = false;
+        users.users.root.initialHashedPassword = "$6$efX.JpKjAey2jrYG$kOt..AuFrPPIVTDncVj7vNkIo4MR/9mYG2SaDV2xpSNDEmk8DRxVNmuMI6hcW.CmD6ZDqdIKCj2MAyHnIdrkl/";
+
+        theonecfg.profiles.common.enable = true;
+        theonecfg.profiles.desktop.enable = true;
+
+        theonecfg.users.djacu.enable = true;
+        users.users.djacu.initialHashedPassword = "$6$8iN6ygn7Q4miaeL/$w7GAp2X6WrwmZbokvpEBtc8zRg8QwyX2WP3RhVI0pvAVTdyIfhCP9Gxw9wtRGJGd.NOwXNONM3noWZVGaKMRf0";
+      };
+    };
+}

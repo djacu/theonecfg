@@ -7,6 +7,10 @@ inputs: {
       type = "desktop";
       forwardAgent = true;
     };
+    bauxite = {
+      type = "laptop";
+      forwardAgent = true;
+    };
     cassiterite = {
       type = "laptop";
       forwardAgent = true;
