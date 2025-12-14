@@ -1,5 +1,8 @@
-{
-  release = "jfly";
+inputs: {
+  release = rec {
+    number = "jfly";
+    nixpkgs = inputs."nixpkgs-${number}";
+  };
   modules =
     {
       modulesPath,
