@@ -8,7 +8,6 @@ inputs: {
       config,
       lib,
       pkgs,
-      theonecfg,
       ...
     }:
     {
