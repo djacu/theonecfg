@@ -17,14 +17,12 @@ inputs: {
         ./hardware.nix
         ./impermanence.nix
         ./lenovo-x13s.nix
-
-        theonecfg.nixosHardware.framework-11th-gen-intel
       ];
       config = {
         nixpkgs.hostPlatform = "aarch64-linux";
         system.stateVersion = "25.05";
 
-        boot.kernelPackages = pkgs.linuxPackages_6_16;
+        boot.kernelPackages = pkgs.linuxPackages_6_17;
         boot.loader.systemd-boot.enable = true;
         boot.loader.efi.canTouchEfiVariables = true;
         boot.loader.efi.efiSysMountPoint = "/boot";
