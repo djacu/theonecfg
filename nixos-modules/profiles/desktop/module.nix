@@ -29,6 +29,7 @@ in
     theonecfg.features.audio.enable = mkDefault true;
     theonecfg.features.fonts.desktop.enable = mkDefault true;
     theonecfg.features.zoxide.enable = mkDefault true;
+    theonecfg.hardware.brother-hll3280cdw.enable = mkDefault true;
     theonecfg.networking.basic-network.enable = mkDefault true;
 
   };
