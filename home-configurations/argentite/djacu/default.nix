@@ -1,7 +1,7 @@
 inputs: {
   system = "x86_64-linux";
   release = rec {
-    number = "2505";
+    number = "2511";
     nixpkgs = inputs."nixpkgs-${number}";
     home-manager = inputs."home-manager-${number}";
   };

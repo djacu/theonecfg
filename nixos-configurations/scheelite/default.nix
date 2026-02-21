@@ -1,6 +1,6 @@
 inputs: {
   release = rec {
-    number = "2505";
+    number = "2511";
     nixpkgs = inputs."nixpkgs-${number}";
   };
   modules =
@@ -25,7 +25,7 @@ inputs: {
         boot.loader.efi.efiSysMountPoint = "/boot";
 
         # ZFS
-        boot.kernelPackages = pkgs.linuxPackages_6_15;
+        boot.kernelPackages = pkgs.linuxPackages_6_18;
         boot.supportedFilesystems = [ "zfs" ];
         boot.zfs.devNodes = "/dev/disk/by-id";
         boot.zfs.extraPools = [ "scheelite-tank0" ];
