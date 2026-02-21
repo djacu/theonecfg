@@ -105,6 +105,26 @@
         "type": "github"
       }
     },
+    "home-manager-unstable": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs-unstable"
+        ]
+      },
+      "locked": {
+        "lastModified": 1771683283,
+        "narHash": "sha256-WxAEkAbo8dP7qiyPM6VN4ZGAxfuBVlNBNPkrqkrXVEc=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "c6ed3eab64d23520bcbb858aa53fe2b533725d4a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
     "impermanence": {
       "inputs": {
         "home-manager": "home-manager",
@@ -314,6 +334,7 @@
       "inputs": {
         "disko": "disko",
         "home-manager-2511": "home-manager-2511",
+        "home-manager-unstable": "home-manager-unstable",
         "impermanence": "impermanence",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs-2511": "nixpkgs-2511",
