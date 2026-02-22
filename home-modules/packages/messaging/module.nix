@@ -28,7 +28,7 @@ in
       pkgs.discord
       pkgs.element-desktop
       pkgs.signal-desktop
-      pkgs.whatsapp-for-linux
+      pkgs.wasistlos
 
     ];
 
