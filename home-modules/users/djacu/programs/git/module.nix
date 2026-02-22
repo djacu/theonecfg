@@ -33,6 +33,7 @@ in
         merge.conflictstyle = "zdiff3";
         rerere.enabled = true;
       };
+      lfs.enable = true;
     };
   };
 }
