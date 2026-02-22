@@ -11,8 +11,10 @@ in
       userName = "Daniel Baker";
       userEmail = "dan@djacu.dev";
       aliases = {
+        amend = "commit --amend --no-edit";
         lg = "log --graph --decorate --pretty=oneline --abbrev-commit --all";
         patch = "diff --no-ext-diff";
+        reuse = "commit -C ORIG_HEAD";
       };
       difftastic.enable = true;
       difftastic.background = "dark";
