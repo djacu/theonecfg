@@ -9,7 +9,7 @@
     impermanence.url = "github:nix-community/impermanence";
     nixpkgs-lib.url = "github:nix-community/nixpkgs.lib";
     nixpkgs-2511.url = "github:nixos/nixpkgs/nixos-25.11";
-    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:nixos/nixos-hardware";
     nixvimcfg.url = "github:djacu/nixvimcfg";
     nur.url = "github:nix-community/nur";
