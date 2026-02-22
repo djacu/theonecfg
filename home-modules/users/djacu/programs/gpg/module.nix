@@ -157,7 +157,7 @@ in
     (mkIf cfgGitIntegration.enable {
 
       programs.git = {
-        extraConfig = {
+        settings = {
           # gpg
           commit.gpgsign = true;
           tag.gpgSign = true;
