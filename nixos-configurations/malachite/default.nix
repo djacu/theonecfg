@@ -1,6 +1,6 @@
 inputs: {
   release = rec {
-    number = "2511";
+    number = "unstable";
     nixpkgs = inputs."nixpkgs-${number}";
   };
   modules =
