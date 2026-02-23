@@ -1,6 +1,6 @@
 inputs: {
   release = rec {
-    number = "2505";
+    number = "unstable";
     nixpkgs = inputs."nixpkgs-${number}";
   };
   modules =
@@ -21,7 +21,7 @@ inputs: {
         nixpkgs.hostPlatform = "x86_64-linux";
         system.stateVersion = "24.05";
 
-        boot.kernelPackages = pkgs.linuxPackages_6_15;
+        boot.kernelPackages = pkgs.linuxPackages_6_18;
         boot.loader.systemd-boot.enable = true;
         boot.loader.efi.canTouchEfiVariables = true;
         boot.loader.efi.efiSysMountPoint = "/boot";

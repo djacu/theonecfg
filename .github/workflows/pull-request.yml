@@ -1,0 +1,33 @@
+name: pull request checks
+on:
+  pull_request:
+  push: # This is only run when PRs are merged into master
+    branches:
+      - master
+  workflow_dispatch:
+jobs:
+  nix-checks:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - run: nix flake check -L
+        # monitor and bind-master uses IFD
+  nix-verify-hydra-system-configs:
+    name: nix verify nixos configurations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - run: nix run .#theonecfg.verify-hydra-system-configs
+  nix-verify-hydra-home-configs:
+    name: nix verify home configurations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - run: nix run .#theonecfg.verify-hydra-home-configs

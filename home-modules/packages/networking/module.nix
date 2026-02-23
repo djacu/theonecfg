@@ -24,7 +24,6 @@ in
   config = mkIf cfg.enable {
     home.packages = [
 
-      pkgs.dig
       pkgs.dnsutils
       pkgs.iputils
       pkgs.traceroute
