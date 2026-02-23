@@ -45,6 +45,13 @@ in
 
 {
 
+  homeConfigs = defaultSystems (
+    system:
+    mapAttrs (const (value: value.activation-script)) (
+      filterAttrs (const (value: value.config.nixpkgs.system == system)) inputs.self.homeConfigurations
+    )
+  );
+
   systemConfigs = defaultSystems (
     system:
     mapAttrs
