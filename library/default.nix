@@ -44,6 +44,15 @@ let
 in
 fix (finalLibrary: {
 
+  systems = {
+
+    defaultSystems = genAttrs [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+
+  };
+
   path = fix (finalPath: {
 
     /**
