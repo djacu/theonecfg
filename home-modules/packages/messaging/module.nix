@@ -28,6 +28,7 @@ in
       pkgs.discord
       pkgs.element-desktop
       pkgs.signal-desktop
+      pkgs.slack
       pkgs.wasistlos
 
     ];
