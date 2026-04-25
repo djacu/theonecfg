@@ -160,6 +160,7 @@ in
     (mkIf cfgGitIntegration.enable {
 
       programs.git = {
+        signing.format = "openpgp";
         settings = {
           # gpg
           commit.gpgsign = true;
