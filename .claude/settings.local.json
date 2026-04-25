@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:wiki.nixos.org)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:notthebe.ee)",
+      "WebFetch(domain:notashelf.dev)",
+      "WebFetch(domain:gist.github.com)",
+      "WebFetch(domain:deepwiki.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:discourse.nixos.org)"
+    ]
+  }
+}
