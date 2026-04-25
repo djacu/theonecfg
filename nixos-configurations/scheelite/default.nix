@@ -30,9 +30,18 @@ inputs: {
         boot.zfs.devNodes = "/dev/disk/by-id";
         boot.zfs.extraPools = [ "scheelite-tank0" ];
         services.zfs.autoScrub.enable = true;
-        boot.initrd.postDeviceCommands = lib.mkAfter ''
-          zfs rollback -r scheelite-root/local/root@empty
-        '';
+        boot.initrd.systemd.services.rollback-root = {
+          description = "Rollback ZFS root to empty snapshot";
+          wantedBy = [ "initrd.target" ];
+          after = [ "zfs-import-scheelite-root.service" ];
+          before = [ "sysroot.mount" ];
+          unitConfig.DefaultDependencies = "no";
+          serviceConfig.Type = "oneshot";
+          path = [ config.boot.zfs.package ];
+          script = ''
+            zfs rollback -r scheelite-root/local/root@empty && echo "rollback of scheelite-root complete"
+          '';
+        };
 
         networking.hostId = lib.substring 0 8 (builtins.hashString "sha256" config.networking.hostName);
 
