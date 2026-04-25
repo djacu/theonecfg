@@ -27,6 +27,7 @@ in
     theonecfg.programs.fish.enable = true;
     theonecfg.programs.nixvimcfg.enable = true;
     theonecfg.programs.tmux.enable = true;
+    theonecfg.programs.zellij.enable = true;
 
     theonecfg.packages.admin.enable = true;
     theonecfg.packages.developer.enable = true;
