@@ -23,6 +23,8 @@ in
 
           enable = true;
 
+          configPath = "${config.xdg.configHome}/mozilla/firefox";
+
           package = pkgs.firefox.override {
             nativeMessagingHosts = (lib.optional cfgFirefox.tridactyl.enable pkgs.tridactyl-native);
           };
