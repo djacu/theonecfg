@@ -43,5 +43,9 @@ in
     '';
 
     services.pcscd.enable = mkDefault isNotContainer;
+
+    services.xserver.xkb.options = "caps:swapescape";
+    console.useXkbConfig = true;
+
   };
 }
