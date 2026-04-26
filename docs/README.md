@@ -50,6 +50,7 @@ Implementation plans, split into two subdirectories:
 Standing reference material that does not fit neatly into another category. This includes information that is useful to have on hand but is not tied to a specific decision, investigation, or task. Content here tends to be stable and updated infrequently.
 
 **Current contents:**
+
 - `ores.md` - Ore naming reference (machine naming conventions)
 - `stones.md` - Stone naming reference (machine naming conventions)
 

@@ -136,18 +136,19 @@ The `&& echo "rollback of scheelite-root complete"` provides a confirmation mess
 For reference, the relevant portion of the systemd initrd boot sequence is:
 
 1. `sysinit.target` - basic system initialization
-2. Device discovery and udev
-3. `systemd-modules-load.service` - kernel modules loaded
-4. `zfs-import-scheelite-root.service` - ZFS pool imported (with `-N`, no auto-mount)
-5. **`rollback-root.service`** - ZFS rollback happens here
-6. `sysroot.mount` - root filesystem mounted at `/sysroot`
-7. Other mount units (`sysroot-nix.mount`, `sysroot-home.mount`, `sysroot-persist.mount`, etc.)
-8. `initrd-root-fs.target`
-9. `initrd-fs.target`
-10. `initrd-nixos-activation.service`
-11. `initrd-switch-root.target` - switch to real root
+1. Device discovery and udev
+1. `systemd-modules-load.service` - kernel modules loaded
+1. `zfs-import-scheelite-root.service` - ZFS pool imported (with `-N`, no auto-mount)
+1. **`rollback-root.service`** - ZFS rollback happens here
+1. `sysroot.mount` - root filesystem mounted at `/sysroot`
+1. Other mount units (`sysroot-nix.mount`, `sysroot-home.mount`, `sysroot-persist.mount`, etc.)
+1. `initrd-root-fs.target`
+1. `initrd-fs.target`
+1. `initrd-nixos-activation.service`
+1. `initrd-switch-root.target` - switch to real root
 
 The `zfs-import-scheelite-root.service` ordering is:
+
 - **after:** `systemd-modules-load.service`, `systemd-ask-password-console.service`
 - **requiredBy:** all mount units for that pool (e.g., `sysroot.mount`, `sysroot-nix.mount`) plus `zfs-import.target`
 - **before:** all mount units for that pool, `shutdown.target`, `zfs-import.target`
@@ -191,6 +192,7 @@ Three other machines in this repository also use ZFS with impermanence but do **
 | cassiterite | `zroot` | `zroot/local/root@empty` | No |
 
 Evidence that these machines expect rollback:
+
 - All three set `security.sudo.extraConfig = "Defaults lecture = never"` which is specifically needed when root is rolled back on every boot (sudo lectures would repeat otherwise).
 - All three create the `@empty` snapshot in their disko configurations.
 
