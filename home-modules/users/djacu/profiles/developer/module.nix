@@ -23,6 +23,7 @@ in
 
     theonecfg.users.djacu.programs.fish.enable = false;
 
+    theonecfg.programs.claude.enable = true;
     theonecfg.programs.fd.enable = true;
     theonecfg.programs.fish.enable = true;
     theonecfg.programs.nixvimcfg.enable = true;
@@ -30,7 +31,6 @@ in
     theonecfg.programs.zellij.enable = true;
 
     theonecfg.packages.admin.enable = true;
-    theonecfg.packages.claude.enable = true;
     theonecfg.packages.developer.enable = true;
     theonecfg.packages.networking.enable = true;
     theonecfg.packages.nix.enable = true;
