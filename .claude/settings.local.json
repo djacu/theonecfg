@@ -11,5 +11,6 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:discourse.nixos.org)"
     ]
-  }
+  },
+  "plansDirectory": "docs/plans/active"
 }
