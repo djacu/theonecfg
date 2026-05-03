@@ -119,7 +119,7 @@ inputs: {
             lanIp = (builtins.head config.networking.interfaces.eno1.ipv4.addresses).address;
           };
           postgres = {
-            enable = false;
+            enable = true;
             # Per-instance postgres datasets live under /persist so they
             # survive root rollback. The dedicated ZFS datasets at
             # /persist/postgres/<instance> set recordsize=16K (see disko.nix).
