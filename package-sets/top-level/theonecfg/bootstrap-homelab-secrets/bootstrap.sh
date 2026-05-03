@@ -80,9 +80,7 @@ kanidm:
   oauth-paperless: $(gen_oauth_secret)
   oauth-proxy: $(gen_oauth_secret)
 oauth2-proxy:
-  env: |
-    OAUTH2_PROXY_CLIENT_SECRET=$(gen_oauth_secret)
-    OAUTH2_PROXY_COOKIE_SECRET=$(gen_cookie_secret)
+  cookie-secret: $(gen_cookie_secret)
 sonarr:
   api-key: $(gen_uuid)
   postgres-password: $(gen_password)

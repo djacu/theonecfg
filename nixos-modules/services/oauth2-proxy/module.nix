@@ -59,7 +59,7 @@ in
         reverseProxy = true;
         setXauthrequest = true;
         httpAddress = "127.0.0.1:${toString cfg.listenPort}";
-        keyFile = config.sops.secrets."oauth2-proxy/env".path;
+        keyFile = config.sops.templates."oauth2-proxy.env".path;
         extraConfig = {
           skip-provider-button = "true";
           whitelist-domain = cfg.cookieDomain;
@@ -71,14 +71,22 @@ in
         };
       };
 
-      # Secret file is a systemd EnvironmentFile-style file with:
-      #   OAUTH2_PROXY_CLIENT_SECRET=<from kanidm provisioning>
-      #   OAUTH2_PROXY_COOKIE_SECRET=<32 random bytes, base64>
-      # Upstream oauth2-proxy module runs as User=oauth2-proxy (static).
-      sops.secrets."oauth2-proxy/env" = {
+      # Construct the EnvironmentFile from individual sops secrets via
+      # sops templating. Single source of truth: kanidm/oauth-proxy is
+      # the OAuth2 client secret used by both kanidm-provision (when
+      # registering the oauth2-proxy client) AND oauth2-proxy itself
+      # (during token exchange). Generating it once and templating into
+      # both places means they always agree.
+      sops.templates."oauth2-proxy.env" = {
+        content = ''
+          OAUTH2_PROXY_CLIENT_SECRET=${config.sops.placeholder."kanidm/oauth-proxy"}
+          OAUTH2_PROXY_COOKIE_SECRET=${config.sops.placeholder."oauth2-proxy/cookie-secret"}
+        '';
         owner = "oauth2-proxy";
         group = "oauth2-proxy";
       };
+
+      sops.secrets."oauth2-proxy/cookie-secret" = { };
     }
 
     (mkIf kanidmCfg.enable {
