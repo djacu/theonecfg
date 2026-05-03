@@ -77,10 +77,12 @@ in
             {
               domain = "*.${cfg.lanDomain}";
               answer = cfg.lanIp;
+              enabled = true;
             }
             {
               domain = cfg.lanDomain;
               answer = cfg.lanIp;
+              enabled = true;
             }
           ];
         };
