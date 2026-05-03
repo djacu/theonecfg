@@ -65,6 +65,14 @@ in
             "https://1.1.1.1/dns-query"
             "https://9.9.9.9/dns-query"
           ];
+        };
+        filtering = {
+          filtering_enabled = true;
+          rewrites_enabled = true;
+          # Rewrites live under filtering, not dns (current AdGuard
+          # schema_version 33). Putting them under dns silently fails —
+          # AdGuard ignores them and writes the default empty list at
+          # filtering.rewrites.
           rewrites = [
             {
               domain = "*.${cfg.lanDomain}";
@@ -76,7 +84,6 @@ in
             }
           ];
         };
-        filtering.enabled = true;
       };
     };
   };
