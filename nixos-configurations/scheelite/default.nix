@@ -110,7 +110,7 @@ inputs: {
           # Prerequisites: secrets/scheelite.yaml exists with the keys named in each
           # module's sops.secrets.* entries; ZFS datasets created on tank0; router
           # DHCP advertises (scheelite-IP, 1.1.1.1) as DNS.
-          sops.enable = false;
+          sops.enable = true;
           caddy.enable = false;
           adguard = {
             enable = false;
