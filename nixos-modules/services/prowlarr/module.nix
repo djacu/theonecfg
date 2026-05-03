@@ -141,6 +141,24 @@ in
 
   config = mkIf cfg.enable (mkMerge [
     {
+      # Upstream prowlarr's NixOS module sets DynamicUser=true and
+      # exposes no user/group option. That breaks our sops pattern
+      # (owner = "prowlarr" needs a static user that exists at sops
+      # activation time, before the service starts). Override to
+      # static user, matching sonarr/radarr/whisparr's upstream pattern.
+      users.users.prowlarr = {
+        isSystemUser = true;
+        group = "prowlarr";
+        home = cfg.dataDir;
+      };
+      users.groups.prowlarr = { };
+
+      systemd.services.prowlarr.serviceConfig = {
+        DynamicUser = lib.mkForce false;
+        User = "prowlarr";
+        Group = "prowlarr";
+      };
+
       services.prowlarr = {
         enable = true;
         dataDir = cfg.dataDir;
@@ -178,8 +196,12 @@ in
         owner = "prowlarr";
       };
 
+      # prowlarr isn't in NixOS's `ids.nix` (upstream uses DynamicUser),
+      # and we override it to a static user above. Reference the user/group
+      # by name in tmpfiles — systemd-tmpfiles accepts both, and the
+      # users.users.prowlarr declaration above guarantees the user exists.
       systemd.tmpfiles.rules = [
-        "d ${cfg.dataDir} 0750 ${toString config.ids.uids.prowlarr} ${toString config.ids.gids.prowlarr} - -"
+        "d ${cfg.dataDir} 0750 prowlarr prowlarr - -"
       ];
 
       systemd.services.prowlarr.unitConfig.RequiresMountsFor = [ cfg.dataDir ];

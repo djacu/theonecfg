@@ -148,34 +148,34 @@ inputs: {
             adminUser = theonecfg.knownUsers.djacu.username;
           };
           qbittorrent = {
-            enable = false;
+            enable = true;
             profileDir = "${tankServicesDir}/qbittorrent";
             downloadsDir = tankDownloadsDir;
           };
           sonarr = {
-            enable = false;
+            enable = true;
             dataDir = "${tankServicesDir}/sonarr";
             rootFolders = [ { path = "${tankMediaDir}/tv"; } ];
           };
           sonarr-anime = {
-            enable = false;
+            enable = true;
             dataDir = "${tankServicesDir}/sonarr-anime";
             rootFolders = [ { path = "${tankMediaDir}/anime"; } ];
           };
           radarr = {
-            enable = false;
+            enable = true;
             dataDir = "${tankServicesDir}/radarr";
             rootFolders = [ { path = "${tankMediaDir}/movies"; } ];
           };
           whisparr = {
-            enable = false;
+            enable = true;
             dataDir = "${tankServicesDir}/whisparr";
             rootFolders = [ { path = "${tankMediaDir}/adult"; } ];
           };
           # Indexer JSON deferred — start empty, add via UI once after install,
           # then export to Nix via curl /api/v1/indexer | jq.
           prowlarr = {
-            enable = false;
+            enable = true;
             dataDir = "${tankServicesDir}/prowlarr";
           };
           pinchflat = {

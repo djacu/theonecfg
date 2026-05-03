@@ -144,14 +144,18 @@ in
 
       sops.secrets."qbittorrent/password".owner = "qbittorrent";
 
+      # qbittorrent isn't in NixOS's `ids.nix` static UID registry, so
+      # config.ids.uids.qbittorrent doesn't exist. Reference the user/group
+      # by name instead — systemd-tmpfiles accepts both, and names resolve
+      # to whatever UID upstream NixOS or the host config assigned.
       systemd.tmpfiles.rules = [
-        "d ${cfg.profileDir} 0750 ${toString config.ids.uids.qbittorrent} ${toString config.ids.gids.qbittorrent} - -"
-        "d ${cfg.downloadsDir} 0775 ${toString config.ids.uids.qbittorrent} ${toString config.ids.gids.qbittorrent} - -"
+        "d ${cfg.profileDir} 0750 ${config.services.qbittorrent.user} ${config.services.qbittorrent.group} - -"
+        "d ${cfg.downloadsDir} 0775 ${config.services.qbittorrent.user} ${config.services.qbittorrent.group} - -"
       ]
       # One subdirectory per category for *arr handoff.
       ++ lib.mapAttrsToList (
         _: path:
-        "d ${path} 0775 ${toString config.ids.uids.qbittorrent} ${toString config.ids.gids.qbittorrent} - -"
+        "d ${path} 0775 ${config.services.qbittorrent.user} ${config.services.qbittorrent.group} - -"
       ) effectiveCategories;
 
       systemd.services.qbittorrent.unitConfig.RequiresMountsFor = [

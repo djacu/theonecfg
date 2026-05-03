@@ -88,20 +88,24 @@ let
         isReadOnly = false;
       };
       config =
-        { pkgs, ... }:
+        { config, pkgs, ... }:
         {
           services.postgresql = {
             enable = true;
             package = pkgs."postgresql_${instance.version}";
             enableTCPIP = true;
             ensureDatabases = instance.databases;
+            # NixOS's ensureDBOwnership=true only handles the 1:1
+            # case where the user name matches a single database name.
+            # *arr services need one user owning multiple DBs (main +
+            # log), so the role is created here without ensureDBOwnership
+            # and ownership is assigned via ExecStartPost below.
             ensureUsers = [
               {
                 name = instance.owner;
-                ensureDBOwnership = true;
               }
             ];
-            extraPlugins = map (ext: pkgs."postgresql_${instance.version}".pkgs.${ext}) instance.extensions;
+            extensions = map (ext: pkgs."postgresql_${instance.version}".pkgs.${ext}) instance.extensions;
             # ZFS already provides atomic block writes via copy-on-write, so
             # postgres's torn-page protection is redundant overhead. Disabling
             # it cuts WAL volume by ~50%. wal_init_zero/wal_recycle pre-zero
@@ -120,6 +124,25 @@ let
               host all all 10.233.${toString idx}.0/24 trust
             '';
           };
+
+          # Grant ownership of every declared database to the instance
+          # owner after postgresql-setup.service finishes ensureDatabases
+          # and ensureUsers. ALTER DATABASE OWNER is idempotent so this
+          # is safe to re-run on every activation. Pattern borrowed from
+          # upstream services.immich, which uses the same hook to ALTER
+          # SCHEMA public ownership after setup.
+          systemd.services.postgresql-setup.serviceConfig.ExecStartPost =
+            let
+              sqlFile = pkgs.writeText "${name}-grant-ownership.sql" (
+                lib.concatMapStringsSep "\n" (
+                  db: ''ALTER DATABASE "${db}" OWNER TO "${instance.owner}";''
+                ) instance.databases
+              );
+            in
+            [
+              ''${lib.getExe' config.services.postgresql.package "psql"} -d postgres -f "${sqlFile}"''
+            ];
+
           networking.firewall.allowedTCPPorts = [ 5432 ];
           system.stateVersion = "26.05";
         };
