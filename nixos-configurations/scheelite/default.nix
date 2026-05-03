@@ -111,7 +111,7 @@ inputs: {
           # module's sops.secrets.* entries; ZFS datasets created on tank0; router
           # DHCP advertises (scheelite-IP, 1.1.1.1) as DNS.
           sops.enable = true;
-          caddy.enable = false;
+          caddy.enable = true;
           adguard = {
             enable = false;
             # Read directly from the static address set on eno1 above.
