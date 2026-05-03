@@ -44,7 +44,7 @@
       # captures nothing. Persist /var/lib/private/<svc> for these.
       "/var/lib/private/AdGuardHome" # DynamicUser
       "/var/lib/caddy"
-      "/var/lib/private/kanidm" # DynamicUser
+      "/var/lib/kanidm"
       "/var/lib/oauth2_proxy"
       "/var/lib/grafana"
       "/var/lib/loki"

@@ -100,9 +100,18 @@ in
         };
       };
 
+      # kanidm uses a static User=kanidm, so the secret files need to be
+      # owned by that user — the post-start kanidm-provision step reads
+      # them as kanidm, not root.
       sops.secrets = {
-        "kanidm/admin" = { };
-        "kanidm/idm-admin" = { };
+        "kanidm/admin" = {
+          owner = "kanidm";
+          group = "kanidm";
+        };
+        "kanidm/idm-admin" = {
+          owner = "kanidm";
+          group = "kanidm";
+        };
       };
 
       # Generate a self-signed TLS cert/key for Kanidm if they don't exist.
