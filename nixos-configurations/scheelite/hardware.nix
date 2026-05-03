@@ -25,68 +25,9 @@
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
 
-  fileSystems."/" = {
-    device = "scheelite-root/local/root";
-    fsType = "zfs";
-    options = [ "zfsutil" ];
-  };
-
-  fileSystems."/nix" = {
-    device = "scheelite-root/local/nix";
-    fsType = "zfs";
-    options = [ "zfsutil" ];
-  };
-
-  fileSystems."/home" = {
-    device = "scheelite-root/safe/home";
-    fsType = "zfs";
-    options = [ "zfsutil" ];
-  };
-
-  fileSystems."/persist" = {
-    device = "scheelite-root/safe/persist";
-    fsType = "zfs";
-    options = [ "zfsutil" ];
-  };
-
-  fileSystems."/boot" = {
-    device = "/dev/nvme0n1p1";
-    fsType = "vfat";
-    options = [
-      "fmask=0077"
-      "dmask=0077"
-    ];
-  };
-
-  # fileSystems."/tank0" = {
-  #   device = "scheelite-tank0/tank0";
-  #   fsType = "zfs";
-  # };
-
-  # fileSystems."/tank0/video" = {
-  #   device = "scheelite-tank0/tank0/video";
-  #   fsType = "zfs";
-  # };
-
-  # fileSystems."/tank0/audio" = {
-  #   device = "scheelite-tank0/tank0/audio";
-  #   fsType = "zfs";
-  # };
-
-  # fileSystems."/tank0/images" = {
-  #   device = "scheelite-tank0/tank0/images";
-  #   fsType = "zfs";
-  # };
-
-  # fileSystems."/tank0/bulk" = {
-  #   device = "scheelite-tank0/tank0/bulk";
-  #   fsType = "zfs";
-  # };
-
-  swapDevices = [
-    { device = "/dev/nvme0n1p3"; }
-    { device = "/dev/nvme1n1p3"; }
-  ];
+  # fileSystems and swapDevices entries (root pool ZFS, /boot ESP, swap on
+  # both NVMes) are emitted by ./disko.nix. The tank0 datasets are also
+  # declared there with their per-dataset properties.
 
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
   # (the default) this is the recommended approach. When using systemd-networkd it's
