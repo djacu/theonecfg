@@ -42,6 +42,11 @@ in
   };
 
   config = mkIf cfg.enable {
+    # Upstream `openFirewall` only opens the web UI port (3000); the DNS
+    # listener on 53 needs explicit rules.
+    networking.firewall.allowedTCPPorts = [ 53 ];
+    networking.firewall.allowedUDPPorts = [ 53 ];
+
     services.adguardhome = {
       enable = true;
       mutableSettings = false;
