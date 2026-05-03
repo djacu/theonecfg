@@ -419,3 +419,36 @@ service modules).
 - Are you willing to maintain a second always-on host (VPS or otherwise)?
 - Is Cloudflare an acceptable third-party in the data path?
 - Would you prefer to skip remote access entirely for the foreseeable future?
+
+## Caddy TLS implications when revisiting
+
+The current scheelite Caddy is configured with `services.caddy.globalConfig
+= "local_certs"`, which forces Caddy to use its internal CA for every
+vhost. This is correct for the all-private homelab on `*.literallyhell`
+because Caddy's auto-HTTPS only treats `localhost`, `.localhost`, `.local`,
+`.internal`, `.home.arpa` (and internal IPs) as "private" — non-public
+TLDs like `literallyhell` would otherwise fall through to ACME, fail,
+and TLS handshakes return alert 80.
+
+Whether this needs to change per option chosen here:
+
+- **Tailscale / Tailscale Funnel / Cloudflare Tunnel**: no change.
+  Public TLS terminates upstream (Tailscale's `*.ts.net` cert,
+  Cloudflare's edge cert); scheelite's Caddy keeps serving internal-CA
+  certs to the tunnel client over loopback. The internal CA never
+  faces a browser.
+- **WireGuard / Headscale subnet routing (private mesh only)**: no
+  change. Mesh peers can be told to trust the internal CA.
+- **Reverse-proxy + DDNS + ACME** (option 4): change required.
+  Drop `local_certs` from the global config and instead apply
+  `tls internal` per-vhost to private domains. Public vhosts then
+  fall through to default automatic HTTPS (Let's Encrypt). The edit
+  scope is small — one line per service module that adds a vhost,
+  plus dropping the global directive in `caddy/module.nix`.
+- **Nebula + small VPS edge** (option 6): same as Cloudflare Tunnel
+  — public TLS terminates on the VPS edge. No change to scheelite.
+- **WireGuard + small VPS edge** (option 7): same.
+
+So the global `local_certs` is robust for any tunnel-based or
+mesh-based access strategy. Only the direct-port-forward + public-
+ACME strategy requires migrating Caddy's TLS config.
