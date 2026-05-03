@@ -1,5 +1,30 @@
 {
   fileSystems."/persist".neededForBoot = true;
+
+  # /var/lib/private holds state for DynamicUser=yes services (real data
+  # lives at /var/lib/private/<svc>; /var/lib/<svc> is a managed symlink
+  # systemd recreates on each activation). systemd refuses to use
+  # /var/lib/private if it isn't mode 0700 — see exec-invoke.c
+  # mkdir_safe_label call. Impermanence's createPersistentStorageDirs
+  # creates /var/lib/private with default 0755 when bind-mount targets
+  # under it are needed; that loose mode then gets carried over to the
+  # live /var/lib/private and breaks every DynamicUser service.
+  #
+  # Workaround per nix-community/impermanence#254: an activation script
+  # ordered BEFORE createPersistentStorageDirs ensures /persist's
+  # underlying directory is 0700 from the start. A plain tmpfiles rule
+  # is insufficient — impermanence re-runs on activation and overwrites.
+  system.activationScripts."var-lib-private-permissions" = {
+    deps = [ "specialfs" ];
+    text = ''
+      mkdir -p /persist/var/lib/private
+      chmod 0700 /persist/var/lib/private
+    '';
+  };
+  system.activationScripts.createPersistentStorageDirs.deps = [
+    "var-lib-private-permissions"
+  ];
+
   environment.persistence."/persist" = {
     hideMounts = true;
     directories = [
@@ -12,9 +37,14 @@
       # Service state that must survive root rollback. Service modules
       # don't declare these themselves (would couple them to a specific
       # impermanence layout); the host owns the persistence policy.
-      "/var/lib/AdGuardHome"
+      #
+      # DynamicUser=yes services keep their real state at
+      # /var/lib/private/<svc>; the /var/lib/<svc> symlink is recreated
+      # by systemd each activation, so persisting the symlink path
+      # captures nothing. Persist /var/lib/private/<svc> for these.
+      "/var/lib/private/AdGuardHome" # DynamicUser
       "/var/lib/caddy"
-      "/var/lib/private/kanidm"
+      "/var/lib/private/kanidm" # DynamicUser
       "/var/lib/oauth2_proxy"
       "/var/lib/grafana"
       "/var/lib/loki"
