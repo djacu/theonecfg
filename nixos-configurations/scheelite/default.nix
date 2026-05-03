@@ -132,7 +132,7 @@ inputs: {
             enable = true;
             person = theonecfg.knownUsers.djacu.username;
           };
-          oauth2-proxy.enable = false;
+          oauth2-proxy.enable = true;
 
           # --- Phase 3: media (declarative via REST one-shots + Recyclarr) ---
           # See docs/plans/active/scheelite-declarative-arr.md for the

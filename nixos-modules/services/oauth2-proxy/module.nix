@@ -50,11 +50,11 @@ in
         provider = "oidc";
         oidcIssuerUrl = "https://${kanidmCfg.domain}/oauth2/openid/oauth2-proxy";
         clientID = "oauth2-proxy";
-        clientSecret = null;
-        cookie = {
-          domain = cfg.cookieDomain;
-          secret = null;
-        };
+        # clientSecret and cookie.secret options were removed upstream
+        # (writing them to /etc made them world-readable). The actual
+        # values come from the keyFile EnvironmentFile below as
+        # OAUTH2_PROXY_CLIENT_SECRET and OAUTH2_PROXY_COOKIE_SECRET.
+        cookie.domain = cfg.cookieDomain;
         email.domains = [ "*" ];
         reverseProxy = true;
         setXauthrequest = true;
@@ -69,7 +69,11 @@ in
       # Secret file is a systemd EnvironmentFile-style file with:
       #   OAUTH2_PROXY_CLIENT_SECRET=<from kanidm provisioning>
       #   OAUTH2_PROXY_COOKIE_SECRET=<32 random bytes, base64>
-      sops.secrets."oauth2-proxy/env" = { };
+      # Upstream oauth2-proxy module runs as User=oauth2-proxy (static).
+      sops.secrets."oauth2-proxy/env" = {
+        owner = "oauth2-proxy";
+        group = "oauth2-proxy";
+      };
     }
 
     (mkIf kanidmCfg.enable {
@@ -86,7 +90,11 @@ in
         ];
       };
 
-      sops.secrets."kanidm/oauth-proxy" = { };
+      # kanidm-provision reads this file as the kanidm user.
+      sops.secrets."kanidm/oauth-proxy" = {
+        owner = "kanidm";
+        group = "kanidm";
+      };
     })
 
     (mkIf config.theonecfg.services.caddy.enable {

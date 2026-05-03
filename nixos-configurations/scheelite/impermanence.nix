@@ -45,7 +45,7 @@
       "/var/lib/private/AdGuardHome" # DynamicUser
       "/var/lib/caddy"
       "/var/lib/kanidm"
-      "/var/lib/oauth2_proxy"
+      # oauth2-proxy is stateless — no StateDirectory in the upstream module.
       "/var/lib/grafana"
       "/var/lib/loki"
       "/var/lib/prometheus2"
