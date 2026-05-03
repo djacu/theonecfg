@@ -82,8 +82,6 @@ inputs: {
         # a router DHCP reservation keeps scheelite's networking
         # independent of the router (we may swap pfSense for a NixOS-based
         # router later).
-        # Nameservers are temporary 1.1.1.1 / 1.0.0.1; flip to 127.0.0.1
-        # once AdGuard is up so DNS is local.
         networking.useDHCP = false;
         networking.interfaces.eno1.ipv4.addresses = [
           {
@@ -92,7 +90,12 @@ inputs: {
           }
         ];
         networking.defaultGateway = "10.0.10.1";
+        # Local AdGuard is the primary resolver so *.<lanDomain>
+        # rewrites work for processes on this host. Cloudflare
+        # follows as fallback if AdGuard is briefly unavailable
+        # (won't resolve LAN domains, but external lookups still work).
         networking.nameservers = [
+          "127.0.0.1"
           "1.1.1.1"
           "1.0.0.1"
         ];
