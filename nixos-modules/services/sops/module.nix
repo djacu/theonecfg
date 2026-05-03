@@ -38,7 +38,12 @@ in
 
   config = mkIf cfg.enable {
     sops.defaultSopsFile = ../../../secrets + "/${config.networking.hostName}.yaml";
+    # SSH-derived age key only. sshKeyPaths and keyFile are independent
+    # and additive in sops-install-secrets — setting keyFile means
+    # sops-nix REQUIRES the file to exist (it's a hard read with no
+    # fallback to sshKeyPaths). Leaving keyFile null means sops-nix uses
+    # only the SSH-derived key, which is what we want here since the
+    # secrets file is already encrypted to that recipient.
     sops.age.sshKeyPaths = [ cfg.sshHostKeyPath ];
-    sops.age.keyFile = "/var/lib/sops-nix/key.txt";
   };
 }
