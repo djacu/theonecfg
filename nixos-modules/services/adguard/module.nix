@@ -50,6 +50,12 @@ in
         dns = {
           bind_hosts = [ "0.0.0.0" ];
           port = 53;
+          # Bootstrap servers used to resolve the upstream DoH hostnames
+          # themselves before AdGuard is fully online. Plain UDP/53.
+          bootstrap_dns = [
+            "1.1.1.1"
+            "9.9.9.9"
+          ];
           upstream_dns = [
             "https://1.1.1.1/dns-query"
             "https://9.9.9.9/dns-query"

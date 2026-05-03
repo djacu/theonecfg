@@ -113,7 +113,7 @@ inputs: {
           sops.enable = true;
           caddy.enable = true;
           adguard = {
-            enable = false;
+            enable = true;
             # Read directly from the static address set on eno1 above.
             # Single source of truth — change the IP in one place.
             lanIp = (builtins.head config.networking.interfaces.eno1.ipv4.addresses).address;
