@@ -28,6 +28,9 @@ inputs: {
   knownUsers = {
     djacu = {
       uid = 1000;
+      name = "Daniel Baker";
+      email = "dan@djacu.dev";
+      username = "djacu";
     };
   };
 
