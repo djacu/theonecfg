@@ -72,8 +72,12 @@ in
   config = mkIf cfg.enable (mkMerge [
     {
       services.kanidm = {
-        enableServer = true;
-        serverSettings = {
+        # Upstream removed the unversioned `pkgs.kanidm` alias; the
+        # module now requires an explicit version. The provision feature
+        # we use needs the `WithSecretProvisioning` variant.
+        package = pkgs.kanidmWithSecretProvisioning_1_9;
+        server.enable = true;
+        server.settings = {
           domain = cfg.domain;
           origin = "https://${cfg.domain}";
           bindaddress = cfg.bindAddress;
@@ -81,8 +85,8 @@ in
           tls_chain = "/var/lib/kanidm/cert.pem";
           tls_key = "/var/lib/kanidm/key.pem";
         };
-        enableClient = true;
-        clientSettings.uri = "https://${cfg.domain}";
+        client.enable = true;
+        client.settings.uri = "https://${cfg.domain}";
         provision = {
           enable = true;
           adminPasswordFile = config.sops.secrets."kanidm/admin".path;

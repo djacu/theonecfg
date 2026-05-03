@@ -129,7 +129,7 @@ inputs: {
           # --- Phase 2: identity ---
           # Prerequisites: kanidm/admin and kanidm/idm-admin in scheelite.yaml.
           kanidm = {
-            enable = false;
+            enable = true;
             person = theonecfg.knownUsers.djacu.username;
           };
           oauth2-proxy.enable = false;
