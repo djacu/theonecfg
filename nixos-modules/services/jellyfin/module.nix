@@ -33,6 +33,7 @@ let
   sonarrCfg = config.theonecfg.services.sonarr;
   sonarrAnimeCfg = config.theonecfg.services.sonarr-anime;
   radarrCfg = config.theonecfg.services.radarr;
+  whisparrCfg = config.theonecfg.services.whisparr;
   pinchflatCfg = config.theonecfg.services.pinchflat;
 
   # Auto-derived libraries from enabled *arr / pinchflat modules. Library
@@ -55,6 +56,12 @@ let
     // lib.optionalAttrs radarrCfg.enable {
       "Movies" = {
         paths = map (r: r.path) radarrCfg.rootFolders;
+        type = "movies";
+      };
+    }
+    // lib.optionalAttrs whisparrCfg.enable {
+      "Adult" = {
+        paths = map (r: r.path) whisparrCfg.rootFolders;
         type = "movies";
       };
     }
@@ -125,6 +132,12 @@ in
         dataDir = cfg.dataDir;
         cacheDir = cfg.cacheDir;
       };
+
+      # Read access to /tank0/media/* (each rootFolder is sgid 2775 with
+      # group=media). 0755 "other" would also let jellyfin read, but media
+      # group membership keeps the option open for "save metadata into
+      # media folders" features which need write.
+      users.users.jellyfin.extraGroups = [ "media" ];
 
       # Upstream creates dataDir/configDir/logDir/cacheDir via tmpfiles and
       # sets RequiresMountsFor on configDir/logDir/cacheDir (but not dataDir).
