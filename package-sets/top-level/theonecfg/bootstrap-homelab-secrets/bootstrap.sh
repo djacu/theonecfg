@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # bootstrap-homelab-secrets <hostname>
 #
 # Generates fresh secret values for secrets/<hostname>.yaml and encrypts
