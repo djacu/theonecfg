@@ -278,6 +278,7 @@ in
 
           ${declarative.waitForApiScript {
             url = "http://127.0.0.1:${toString cfg.port}/api/v1/system/status";
+            apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
           }}
 
           # Read declarative applications, transform each to inject the
