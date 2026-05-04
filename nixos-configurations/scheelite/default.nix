@@ -154,10 +154,15 @@ inputs: {
             profileDir = "${tankServicesDir}/qbittorrent";
             downloadsDir = tankDownloadsDir;
           };
+          # prowlarrTags follow a content-type taxonomy: each app's tag list
+          # describes what it consumes; each indexer's tag list (below) describes
+          # what it serves. Prowlarr's intersect rule routes accordingly.
+          # Taxonomy: tv | movies | anime | adult | music | books.
           sonarr = {
             enable = true;
             dataDir = "${tankServicesDir}/sonarr";
             rootFolders = [ { path = "${tankMediaDir}/tv"; } ];
+            prowlarrTags = [ "tv" ];
           };
           sonarr-anime = {
             enable = true;
@@ -169,6 +174,7 @@ inputs: {
             enable = true;
             dataDir = "${tankServicesDir}/radarr";
             rootFolders = [ { path = "${tankMediaDir}/movies"; } ];
+            prowlarrTags = [ "movies" ];
           };
           whisparr = {
             enable = true;
@@ -186,16 +192,30 @@ inputs: {
             # Empornium is a private adult tracker the user has an account
             # on; deferred to a follow-up commit once empornium/* are added
             # to secrets/scheelite.yaml.
+            # Each indexer is tagged with every content type it advertises.
+            # See `theonecfg.services.<arr>.prowlarrTags` above for app-side
+            # consumption tags and the routing taxonomy.
             indexers = [
               # EZTV dropped — eztvx.to is Cloudflare-protected in 2026; can
               # revisit once FlareSolverr or a configurable mirror works.
               (declarative.mkCardigannIndexer {
                 name = "YTS";
                 definitionFile = "yts";
+                tags = [ "movies" ];
               })
               (declarative.mkCardigannIndexer {
                 name = "LimeTorrents";
                 definitionFile = "limetorrents";
+                # LimeTorrents advertises TV+Movies+Music+Books+anime
+                # subcategory per its schema. Tagged with everything; future
+                # Lidarr/Readarr will pick it up automatically.
+                tags = [
+                  "tv"
+                  "movies"
+                  "anime"
+                  "music"
+                  "books"
+                ];
               })
               # kickasstorrents.ws dropped — Cloudflare-blocked in 2026
               # ("Unable to access kickass.ws, blocked by CloudFlare
