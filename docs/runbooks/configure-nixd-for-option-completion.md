@@ -7,7 +7,7 @@ By default, `nixd` does not know what nixpkgs to use or which module-system opti
 To make nixd resolve option paths, it needs a configuration that points it at:
 
 1. The nixpkgs to evaluate against, and
-2. The module-system options to expose (NixOS, home-manager, etc.).
+1. The module-system options to expose (NixOS, home-manager, etc.).
 
 This is needed once per project, not globally. The Claude Code home-manager module already wires `nixd` as the LSP for `.nix` files; this runbook covers the per-project configuration on top of that.
 

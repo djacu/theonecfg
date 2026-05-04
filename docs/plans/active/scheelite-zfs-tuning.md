@@ -21,9 +21,11 @@ this doc captures the *why*.
 ## Topic 1 — compression: zstd vs lz4
 
 ### What I assumed going in
+
 "`compression=on` defaults to zstd with an lz4 fallback for incompressible data."
 
 ### What's actually true
+
 - `compression=on` defaults to **LZ4** when the LZ4 feature flag is active
   (which it always is on a modern pool). It does **not** default to zstd.
 - Setting `compression=zstd` enables a *two-pass* path with built-in
@@ -39,6 +41,7 @@ So `compression=zstd` is "zstd ratio for compressible data, ~LZ4 cost for
 incompressible." There's no scenario where staying on plain `lz4` beats it.
 
 ### Recommendation
+
 - Root pool + tank0 pool: **`compression=zstd`** (was `lz4`).
 - `tank0/media`: keep `compression=zstd-1` (overridden) — media is already
   ratio-poor, zstd-1 is the cheapest variant.
@@ -57,11 +60,11 @@ real workload, write a representative dataset under each setting and read
 Per [vadosware "Optimizing Postgres on ZFS on Linux"](https://vadosware.io/post/everything-ive-seen-on-optimizing-postgres-on-zfs-on-linux/#increasing-postgres-blocksize)
 benchmark on default-block (8K) postgres against varying ZFS recordsize:
 
-| recordsize | TPS    | Δ vs 8K |
+| recordsize | TPS | Δ vs 8K |
 |------------|--------|--------:|
-| 8K         | 1366   |    —    |
-| 16K        | 1689   | +24 %   |
-| 32K        | 1568   | +15 %   |
+| 8K | 1366 | — |
+| 16K | 1689 | +24 % |
+| 32K | 1568 | +15 % |
 
 OpenZFS [Workload Tuning](https://openzfs.github.io/openzfs-docs/Performance%20and%20Tuning/Workload%20Tuning.html)
 also recommends 16K, 32K, 64K, or 128K for postgres — not 8K, despite
@@ -87,6 +90,7 @@ services.postgresql.package = pkgs.postgresql_16.override {
 ```
 
 **Compatibility caveats** (from the PR):
+
 - The on-disk format is **not** cross-compatible. `pg_upgrade` cannot move
   data between builds with different block sizes.
 - Block size is **compile-time only**; there is no `initdb --block-size`
@@ -95,6 +99,7 @@ services.postgresql.package = pkgs.postgresql_16.override {
 - Logical dump/restore is the only path back to default-block postgres.
 
 ### Why we picked recordsize=16K but skipped withBlocksize=16
+
 - recordsize alone captures the dominant gain (`8K → 16K`: +24 %).
 - The recordsize change is reversible (`zfs set recordsize=…` per dataset;
   takes effect for new writes only, but no commitment).
@@ -109,13 +114,14 @@ services.postgresql.package = pkgs.postgresql_16.override {
 These are added to **every** `services.postgresql.settings` block in
 `nixos-modules/services/postgres/module.nix`:
 
-| Setting                | Default | We use | Reason |
+| Setting | Default | We use | Reason |
 |------------------------|--------:|-------:|--------|
-| `full_page_writes`     | `on`    | `off`  | ZFS COW makes torn pages impossible; FPW becomes pure write amplification (~50 % of WAL volume). |
-| `wal_init_zero`        | `on`    | `off`  | Pre-zeroing WAL segments is a no-op on COW (the zeros land in new blocks anyway). |
-| `wal_recycle`          | `on`    | `off`  | Recycling WAL segments assumes in-place overwrite is cheap; on COW each "overwrite" is a new block. |
+| `full_page_writes` | `on` | `off` | ZFS COW makes torn pages impossible; FPW becomes pure write amplification (~50 % of WAL volume). |
+| `wal_init_zero` | `on` | `off` | Pre-zeroing WAL segments is a no-op on COW (the zeros land in new blocks anyway). |
+| `wal_recycle` | `on` | `off` | Recycling WAL segments assumes in-place overwrite is cheap; on COW each "overwrite" is a new block. |
 
 References:
+
 - [PostgreSQL docs: full_page_writes](https://www.postgresql.org/docs/current/runtime-config-wal.html)
 - [vadosware article](https://vadosware.io/post/everything-ive-seen-on-optimizing-postgres-on-zfs-on-linux/) — same recommendations
 - [Citus blog: "Tuning PostgreSQL on ZFS"](https://www.citusdata.com/blog/2017/09/29/what-makes-postgres-fast/) — same recommendations
@@ -186,6 +192,7 @@ References:
   comfortably in ARC.
 
 References:
+
 - [Nix manual: nix-store --optimise](https://nix.dev/manual/nix/stable/command-ref/nix-store/optimise.html)
 - [Nix manual: auto-optimise-store](https://nix.dev/manual/nix/stable/command-ref/conf-file.html)
 - ["OpenZFS dedup is good now and you shouldn't use it"](https://despairlabs.com/blog/posts/2024-10-27-openzfs-dedup-is-good-dont-use-it/) — matches our reasoning
@@ -194,10 +201,12 @@ References:
 ## Topic 4 — `/proc/spl/kstat/zfs/chksum_bench`
 
 ### What I had been told
+
 "You can read this kstat to pick the optimal compression algorithm for
 your machine."
 
 ### What it actually is
+
 A **checksum** algorithm benchmark. Not compression. Source:
 [`module/zfs/zfs_chksum.c`](https://github.com/openzfs/zfs/blob/master/module/zfs/zfs_chksum.c)
 in `chksum_run()` times `cs->func(abd, size, ctx, &zcp)` (a single
@@ -209,6 +218,7 @@ sizes: 1k, 4k, 16k, 64k, 256k, 1m, 4m, 16m. Implementation variants:
 `generic`, `ssse3`, `avx`, `avx2`, `avx512`, `shani`, `sse2`, `sse41`, `x64`.
 
 Per the manpage [`zfs.4`](https://github.com/openzfs/zfs/blob/master/man/man4/zfs.4):
+
 > If multiple implementations of BLAKE3 are available, the fastest will
 > be chosen using a micro benchmark.
 
@@ -221,11 +231,11 @@ benchmark.
 Per the source's representative numbers (tested on i3-1005G1, but
 relative ordering on Zen 4 is similar):
 
-| algo / impl       | 16k MiB/s | 256k MiB/s |
+| algo / impl | 16k MiB/s | 256k MiB/s |
 |-------------------|----------:|-----------:|
-| edonr-generic     |     1769  |     1783   |
-| sha256-shani      |     1212  |     1233   |
-| blake3-avx512     |     5269  |     5872   |
+| edonr-generic | 1769 | 1783 |
+| sha256-shani | 1212 | 1233 |
+| blake3-avx512 | 5269 | 5872 |
 
 `blake3-avx512` is the clear winner at most block sizes, beating
 `sha256-shani` ~5×. **However**, default `checksum=fletcher4` is
@@ -250,10 +260,10 @@ measure `compressratio`, `compressed`, `referenced`, `logicalused`.
    - All `safe/persist/postgres/*` datasets: `recordsize=8K → 16K`.
    - Comment block on each pool's `rootFsOptions` documenting the
      choice rationale (compression / checksum / dedup).
-2. `nixos-modules/services/postgres/module.nix`:
+1. `nixos-modules/services/postgres/module.nix`:
    - Per-instance `services.postgresql.settings` adds
      `full_page_writes=false`, `wal_init_zero=false`, `wal_recycle=false`.
-3. `nixos-configurations/scheelite/default.nix`:
+1. `nixos-configurations/scheelite/default.nix`:
    - `nix.settings.auto-optimise-store = true`.
 
 ## Not applied (flagged for revisit)

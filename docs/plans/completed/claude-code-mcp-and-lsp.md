@@ -5,7 +5,7 @@
 `home-modules/programs/claude/module.nix` currently only enables `programs.claude-code` and sets `context`. The user wants Claude Code configured for their day-to-day languages (**Nix, Rust, C++, Go, frontend, Python, Java, Linux admin**) by adding:
 
 1. The `mcp-nixos` MCP server, since they're a Nix power user. Other MCPs from `modelcontextprotocol/servers` are skipped — upstream describes them as reference implementations.
-2. Declarative LSP integration via `programs.claude-code.lspServers` for fifteen language servers.
+1. Declarative LSP integration via `programs.claude-code.lspServers` for fifteen language servers.
 
 Skills are deferred to a later round per user direction.
 
@@ -34,34 +34,35 @@ Semantic go-to-definition, find-references, hover/type info, diagnostics, docume
 Keep the existing options + `context` block. Inside the existing `mkIf cfg.enable` config block, add:
 
 1. **`programs.claude-code.mcpServers.nixos`**
+
    - `type = "stdio";`
    - `command = "${pkgs.mcp-nixos}/bin/mcp-nixos";`
 
    Verified: `pkgs.mcp-nixos` 2.3.1 exists in `nixpkgs-unstable`.
 
-2. **`programs.claude-code.lspServers`** — fifteen entries, all using absolute store paths:
+1. **`programs.claude-code.lspServers`** — fifteen entries, all using absolute store paths:
 
-   | Key            | Command                                                                | Args               | extensionToLanguage                                                                                                  |
+   | Key | Command | Args | extensionToLanguage |
    | -------------- | ---------------------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------- |
-   | `nix`          | `${pkgs.nixd}/bin/nixd`                                                | (none)             | `.nix` → `nix`                                                                                                       |
-   | `rust`         | `${pkgs.rust-analyzer}/bin/rust-analyzer`                              | (none)             | `.rs` → `rust`                                                                                                       |
-   | `cpp`          | `${pkgs.clang-tools}/bin/clangd`                                       | (none)             | `.c`/`.h` → `c`; `.cc`/`.cpp`/`.cxx`/`.hh`/`.hpp` → `cpp`                                                            |
-   | `go`           | `${pkgs.gopls}/bin/gopls`                                              | `[ "serve" ]`      | `.go` → `go`                                                                                                         |
-   | `typescript`   | `${pkgs.vtsls}/bin/vtsls`                                              | `[ "--stdio" ]`    | `.ts`/`.tsx`/`.js`/`.jsx` → `typescript`/`typescriptreact`/`javascript`/`javascriptreact`                            |
-   | `tailwind`     | `${pkgs.tailwindcss-language-server}/bin/tailwindcss-language-server`  | `[ "--stdio" ]`    | `.html`/`.tsx`/`.jsx` → `html`/`typescriptreact`/`javascriptreact` (Tailwind treats class attrs context-sensitively) |
-   | `python`       | `${pkgs.basedpyright}/bin/basedpyright-langserver`                     | `[ "--stdio" ]`    | `.py`/`.pyi` → `python`                                                                                              |
-   | `java`         | `${pkgs.jdt-language-server}/bin/jdtls`                                | (none)             | `.java` → `java`                                                                                                     |
-   | `bash`         | `${pkgs.bash-language-server}/bin/bash-language-server`                | `[ "start" ]`      | `.sh`/`.bash` → `shellscript`                                                                                        |
-   | `yaml`         | `${pkgs.yaml-language-server}/bin/yaml-language-server`                | `[ "--stdio" ]`    | `.yml`/`.yaml` → `yaml`                                                                                              |
-   | `html`         | `${pkgs.vscode-langservers-extracted}/bin/vscode-html-language-server` | `[ "--stdio" ]`    | `.html`/`.htm` → `html`                                                                                              |
-   | `css`          | `${pkgs.vscode-langservers-extracted}/bin/vscode-css-language-server`  | `[ "--stdio" ]`    | `.css`/`.scss`/`.less` → `css`/`scss`/`less`                                                                         |
-   | `json`         | `${pkgs.vscode-langservers-extracted}/bin/vscode-json-language-server` | `[ "--stdio" ]`    | `.json`/`.jsonc` → `json`/`jsonc`                                                                                    |
-   | `toml`         | `${pkgs.taplo}/bin/taplo`                                              | `[ "lsp" "stdio" ]`| `.toml` → `toml`                                                                                                     |
-   | `markdown`     | `${pkgs.marksman}/bin/marksman`                                        | `[ "server" ]`     | `.md`/`.markdown` → `markdown`                                                                                       |
+   | `nix` | `${pkgs.nixd}/bin/nixd` | (none) | `.nix` → `nix` |
+   | `rust` | `${pkgs.rust-analyzer}/bin/rust-analyzer` | (none) | `.rs` → `rust` |
+   | `cpp` | `${pkgs.clang-tools}/bin/clangd` | (none) | `.c`/`.h` → `c`; `.cc`/`.cpp`/`.cxx`/`.hh`/`.hpp` → `cpp` |
+   | `go` | `${pkgs.gopls}/bin/gopls` | `[ "serve" ]` | `.go` → `go` |
+   | `typescript` | `${pkgs.vtsls}/bin/vtsls` | `[ "--stdio" ]` | `.ts`/`.tsx`/`.js`/`.jsx` → `typescript`/`typescriptreact`/`javascript`/`javascriptreact` |
+   | `tailwind` | `${pkgs.tailwindcss-language-server}/bin/tailwindcss-language-server` | `[ "--stdio" ]` | `.html`/`.tsx`/`.jsx` → `html`/`typescriptreact`/`javascriptreact` (Tailwind treats class attrs context-sensitively) |
+   | `python` | `${pkgs.basedpyright}/bin/basedpyright-langserver` | `[ "--stdio" ]` | `.py`/`.pyi` → `python` |
+   | `java` | `${pkgs.jdt-language-server}/bin/jdtls` | (none) | `.java` → `java` |
+   | `bash` | `${pkgs.bash-language-server}/bin/bash-language-server` | `[ "start" ]` | `.sh`/`.bash` → `shellscript` |
+   | `yaml` | `${pkgs.yaml-language-server}/bin/yaml-language-server` | `[ "--stdio" ]` | `.yml`/`.yaml` → `yaml` |
+   | `html` | `${pkgs.vscode-langservers-extracted}/bin/vscode-html-language-server` | `[ "--stdio" ]` | `.html`/`.htm` → `html` |
+   | `css` | `${pkgs.vscode-langservers-extracted}/bin/vscode-css-language-server` | `[ "--stdio" ]` | `.css`/`.scss`/`.less` → `css`/`scss`/`less` |
+   | `json` | `${pkgs.vscode-langservers-extracted}/bin/vscode-json-language-server` | `[ "--stdio" ]` | `.json`/`.jsonc` → `json`/`jsonc` |
+   | `toml` | `${pkgs.taplo}/bin/taplo` | `[ "lsp" "stdio" ]`| `.toml` → `toml` |
+   | `markdown` | `${pkgs.marksman}/bin/marksman` | `[ "server" ]` | `.md`/`.markdown` → `markdown` |
 
    (15 entries — `vscode-langservers-extracted` surfaces three LSPs from one package. `tailwind` and `html` overlap on `.html`; that's fine — Claude Code can run multiple LSPs against the same file.)
 
-3. **Drop the dead commented-out block** at the bottom of the file (lines 59–64): the `# home.packages = [ pkgs.claude-code pkgs.mcp-nixos ];` block.
+1. **Drop the dead commented-out block** at the bottom of the file (lines 59–64): the `# home.packages = [ pkgs.claude-code pkgs.mcp-nixos ];` block.
 
 Sketch of the resulting module shape:
 
@@ -103,14 +104,14 @@ in
 ## Verification
 
 1. **Format** — `nix fmt`.
-2. **Eval** — `nix flake check .` to catch eval errors across all four `homeConfigurations`.
-3. **Build** — e.g. `nix build .#homeConfigurations."malachite-djacu".activationPackage` to confirm the wrapped `claude` builds.
-4. **Inspect wrapper** — `cat $(readlink -f result)/home-files/.nix-profile/bin/claude` should show `--plugin-dir /nix/store/...claude-code-hm-plugin/`. Inside that plugin dir: `.claude-plugin/plugin.json`, `.mcp.json` (with `nixos` server), `.lsp.json` (with 15 servers).
-5. **Activate** — `home-manager switch --flake .#malachite-djacu`.
-6. **Interactive checks**:
+1. **Eval** — `nix flake check .` to catch eval errors across all four `homeConfigurations`.
+1. **Build** — e.g. `nix build .#homeConfigurations."malachite-djacu".activationPackage` to confirm the wrapped `claude` builds.
+1. **Inspect wrapper** — `cat $(readlink -f result)/home-files/.nix-profile/bin/claude` should show `--plugin-dir /nix/store/...claude-code-hm-plugin/`. Inside that plugin dir: `.claude-plugin/plugin.json`, `.mcp.json` (with `nixos` server), `.lsp.json` (with 15 servers).
+1. **Activate** — `home-manager switch --flake .#malachite-djacu`.
+1. **Interactive checks**:
    - `claude` → `/mcp` → confirm `nixos` is connected. Ask "describe `services.openssh`"; verify it queries the MCP rather than guessing.
    - Open a `.rs` / `.go` / `.nix` / `.ts` / `.cpp` / `.py` / `.sh` / `.yaml` / `.toml` / `.md` file in a project with the LSP's project markers and confirm Claude can use LSP-backed tools (`lspServers` only takes effect inside such projects).
-7. **Idempotence** — re-run `home-manager switch`; should be a no-op.
+1. **Idempotence** — re-run `home-manager switch`; should be a no-op.
 
 ## Open items intentionally deferred
 
@@ -134,11 +135,11 @@ in
 
    Auto-exposed as `pkgs.anthropic-skills` by the existing overlay (`overlays/default.nix:48-54` runs `packagesFromDirectoryRecursive` against this directory). No flake input needed.
 
-2. **NEW — `home-modules/programs/claude/skills/.gitkeep`**
+1. **NEW — `home-modules/programs/claude/skills/.gitkeep`**
 
    Empty placeholder so the directory exists in git and `builtins.readDir ./skills` evaluates cleanly with no user-authored skills present.
 
-3. **MODIFIED — `home-modules/programs/claude/module.nix`**
+1. **MODIFIED — `home-modules/programs/claude/module.nix`**
 
    Add `lib.attrsets` inherits (`mapAttrs'`, `nameValuePair`, `filterAttrs`) and a `let` block computing local skills:
 

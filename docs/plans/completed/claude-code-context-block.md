@@ -7,6 +7,7 @@ The user has an existing minimal home-manager module at `home-modules/programs/c
 We refined a set of context rules together (covering investigation, asking, implementation discipline, verification, sub-agents, and reporting) and identified that two of them — the Nix conventions specific to this repo — should not bleed into unrelated projects.
 
 **Outcome:** Two CLAUDE.md files live in two places:
+
 - Generic rules → `~/.claude/CLAUDE.md`, written by home-manager via the existing developer profile (inline `home.file`, no new module).
 - Repo-specific Nix rules → `/home/djacu/dev/djacu/theonecfg/CLAUDE.md`, hand-committed to the repo.
 
@@ -74,6 +75,7 @@ home.file.".claude/CLAUDE.md".text = ''
 ```
 
 Reasons this is the right home rather than the shared `home-modules/programs/claude/module.nix`:
+
 - Content is djacu-specific, the shared module is meant to be reusable.
 - The developer profile is already user-namespaced (`home-modules/users/djacu/profiles/developer/`), so the user-personal content is in the right namespace.
 - No new files, no new options. Matches the "no speculative abstractions" rule.
@@ -91,28 +93,33 @@ No changes. Just installs `programs.claude-code`.
 After applying:
 
 1. **Build the home config:**
+
    ```
    nix build .#homeConfigurations.argentite-djacu.activationPackage
    ```
+
    (Adjust the attribute name to match the actual `homeConfigurations` output — confirm via `nix flake show` if uncertain.)
 
-2. **Activate (or rebuild if running on argentite):**
+1. **Activate (or rebuild if running on argentite):**
+
    ```
    home-manager switch --flake .#argentite-djacu
    ```
 
-3. **Confirm the user-level file landed:**
+1. **Confirm the user-level file landed:**
+
    ```
    cat ~/.claude/CLAUDE.md
    readlink ~/.claude/CLAUDE.md   # should point into /nix/store
    ```
 
-4. **Confirm the project-level file is committed:**
+1. **Confirm the project-level file is committed:**
+
    ```
    git ls-files CLAUDE.md
    ```
 
-5. **End-to-end test:** start a new Claude Code session inside `/home/djacu/dev/djacu/theonecfg`. Both files should be auto-loaded into context (visible in `/context` or by asking Claude what rules it's operating under).
+1. **End-to-end test:** start a new Claude Code session inside `/home/djacu/dev/djacu/theonecfg`. Both files should be auto-loaded into context (visible in `/context` or by asking Claude what rules it's operating under).
 
 ## Out of scope (deferred)
 

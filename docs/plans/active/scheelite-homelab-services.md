@@ -636,7 +636,7 @@ End-to-end (declarative-config-specific):
 - **Custom Jellyfin branding (logo, CSS)** and **plugin install** — helpers
   designed but not enabled this round.
 - **SMTP relay for service notifications**: kanidm, jellyseerr, jellyfin,
-  the *arr stack, nextcloud, and paperless all have email metadata fields
+  the \*arr stack, nextcloud, and paperless all have email metadata fields
   populated from `theonecfg.knownUsers` but no SMTP transport, so nothing
   actually delivers. When notifications are wanted, add a
   `theonecfg.services.smtp-relay` module (msmtp/postfix relay listening
@@ -644,8 +644,8 @@ End-to-end (declarative-config-specific):
   AWS SES) or Gmail app password, with credentials in sops. Each service
   points at `localhost:25`, centralizing SMTP config in one place.
 - **Jellyseerr per-arr root folder override**: jellyseerr currently picks
-  `lib.head <arrCfg>.rootFolders` per *arr to populate its connection
-  config (Seerr's API takes a single root folder per *arr, but our *arr
+  `lib.head <arrCfg>.rootFolders` per \*arr to populate its connection
+  config (Seerr's API takes a single root folder per \*arr, but our \*arr
   modules use a list). Works for the typical single-root case; if a user
-  wants Seerr to send to a non-first root folder in a multi-root *arr,
+  wants Seerr to send to a non-first root folder in a multi-root \*arr,
   expose `jellyseerr.<arr>RootFolder` overrides defaulting to head-of-list.

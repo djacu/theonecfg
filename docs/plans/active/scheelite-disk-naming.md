@@ -27,7 +27,7 @@ from a probe session on the live scheelite system on 2026-05-02.
 | Slot | PCI BDF | Device | by-id | Serial |
 |---|---|---|---|---|
 | M.2_1 (CPU-direct) | `0000:01:00.0` | `nvme1n1` | `nvme-Samsung_SSD_990_PRO_2TB_S7KHNJ0X208893V` | …208893V |
-| M.2_2 (chipset)    | `0000:10:00.0` | `nvme0n1` | `nvme-Samsung_SSD_990_PRO_2TB_S7KHNJ0X208806D` | …208806D |
+| M.2_2 (chipset) | `0000:10:00.0` | `nvme0n1` | `nvme-Samsung_SSD_990_PRO_2TB_S7KHNJ0X208806D` | …208806D |
 
 Two NVMes on different PCIe complexes. by-path is stable; by-id is
 canonical.
@@ -42,10 +42,10 @@ canonical.
   has `Array Device 00 ` … `Array Device 23 `) but the chassis only has
   20 physical bays — slots 16–23 are firmware padding.
 
-| SES bay | sd* | WWN | expander phy | port (phy/4) |
+| SES bay | sd\* | WWN | expander phy | port (phy/4) |
 |---|---|---|---|---|
-| 8  | sda | `wwn-0x5000cca2902be164` | 8  | 2 |
-| 9  | sdb | `wwn-0x5000cca2902c3b14` | 9  | 2 |
+| 8 | sda | `wwn-0x5000cca2902be164` | 8 | 2 |
+| 9 | sdb | `wwn-0x5000cca2902c3b14` | 9 | 2 |
 | 10 | sde | `wwn-0x5000cca2902c39f4` | 10 | 2 |
 | 11 | sdd | `wwn-0x5000cca2902c71c8` | 11 | 2 |
 | 12 | sdc | `wwn-0x5000cca2902c3a78` | 12 | 3 |
@@ -107,7 +107,7 @@ and triggering udev, no `/dev/disk/by-vdev/` symlinks appeared. Tracing
   `sas_switch` should produce, nor `i+1=11` as `sas_direct` would).
 - Result: `port_dir` ended up at `…/end_device-0:0:0/`, one level too
   deep.
-- `ls -vd "$port_dir"/phy*` returned empty (phy* glob doesn't match
+- `ls -vd "$port_dir"/phy*` returned empty (phy\* glob doesn't match
   anything in `end_device-0:0:0/` directly — `phy_identifier` is in
   `…/sas_device/end_device-…/` instead).
 - `PHY=0` → `PORT=0` → channel lookup found no match for port 0 (we
@@ -122,7 +122,7 @@ and triggering udev, no `/dev/disk/by-vdev/` symlinks appeared. Tracing
    whatever residual value it had, which happened to be 13 in our trace.
    *Next debug step if revisited*:
    `awk '$1 == "topology" { print "[" $2 "]"; exit }' /etc/zfs/vdev_id.conf`
-2. **`sas_switch` mode genuinely doesn't fit this layout**. The OpenZFS
+1. **`sas_switch` mode genuinely doesn't fit this layout**. The OpenZFS
    script's `sas_switch` mode walks `i+4` levels below `host*`, expecting
    the `phy*` symlinks to be siblings of `end_device-…`. On scheelite,
    `phy*` symlinks are siblings of `end_device-0:0:0` at the
@@ -262,14 +262,14 @@ override needed.
 
 1. ZFS marks the failed disk. `zpool status` shows the missing/faulted
    vdev with the old WWN.
-2. Physically replace the disk in the same bay.
-3. Get the new WWN: `ls /dev/disk/by-id/wwn-* | grep -v -- -part`
+1. Physically replace the disk in the same bay.
+1. Get the new WWN: `ls /dev/disk/by-id/wwn-* | grep -v -- -part`
    (find the one not yet known to the pool).
-4. `zpool replace scheelite-tank0 wwn-0x<old> /dev/disk/by-id/wwn-0x<new>`.
-5. Wait for resilver.
-6. Edit `nixos-configurations/scheelite/disko.nix` — change the
+1. `zpool replace scheelite-tank0 wwn-0x<old> /dev/disk/by-id/wwn-0x<new>`.
+1. Wait for resilver.
+1. Edit `nixos-configurations/scheelite/disko.nix` — change the
    matching `tank0_dN.device` from the old WWN to the new one.
-7. Commit.
+1. Commit.
 
 The `nixos-rebuild switch` after the disko edit is a no-op for the
 running pool (disko only acts during install). The edit matters for

@@ -422,8 +422,7 @@ service modules).
 
 ## Caddy TLS implications when revisiting
 
-The current scheelite Caddy is configured with `services.caddy.globalConfig
-= "local_certs"`, which forces Caddy to use its internal CA for every
+The current scheelite Caddy is configured with `services.caddy.globalConfig = "local_certs"`, which forces Caddy to use its internal CA for every
 vhost. This is correct for the all-private homelab on `*.literallyhell`
 because Caddy's auto-HTTPS only treats `localhost`, `.localhost`, `.local`,
 `.internal`, `.home.arpa` (and internal IPs) as "private" — non-public
