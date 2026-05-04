@@ -28,6 +28,47 @@ let
   arrTypes = theonecfg.library.arrTypes;
   pgInstance = config.theonecfg.services.postgres.instances.whisparr;
 
+  # Whisparr is a Sonarr-v3 fork; its Bootstrap.cs only binds PostgresOptions
+  # and SSL cert paths to .NET configuration. ApiKey, AuthenticationMethod, and
+  # AuthenticationRequired are all read exclusively from config.xml via
+  # IConfigFileProvider.GetValueEnum (verified against
+  # src/NzbDrone.Core/Configuration/ConfigFileProvider.cs:209-220). No env-var
+  # path exists. We upsert each on every start; the values survive Whisparr's
+  # own startup rewrites (DeleteOldValues only strips unknown keys; these are
+  # known properties on ConfigFileProvider so they're kept verbatim).
+  whisparrConfigSync = pkgs.writeShellApplication {
+    name = "whisparr-config-sync";
+    runtimeInputs = [
+      pkgs.gnused
+      pkgs.coreutils
+    ];
+    text = ''
+      set -euo pipefail
+      config="${cfg.dataDir}/config.xml"
+      apikey="$(tr -d '\n' < "${config.sops.secrets."whisparr/api-key".path}")"
+
+      if [ ! -f "$config" ]; then
+        printf '<Config>\n</Config>\n' > "$config"
+        chown whisparr:whisparr "$config"
+        chmod 0600 "$config"
+      fi
+
+      # Replace if present, otherwise insert before </Config>. Idempotent.
+      upsert() {
+        local field=$1 value=$2
+        if grep -q "<$field>" "$config"; then
+          sed -i "s|<$field>[^<]*</$field>|<$field>$value</$field>|" "$config"
+        else
+          sed -i "s|</Config>|  <$field>$value</$field>\n</Config>|" "$config"
+        fi
+      }
+
+      upsert ApiKey "$apikey"
+      upsert AuthenticationMethod Forms
+      upsert AuthenticationRequired DisabledForLocalAddresses
+    '';
+  };
+
 in
 {
   options.theonecfg.services.whisparr = {
@@ -85,6 +126,10 @@ in
           log.analyticsEnabled = false;
         };
       };
+
+      systemd.services.whisparr.serviceConfig.ExecStartPre = lib.mkAfter [
+        "+${whisparrConfigSync}/bin/whisparr-config-sync"
+      ];
 
       sops.secrets = {
         "whisparr/api-key".owner = "whisparr";
