@@ -203,6 +203,7 @@ in
         endpoint = "/api/v3/rootfolder";
         items = cfg.rootFolders;
         comparator = "path";
+        noUpdate = true;
       }
     ))
 
