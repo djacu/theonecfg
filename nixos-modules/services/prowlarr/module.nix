@@ -48,20 +48,25 @@ let
     lib.getAttrs (lib.attrNames arrImpls) config.theonecfg.services
   );
 
+  baseUrl = "http://127.0.0.1:${toString cfg.port}";
+  tagsSourceUrl = "${baseUrl}/api/v1/tag";
+
   # Auto-derived list of Prowlarr applications. Each item has an
-  # `_apiKeyFile` marker that the prowlarr-applications one-shot reads at
-  # runtime to inject an `apiKey` entry into `fields`.
+  # `_apiKeyFile` marker that the push one-shot reads at runtime to
+  # inject an `apiKey` entry into `fields`. Each *arr's `prowlarrTags`
+  # propagates here, then resolves to int ids via `tagsSourceUrl` at
+  # runtime.
   autoApplications = lib.mapAttrsToList (name: arrCfg: {
     name = arrDisplayNames.${name};
     implementation = arrImpls.${name};
     implementationName = arrImpls.${name};
     configContract = "${arrImpls.${name}}Settings";
     syncLevel = "fullSync";
-    tags = [ ];
+    tags = arrCfg.prowlarrTags;
     fields = [
       {
         name = "prowlarrUrl";
-        value = "http://127.0.0.1:${toString cfg.port}";
+        value = baseUrl;
       }
       {
         name = "baseUrl";
@@ -73,12 +78,17 @@ let
 
   applications = if cfg.autoLinkArrs then autoApplications else cfg.applications;
 
-  applicationsFile = pkgs.writeText "prowlarr-applications.json" (builtins.toJSON applications);
+  # Union of every tag label referenced by an indexer or application.
+  # The `prowlarr-tags.service` one-shot creates these; the indexer/
+  # application push services then resolve label→id at runtime.
+  allTagLabels = lib.unique (
+    lib.concatMap (i: i.tags or [ ]) cfg.indexers
+    ++ lib.concatMap (a: a.tags or [ ]) applications
+  );
 
-  curlPkg = declarative.mkSecureCurl {
-    name = "prowlarr";
-    apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
-  };
+  tagItems = map (label: { inherit label; }) allTagLabels;
+
+  tagsAfter = lib.optional (tagItems != [ ]) "prowlarr-tags.service";
 
 in
 {
@@ -218,116 +228,60 @@ in
       };
     }
 
-    (mkIf (cfg.indexers != [ ]) (
-      declarative.mkArrApiPushService {
-        name = "prowlarr-indexers";
-        after = [ "prowlarr.service" ];
-        baseUrl = "http://127.0.0.1:${toString cfg.port}";
-        apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
-        endpoint = "/api/v1/indexer";
-        items = cfg.indexers;
-      }
-    ))
+    # Tag reconciliation runs first; indexers + applications wait for it
+    # so their label→id resolution finds the labels we declared.
+    (mkIf (tagItems != [ ]) (declarative.mkArrApiPushService {
+      name = "prowlarr-tags";
+      after = [ "prowlarr.service" ];
+      inherit baseUrl;
+      apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
+      endpoint = "/api/v1/tag";
+      items = tagItems;
+      comparator = "label";
+      noUpdate = true; # tag has no fields beyond the label itself
+    }))
 
-    (mkIf (cfg.indexerProxies != [ ]) (
-      declarative.mkArrApiPushService {
-        name = "prowlarr-indexerproxies";
-        after = [ "prowlarr.service" ];
-        baseUrl = "http://127.0.0.1:${toString cfg.port}";
-        apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
-        endpoint = "/api/v1/indexerproxy";
-        items = cfg.indexerProxies;
-      }
-    ))
+    (mkIf (cfg.indexers != [ ]) (declarative.mkArrApiPushService {
+      name = "prowlarr-indexers";
+      after = [ "prowlarr.service" ] ++ tagsAfter;
+      inherit baseUrl tagsSourceUrl;
+      apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
+      endpoint = "/api/v1/indexer";
+      items = cfg.indexers;
+    }))
 
-    (mkIf (cfg.downloadClients != [ ]) (
-      declarative.mkArrApiPushService {
-        name = "prowlarr-downloadclients";
-        after = [ "prowlarr.service" ];
-        baseUrl = "http://127.0.0.1:${toString cfg.port}";
-        apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
-        endpoint = "/api/v1/downloadclient";
-        items = cfg.downloadClients;
-      }
-    ))
+    (mkIf (cfg.indexerProxies != [ ]) (declarative.mkArrApiPushService {
+      name = "prowlarr-indexerproxies";
+      after = [ "prowlarr.service" ];
+      inherit baseUrl;
+      apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
+      endpoint = "/api/v1/indexerproxy";
+      items = cfg.indexerProxies;
+    }))
 
-    # Applications: special case because each application needs its target
-    # *arr's API key injected from a sops file at runtime. Inline systemd
-    # one-shot rather than mkArrApiPushService.
-    (mkIf (applications != [ ]) {
-      systemd.services.prowlarr-applications = {
-        description = "Reconcile Prowlarr applications (links to *arr instances)";
-        after = [
-          "prowlarr.service"
-        ]
+    (mkIf (cfg.downloadClients != [ ]) (declarative.mkArrApiPushService {
+      name = "prowlarr-downloadclients";
+      after = [ "prowlarr.service" ];
+      inherit baseUrl;
+      apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
+      endpoint = "/api/v1/downloadclient";
+      items = cfg.downloadClients;
+    }))
+
+    # Applications carry a per-*arr `_apiKeyFile` marker (sops path) and a
+    # `tags` array of label strings; mkArrApiPushService's secret injection
+    # + tags resolution handle both at runtime.
+    (mkIf (applications != [ ]) (declarative.mkArrApiPushService {
+      name = "prowlarr-applications";
+      after =
+        [ "prowlarr.service" ]
+        ++ tagsAfter
         ++ lib.mapAttrsToList (name: _: "${name}.service") enabledArrs;
-        requires = [ "prowlarr.service" ];
-        wantedBy = [ "multi-user.target" ];
-        path = [
-          pkgs.curl
-          pkgs.jq
-          pkgs.coreutils
-          curlPkg
-        ];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-        };
-        script = ''
-          set -euo pipefail
-
-          ${declarative.waitForApiScript {
-            url = "http://127.0.0.1:${toString cfg.port}/api/v1/system/status";
-            apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
-          }}
-
-          # Read declarative applications, transform each to inject the
-          # actual apiKey from the file referenced by _apiKeyFile.
-          desired=$(jq -c '.[]' ${applicationsFile} | while read -r app; do
-            keyfile=$(jq -r '._apiKeyFile' <<< "$app")
-            apikey=$(tr -d '\n' < "$keyfile")
-            jq --arg k "$apikey" \
-              '.fields = (.fields // []) + [{"name": "apiKey", "value": $k}]
-               | del(._apiKeyFile)' \
-              <<< "$app"
-          done | jq -s '.')
-
-          baseUrl="http://127.0.0.1:${toString cfg.port}/api/v1/applications"
-          current=$(curl-prowlarr "$baseUrl")
-
-          # Map names to existing IDs
-          declare -A existing_ids
-          while IFS=$'\t' read -r key id; do
-            [ -n "$key" ] && existing_ids["$key"]="$id"
-          done < <(jq -r '.[] | "\(.name)\t\(.id)"' <<< "$current")
-
-          # Track desired names for delete pass
-          declare -A desired_keys
-          while read -r item; do
-            key=$(jq -r '.name' <<< "$item")
-            desired_keys["$key"]=1
-
-            if [ -n "''${existing_ids[$key]:-}" ]; then
-              id="''${existing_ids[$key]}"
-              payload=$(jq --argjson id "$id" '. + { id: $id }' <<< "$item")
-              echo "PUT applications/$id ($key)"
-              curl-prowlarr -X PUT -d "$payload" "$baseUrl/$id" >/dev/null
-            else
-              echo "POST applications ($key)"
-              curl-prowlarr -X POST -d "$item" "$baseUrl" >/dev/null
-            fi
-          done < <(jq -c '.[]' <<< "$desired")
-
-          # Delete any application not in desired
-          while IFS=$'\t' read -r key id; do
-            if [ -n "$key" ] && [ -z "''${desired_keys[$key]:-}" ]; then
-              echo "DELETE applications/$id ($key)"
-              curl-prowlarr -X DELETE "$baseUrl/$id" >/dev/null
-            fi
-          done < <(jq -r '.[] | "\(.name)\t\(.id)"' <<< "$current")
-        '';
-      };
-    })
+      inherit baseUrl tagsSourceUrl;
+      apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
+      endpoint = "/api/v1/applications";
+      items = applications;
+    }))
 
     (mkIf config.theonecfg.services.caddy.enable {
       services.caddy.virtualHosts.${cfg.domain}.extraConfig = ''
