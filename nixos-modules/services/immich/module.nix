@@ -21,6 +21,7 @@ let
     ;
 
   cfg = config.theonecfg.services.immich;
+  pgInstance = config.theonecfg.services.postgres.instances.immich;
 
 in
 {
@@ -56,8 +57,8 @@ in
         database = {
           enable = false;
           createDB = false;
-          host = "127.0.0.1";
-          port = cfg.dbPort;
+          host = pgInstance.host;
+          port = pgInstance.containerPort;
           name = "immich";
           user = "immich";
         };

@@ -27,6 +27,7 @@ let
   cfg = config.theonecfg.services.sonarr-anime;
   declarative = theonecfg.library.declarative pkgs;
   arrTypes = theonecfg.library.arrTypes;
+  pgInstance = config.theonecfg.services.postgres.instances.sonarr-anime;
 
   # Mirrors upstream services.sonarr's mkServarrSettingsEnvVars (in
   # nixos/modules/services/misc/servarr/settings-options.nix). Recursively
@@ -55,8 +56,8 @@ let
       required = "DisabledForLocalAddresses";
     };
     postgres = {
-      host = "127.0.0.1";
-      port = cfg.dbPort;
+      host = pgInstance.host;
+      port = pgInstance.containerPort;
       user = "sonarr-anime";
       mainDb = "sonarr-anime-main";
       logDb = "sonarr-anime-log";

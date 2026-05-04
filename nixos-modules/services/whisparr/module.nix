@@ -26,6 +26,7 @@ let
   cfg = config.theonecfg.services.whisparr;
   declarative = theonecfg.library.declarative pkgs;
   arrTypes = theonecfg.library.arrTypes;
+  pgInstance = config.theonecfg.services.postgres.instances.whisparr;
 
 in
 {
@@ -75,8 +76,8 @@ in
             required = "DisabledForLocalAddresses";
           };
           postgres = {
-            host = "127.0.0.1";
-            port = cfg.dbPort;
+            host = pgInstance.host;
+            port = pgInstance.containerPort;
             user = "whisparr";
             mainDb = "whisparr-main";
             logDb = "whisparr-log";

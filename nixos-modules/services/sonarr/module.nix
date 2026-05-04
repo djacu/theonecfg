@@ -26,6 +26,7 @@ let
   cfg = config.theonecfg.services.sonarr;
   declarative = theonecfg.library.declarative pkgs;
   arrTypes = theonecfg.library.arrTypes;
+  pgInstance = config.theonecfg.services.postgres.instances.sonarr;
 
 in
 {
@@ -87,8 +88,8 @@ in
             required = "DisabledForLocalAddresses";
           };
           postgres = {
-            host = "127.0.0.1";
-            port = cfg.dbPort;
+            host = pgInstance.host;
+            port = pgInstance.containerPort;
             user = "sonarr";
             mainDb = "sonarr-main";
             logDb = "sonarr-log";

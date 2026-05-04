@@ -22,6 +22,7 @@ let
     ;
 
   cfg = config.theonecfg.services.nextcloud;
+  pgInstance = config.theonecfg.services.postgres.instances.nextcloud;
 
 in
 {
@@ -58,7 +59,7 @@ in
 
         config = {
           dbtype = "pgsql";
-          dbhost = "127.0.0.1:${toString cfg.dbPort}";
+          dbhost = "${pgInstance.host}:${toString pgInstance.containerPort}";
           dbname = "nextcloud";
           dbuser = "nextcloud";
           adminuser = "admin";

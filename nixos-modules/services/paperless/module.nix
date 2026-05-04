@@ -21,6 +21,7 @@ let
     ;
 
   cfg = config.theonecfg.services.paperless;
+  pgInstance = config.theonecfg.services.postgres.instances.paperless;
 
 in
 {
@@ -65,8 +66,8 @@ in
 
         settings = {
           PAPERLESS_DBENGINE = "postgresql";
-          PAPERLESS_DBHOST = "127.0.0.1";
-          PAPERLESS_DBPORT = cfg.dbPort;
+          PAPERLESS_DBHOST = pgInstance.host;
+          PAPERLESS_DBPORT = pgInstance.containerPort;
           PAPERLESS_DBNAME = "paperless";
           PAPERLESS_DBUSER = "paperless";
           PAPERLESS_OCR_LANGUAGE = "eng";

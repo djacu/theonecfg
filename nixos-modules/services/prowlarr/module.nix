@@ -27,6 +27,7 @@ let
   cfg = config.theonecfg.services.prowlarr;
   declarative = theonecfg.library.declarative pkgs;
   arrTypes = theonecfg.library.arrTypes;
+  pgInstance = config.theonecfg.services.postgres.instances.prowlarr;
 
   # Maps theonecfg.services.<name> → Prowlarr's Application implementation +
   # configContract names. Sonarr-anime is "Sonarr" — same binary/API.
@@ -173,8 +174,8 @@ in
             required = "DisabledForLocalAddresses";
           };
           postgres = {
-            host = "127.0.0.1";
-            port = cfg.dbPort;
+            host = pgInstance.host;
+            port = pgInstance.containerPort;
             user = "prowlarr";
             mainDb = "prowlarr-main";
             logDb = "prowlarr-log";

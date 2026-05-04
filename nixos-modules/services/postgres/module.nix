@@ -29,8 +29,14 @@ let
 
   cfg = config.theonecfg.services.postgres;
 
+  # Each instance gets its own /24 on the veth, indexed by (port - 5432).
+  # E.g. instance.port=5436 → idx 4 → 10.233.4.{1,2}.
+  subnetIndex = port: port - 5432;
+  containerHost = port: "10.233.${toString (subnetIndex port)}.2";
+  containerGateway = port: "10.233.${toString (subnetIndex port)}.1";
+
   instanceModule =
-    { name, ... }:
+    { config, name, ... }:
     {
       options = {
         version = mkOption {
@@ -61,21 +67,37 @@ let
             postgres.extraPlugins.
           '';
         };
+        # Address other host services should use to reach this instance.
+        # The forwardPorts directive (host:${port} → container:5432) only
+        # installs PREROUTING DNAT rules, so host-local connections to
+        # 127.0.0.1:${port} are not redirected and get connection-refused.
+        # Reach the container via the veth address instead — pg_hba.conf
+        # below trusts this /24 anyway.
+        host = mkOption {
+          type = str;
+          readOnly = true;
+          default = containerHost config.port;
+          description = "Container's veth address; use from the host instead of 127.0.0.1.";
+        };
+        containerPort = mkOption {
+          type = int;
+          readOnly = true;
+          default = 5432;
+          description = "Port postgres listens on inside the container.";
+        };
       };
     };
-
-  subnetIndex = instance: instance.port - 5432;
 
   mkInstanceContainer =
     name: instance:
     let
-      idx = subnetIndex instance;
+      idx = subnetIndex instance.port;
     in
     {
       autoStart = true;
       privateNetwork = true;
-      hostAddress = "10.233.${toString idx}.1";
-      localAddress = "10.233.${toString idx}.2";
+      hostAddress = containerGateway instance.port;
+      localAddress = containerHost instance.port;
       forwardPorts = [
         {
           containerPort = 5432;
