@@ -135,6 +135,7 @@ lib.fix (self: {
       comparator ? "name",
       finalize ? ".",
       noUpdate ? false,
+      tagsSourceUrl ? null,
     }:
     let
       itemsFile = pkgs.writeText "${name}-items.json" (builtins.toJSON items);
@@ -162,20 +163,62 @@ lib.fix (self: {
           set -euo pipefail
 
           ${self.waitForApiScript {
-            url = "${baseUrl}/api/v3/system/status";
+            # Poll the target endpoint directly — works for /api/v1/* (Prowlarr)
+            # and /api/v3/* (*arr) without needing a separate version param.
+            url = "${baseUrl}${endpoint}";
             inherit apiKeyFile;
           }}
 
           curl_cmd=curl-${name}
 
           current=$($curl_cmd "${baseUrl}${endpoint}")
-          desired=$(jq '${finalize}' < ${itemsFile} | jq -c '.[]')
+
+          # Replace any `_<fieldName>File` markers on each item with a runtime
+          # injection: read the file's contents and add {name, value} into
+          # `fields`, then drop the marker. Lets callers reference sops paths
+          # without baking secrets into the Nix store.
+          desired=$(jq '${finalize}' < ${itemsFile} | jq -c '.[]' | while read -r item; do
+            for marker in $(jq -r 'keys_unsorted[] | select(test("^_.*File$"))' <<< "$item"); do
+              fname="''${marker#_}"
+              fname="''${fname%File}"
+              fpath=$(jq -r --arg m "$marker" '.[$m]' <<< "$item")
+              fval=$(tr -d '\n' < "$fpath")
+              item=$(jq -c --arg n "$fname" --arg v "$fval" --arg m "$marker" \
+                '.fields = (.fields // []) + [{name: $n, value: $v}] | del(.[$m])' <<< "$item")
+            done
+            printf '%s\n' "$item"
+          done)
+
+          ${lib.optionalString (tagsSourceUrl != null) ''
+            # Resolve tag labels → int ids. Prowlarr (and *arr) /tag endpoints
+            # return [{id, label}, ...]; the wire format on POST expects
+            # tags = [<int>, ...]. Author declarations carry tags = ["anime"];
+            # we look up the id and substitute. Unknown labels error out
+            # loudly — the prowlarr-tags one-shot is responsible for ensuring
+            # every label we reference exists.
+            tag_map=$($curl_cmd "${tagsSourceUrl}" | jq -c 'map({(.label): .id}) | add // {}')
+            desired=$(echo "$desired" | while read -r item; do
+              [ -z "$item" ] && continue
+              jq -c --argjson m "$tag_map" '
+                if (.tags // []) | length > 0 then
+                  .tags = [.tags[] | if type == "string" then ($m[.] // error("Unknown tag: \(.)")) else . end]
+                else .
+                end
+              ' <<< "$item"
+            done)
+          ''}
 
           # Collect existing items by comparator → id
           declare -A existing_ids
           while IFS=$'\t' read -r key id; do
             [ -n "$key" ] && existing_ids["$key"]="$id"
           done < <(jq -r ".[] | \"\(.${comparator})\\t\(.id)\"" <<< "$current")
+
+          # Track failures so one broken item (e.g. an indexer Prowlarr can't
+          # reach) doesn't tank the whole reconciliation. mkSecureCurl prints
+          # the response body on each 4xx/5xx; the unit still ends non-zero
+          # if any item failed so systemd surfaces it.
+          fails=0
 
           # Collect desired keys for later diff (delete pass)
           declare -A desired_keys
@@ -192,14 +235,20 @@ lib.fix (self: {
                   ''
                 else
                   ''
-                    payload=$(jq --argjson id "$id" '. + { id: $id }' <<< "$item")
+                    payload=$(jq -c --argjson id "$id" '. + { id: $id }' <<< "$item")
                     echo "PUT ${endpoint}/$id ($key)"
-                    $curl_cmd -X PUT -d "$payload" "${baseUrl}${endpoint}/$id" >/dev/null
+                    if ! $curl_cmd -X PUT -d "$payload" "${baseUrl}${endpoint}/$id" >/dev/null; then
+                      echo "FAIL PUT ${endpoint}/$id ($key)" >&2
+                      fails=$((fails+1))
+                    fi
                   ''
               }
             else
               echo "POST ${endpoint} ($key)"
-              $curl_cmd -X POST -d "$item" "${baseUrl}${endpoint}" >/dev/null
+              if ! $curl_cmd -X POST -d "$item" "${baseUrl}${endpoint}" >/dev/null; then
+                echo "FAIL POST ${endpoint} ($key)" >&2
+                fails=$((fails+1))
+              fi
             fi
           done <<< "$desired"
 
@@ -207,9 +256,17 @@ lib.fix (self: {
           while IFS=$'\t' read -r key id; do
             if [ -n "$key" ] && [ -z "''${desired_keys[$key]:-}" ]; then
               echo "DELETE ${endpoint}/$id ($key)"
-              $curl_cmd -X DELETE "${baseUrl}${endpoint}/$id" >/dev/null
+              if ! $curl_cmd -X DELETE "${baseUrl}${endpoint}/$id" >/dev/null; then
+                echo "FAIL DELETE ${endpoint}/$id ($key)" >&2
+                fails=$((fails+1))
+              fi
             fi
           done < <(jq -r ".[] | \"\(.${comparator})\\t\(.id)\"" <<< "$current")
+
+          if [ "$fails" -gt 0 ]; then
+            echo "$fails item(s) failed; see FAIL lines above" >&2
+            exit 22
+          fi
         '';
       };
     };
@@ -318,6 +375,121 @@ lib.fix (self: {
           value = 0;
         }
       ];
+    };
+
+  /**
+    Build a single Cardigann indexer entry for Prowlarr's /api/v1/indexer.
+    Returns an attrset matching `arrTypes.indexerType`.
+
+    All Cardigann indexers in Prowlarr share the same baseSettings/
+    torrentBaseSettings shape — verified against /api/v1/indexer/schema.
+    The `definitionFile` field carries the indexer slug (e.g. "eztv",
+    "nyaasi", "kickasstorrents-ws"); Prowlarr looks up the matching
+    YAML definition from its bundled `Prowlarr/Indexers` repo.
+
+    `seederThreshold` (default 5) sets `torrentBaseSettings.appMinimumSeeders`
+    — filters fake-seed spam on public trackers. Pass null to omit.
+
+    Use `extraFields` for indexer-specific options (Nyaa's `cat-id`,
+    `sonarr_compatibility`, etc.). Each entry is a `{name, value}` pair.
+
+    Args:
+      name            : display name (also the comparator)
+      definitionFile  : Prowlarr/Indexers YAML slug
+      tags            : list of label strings (resolved to int IDs at runtime
+                        by the consuming one-shot)
+      seederThreshold : optional minimum-seeders filter (default 5)
+      extraFields     : list of {name, value} pairs to append to fields
+      enable          : default true
+      priority        : default 25 (Prowlarr's default)
+  */
+  mkCardigannIndexer =
+    {
+      name,
+      definitionFile,
+      tags ? [ ],
+      seederThreshold ? 5,
+      extraFields ? [ ],
+      enable ? true,
+      priority ? 25,
+      # Stock Prowlarr provisions a "Default" app profile at id=1 with
+      # RSS+Automatic+Interactive all on. POST /api/v1/indexer rejects
+      # appProfileId=0 (FluentValidation), so we set 1 explicitly.
+      appProfileId ? 1,
+    }:
+    {
+      inherit
+        name
+        tags
+        enable
+        priority
+        appProfileId
+        ;
+      implementation = "Cardigann";
+      implementationName = "Cardigann";
+      configContract = "CardigannSettings";
+      protocol = "torrent";
+      fields =
+        [
+          {
+            name = "definitionFile";
+            value = definitionFile;
+          }
+        ]
+        ++ lib.optional (seederThreshold != null) {
+          name = "torrentBaseSettings.appMinimumSeeders";
+          value = seederThreshold;
+        }
+        ++ extraFields;
+    };
+
+  /**
+    Cardigann indexer with sops-injected username + password. Emits
+    `_usernameFile` and `_passwordFile` markers; the consuming one-shot
+    (mkArrApiPushService) reads each file at runtime and adds
+    `{name: "username"|"password", value: <file contents>}` into `fields`.
+
+    Default `seederThreshold = null`: private trackers report honest
+    seeder counts and Empornium-style trackers may have low-seeder
+    legitimate releases worth grabbing.
+
+    Args:
+      name             : display name (comparator)
+      definitionFile   : Prowlarr/Indexers YAML slug
+      usernameFile     : sops-resolved path holding the tracker username
+      passwordFile     : sops-resolved path holding the tracker password
+      tags             : labels (resolved to ids at runtime)
+      seederThreshold  : optional minimum-seeders filter (default null)
+      extraFields      : extra {name, value} pairs (e.g. `freeleech` for Empornium)
+  */
+  mkCardigannIndexerWithCreds =
+    {
+      name,
+      definitionFile,
+      usernameFile,
+      passwordFile,
+      tags ? [ ],
+      seederThreshold ? null,
+      extraFields ? [ ],
+      enable ? true,
+      priority ? 25,
+      appProfileId ? 1,
+    }:
+    (self.mkCardigannIndexer {
+      inherit
+        name
+        definitionFile
+        tags
+        seederThreshold
+        extraFields
+        enable
+        priority
+        appProfileId
+        ;
+    })
+    // {
+      _usernameFile = usernameFile;
+      _passwordFile = passwordFile;
     };
 
   /**
