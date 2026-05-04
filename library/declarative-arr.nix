@@ -215,6 +215,112 @@ lib.fix (self: {
     };
 
   /**
+    Build a single qBittorrent download-client entry shaped for *arr's
+    /api/v3/downloadclient. Returns an attrset matching `arrTypes.downloadClientType`.
+
+    Sonarr v4 / Sonarr-anime / Whisparr (Sonarr-v3 fork) and Radarr share
+    most fields but differ on the category + priority field names:
+      - "tv"    : tvCategory, recentTvPriority, olderTvPriority
+      - "movie" : movieCategory, recentMoviePriority, olderMoviePriority
+    Verified against each app's QBittorrentSettings.cs on the develop branch.
+
+    `username` / `password` are empty: qBittorrent's
+    AuthSubnetWhitelist=127.0.0.1/32 lets localhost connections in without
+    auth, and *arr binds to / connects from 127.0.0.1.
+
+    Args:
+      port      : qBittorrent webUI port (e.g. 8080)
+      category  : qBittorrent category name (matches autoCategories)
+      variant   : "tv" (default) or "movie"
+  */
+  mkQbtDownloadClient =
+    {
+      port,
+      category,
+      variant ? "tv",
+    }:
+    let
+      fieldNames =
+        if variant == "movie" then
+          {
+            cat = "movieCategory";
+            recent = "recentMoviePriority";
+            older = "olderMoviePriority";
+          }
+        else
+          {
+            cat = "tvCategory";
+            recent = "recentTvPriority";
+            older = "olderTvPriority";
+          };
+    in
+    {
+      name = "qBittorrent";
+      enable = true;
+      priority = 1;
+      removeCompletedDownloads = true;
+      removeFailedDownloads = true;
+      implementation = "QBittorrent";
+      implementationName = "qBittorrent";
+      configContract = "QBittorrentSettings";
+      tags = [ ];
+      fields = [
+        {
+          name = "host";
+          value = "127.0.0.1";
+        }
+        {
+          name = "port";
+          value = port;
+        }
+        {
+          name = "useSsl";
+          value = false;
+        }
+        {
+          name = "urlBase";
+          value = "";
+        }
+        {
+          name = "username";
+          value = "";
+        }
+        {
+          name = "password";
+          value = "";
+        }
+        {
+          name = fieldNames.cat;
+          value = category;
+        }
+        {
+          name = fieldNames.recent;
+          value = 0;
+        }
+        {
+          name = fieldNames.older;
+          value = 0;
+        }
+        {
+          name = "initialState";
+          value = 0;
+        }
+        {
+          name = "sequentialOrder";
+          value = false;
+        }
+        {
+          name = "firstAndLast";
+          value = false;
+        }
+        {
+          name = "contentLayout";
+          value = 0;
+        }
+      ];
+    };
+
+  /**
     Bootstrap Jellyfin's setup wizard via /Startup/* endpoints.
     All five endpoints accept requests without authentication BEFORE the
     wizard is marked complete. After /Startup/Complete, they require admin
