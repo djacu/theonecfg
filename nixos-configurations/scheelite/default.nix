@@ -18,6 +18,8 @@ inputs: {
       tankServicesDir = "/tank0/services";
       tankMediaDir = "/tank0/media";
       tankDownloadsDir = "/tank0/downloads";
+
+      declarative = theonecfg.library.declarative pkgs;
     in
     {
       imports = [
@@ -161,6 +163,7 @@ inputs: {
             enable = true;
             dataDir = "${tankServicesDir}/sonarr-anime";
             rootFolders = [ { path = "${tankMediaDir}/anime"; } ];
+            prowlarrTags = [ "anime" ];
           };
           radarr = {
             enable = true;
@@ -171,12 +174,44 @@ inputs: {
             enable = true;
             dataDir = "${tankServicesDir}/whisparr";
             rootFolders = [ { path = "${tankMediaDir}/adult"; } ];
+            prowlarrTags = [ "adult" ];
           };
-          # Indexer JSON deferred — start empty, add via UI once after install,
-          # then export to Nix via curl /api/v1/indexer | jq.
           prowlarr = {
             enable = true;
             dataDir = "${tankServicesDir}/prowlarr";
+            # Public Cardigann indexers — no auth, work without FlareSolverr
+            # (verified May 2026; 1337x and TorrentGalaxy are CF-blocked and
+            # excluded). Tagged anime/adult routes to sonarr-anime / whisparr
+            # respectively (prowlarrTags above match these labels).
+            # Empornium is a private adult tracker the user has an account
+            # on; deferred to a follow-up commit once empornium/* are added
+            # to secrets/scheelite.yaml.
+            indexers = [
+              # EZTV dropped — eztvx.to is Cloudflare-protected in 2026; can
+              # revisit once FlareSolverr or a configurable mirror works.
+              (declarative.mkCardigannIndexer {
+                name = "YTS";
+                definitionFile = "yts";
+              })
+              (declarative.mkCardigannIndexer {
+                name = "LimeTorrents";
+                definitionFile = "limetorrents";
+              })
+              # kickasstorrents.ws dropped — Cloudflare-blocked in 2026
+              # ("Unable to access kickass.ws, blocked by CloudFlare
+              # Protection." per Prowlarr POST 400). Same revisit conditions
+              # as EZTV.
+              (declarative.mkCardigannIndexer {
+                name = "Nyaa.si";
+                definitionFile = "nyaasi";
+                tags = [ "anime" ];
+              })
+              (declarative.mkCardigannIndexer {
+                name = "sukebei.nyaa.si";
+                definitionFile = "sukebeinyaasi";
+                tags = [ "adult" ];
+              })
+            ];
           };
           pinchflat = {
             enable = false;
