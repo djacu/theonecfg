@@ -19,6 +19,7 @@ let
     ;
 
   inherit (lib.types)
+    bool
     int
     listOf
     str
@@ -28,6 +29,15 @@ let
   declarative = theonecfg.library.declarative pkgs;
   arrTypes = theonecfg.library.arrTypes;
   pgInstance = config.theonecfg.services.postgres.instances.sonarr-anime;
+  qbtCfg = config.theonecfg.services.qbittorrent;
+
+  autoDownloadClients = lib.optional (cfg.autoQbittorrent && qbtCfg.enable) (
+    declarative.mkQbtDownloadClient {
+      port = qbtCfg.webUiPort;
+      category = "sonarr-anime";
+    }
+  );
+  effectiveDownloadClients = autoDownloadClients ++ cfg.downloadClients;
 
   # Mirrors upstream services.sonarr's mkServarrSettingsEnvVars (in
   # nixos/modules/services/misc/servarr/settings-options.nix). Recursively
@@ -92,9 +102,22 @@ in
       default = [ ];
       example = [ { path = "/tank0/media/anime"; } ];
     };
+    autoQbittorrent = mkOption {
+      type = bool;
+      default = true;
+      description = ''
+        Auto-add a qBittorrent download-client entry pointing at
+        ``theonecfg.services.qbittorrent`` (category = "sonarr-anime")
+        whenever both modules are enabled.
+      '';
+    };
     downloadClients = mkOption {
       type = listOf arrTypes.downloadClientType;
       default = [ ];
+      description = ''
+        Manual download client entries. Merged with the auto-derived
+        qBittorrent entry (when ``autoQbittorrent = true``).
+      '';
     };
   };
 
@@ -207,14 +230,14 @@ in
       }
     ))
 
-    (mkIf (cfg.downloadClients != [ ]) (
+    (mkIf (effectiveDownloadClients != [ ]) (
       declarative.mkArrApiPushService {
         name = "sonarr-anime-downloadclients";
         after = [ "sonarr-anime.service" ];
         baseUrl = "http://127.0.0.1:${toString cfg.port}";
         apiKeyFile = config.sops.secrets."sonarr-anime/api-key".path;
         endpoint = "/api/v3/downloadclient";
-        items = cfg.downloadClients;
+        items = effectiveDownloadClients;
       }
     ))
 

@@ -18,6 +18,7 @@ let
     ;
 
   inherit (lib.types)
+    bool
     int
     listOf
     str
@@ -27,6 +28,15 @@ let
   declarative = theonecfg.library.declarative pkgs;
   arrTypes = theonecfg.library.arrTypes;
   pgInstance = config.theonecfg.services.postgres.instances.sonarr;
+  qbtCfg = config.theonecfg.services.qbittorrent;
+
+  autoDownloadClients = lib.optional (cfg.autoQbittorrent && qbtCfg.enable) (
+    declarative.mkQbtDownloadClient {
+      port = qbtCfg.webUiPort;
+      category = "sonarr";
+    }
+  );
+  effectiveDownloadClients = autoDownloadClients ++ cfg.downloadClients;
 
 in
 {
@@ -55,10 +65,24 @@ in
       example = [ { path = "/tank0/media/tv"; } ];
       description = "Declarative root folders. Reconciled via /api/v3/rootfolder on every activation.";
     };
+    autoQbittorrent = mkOption {
+      type = bool;
+      default = true;
+      description = ''
+        Auto-add a qBittorrent download-client entry pointing at
+        ``theonecfg.services.qbittorrent`` (category = "sonarr") whenever
+        both modules are enabled. Disable to manage download clients
+        entirely via ``downloadClients``.
+      '';
+    };
     downloadClients = mkOption {
       type = listOf arrTypes.downloadClientType;
       default = [ ];
-      description = "Declarative download clients. Reconciled via /api/v3/downloadclient.";
+      description = ''
+        Manual download client entries. Merged with the auto-derived
+        qBittorrent entry (when ``autoQbittorrent = true``) and reconciled
+        via /api/v3/downloadclient.
+      '';
     };
     delayProfiles = mkOption {
       type = listOf arrTypes.delayProfileType;
@@ -151,14 +175,14 @@ in
       }
     ))
 
-    (mkIf (cfg.downloadClients != [ ]) (
+    (mkIf (effectiveDownloadClients != [ ]) (
       declarative.mkArrApiPushService {
         name = "sonarr-downloadclients";
         after = [ "sonarr.service" ];
         baseUrl = "http://127.0.0.1:${toString cfg.port}";
         apiKeyFile = config.sops.secrets."sonarr/api-key".path;
         endpoint = "/api/v3/downloadclient";
-        items = cfg.downloadClients;
+        items = effectiveDownloadClients;
       }
     ))
 
