@@ -89,6 +89,17 @@ in
       default = [ ];
       description = "Declarative delay profiles. Reconciled via /api/v3/delayprofile.";
     };
+    prowlarrTags = mkOption {
+      type = listOf str;
+      default = [ ];
+      description = ''
+        Tags carried on this *arr's Prowlarr application entry. Prowlarr
+        only pushes indexers whose tags overlap (or, if both are empty,
+        with no tag filter). Used to route specialty indexers — set
+        ``[ "anime" ]`` here and on the anime indexers, ``[ "adult" ]``
+        for whisparr-style adult indexers.
+      '';
+    };
   };
 
   config = mkIf cfg.enable (mkMerge [

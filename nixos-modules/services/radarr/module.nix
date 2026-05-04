@@ -82,6 +82,14 @@ in
         qBittorrent entry (when ``autoQbittorrent = true``).
       '';
     };
+    prowlarrTags = mkOption {
+      type = listOf str;
+      default = [ ];
+      description = ''
+        Tags carried on this *arr's Prowlarr application entry. See
+        sonarr.prowlarrTags for routing semantics.
+      '';
+    };
   };
 
   config = mkIf cfg.enable (mkMerge [
