@@ -257,6 +257,19 @@ and Prowlarr's inline applications one-shot.
   overlap. Revisit when (a) we add a private movie tracker and want
   LimeTorrents as a fallback or (b) LimeTorrents becomes Radarr's only
   realistic source.
+- **Empornium 2FA migration path.** Prowlarr ships two Cardigann
+  definitions: `empornium` (username + password) and `empornium2fa`
+  (adds a TOTP secret). We currently use the non-2FA variant. If 2FA
+  ever gets enabled on the account:
+
+  1. Sops: add `empornium/totp-secret` with the base32 TOTP seed (same
+     string the authenticator app uses).
+  2. Nix: in `nixos-configurations/scheelite/default.nix`, change
+     `definitionFile = "empornium"` → `"empornium2fa"`, add a third
+     `_<field>File` marker for the TOTP secret (exact field name from
+     `/api/v1/indexer/schema` for the `empornium2fa` definition —
+     `totpSecret` or similar).
+  3. Deploy. Prowlarr's auto-test logs in with the live TOTP code.
 
 ## Files
 
