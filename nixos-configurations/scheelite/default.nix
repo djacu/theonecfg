@@ -144,7 +144,7 @@ inputs: {
           # four-layer approach. Each module reads its API key from sops
           # via env-var injection (Sonarr__Auth__ApiKey etc.).
           jellyfin = {
-            enable = false;
+            enable = true;
             dataDir = "${tankServicesDir}/jellyfin";
             cacheDir = "${tankServicesDir}/jellyfin-cache";
             adminUser = theonecfg.knownUsers.djacu.username;
