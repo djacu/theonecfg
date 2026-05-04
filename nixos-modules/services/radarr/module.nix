@@ -86,6 +86,8 @@ in
         };
       };
 
+      users.users.radarr.extraGroups = [ "media" ];
+
       sops.secrets = {
         "radarr/api-key".owner = "radarr";
         "radarr/postgres-password".owner = "radarr";
@@ -100,6 +102,10 @@ in
       };
 
       systemd.services.radarr.unitConfig.RequiresMountsFor = map (r: r.path) cfg.rootFolders;
+
+      # Each rootFolder is sgid 2775 owned by radarr:media so *arr/qbittorrent/jellyfin
+      # cross-access works (see media-storage).
+      systemd.tmpfiles.rules = map (r: "d ${r.path} 2775 radarr media - -") cfg.rootFolders;
 
       theonecfg.services.postgres.instances.radarr = {
         version = "16";

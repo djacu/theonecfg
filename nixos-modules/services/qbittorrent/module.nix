@@ -142,20 +142,24 @@ in
         "${passwordHashApp}/bin/qbt-password-hash"
       ];
 
+      users.users.qbittorrent.extraGroups = [ "media" ];
+
       sops.secrets."qbittorrent/password".owner = "qbittorrent";
 
       # qbittorrent isn't in NixOS's `ids.nix` static UID registry, so
       # config.ids.uids.qbittorrent doesn't exist. Reference the user/group
       # by name instead — systemd-tmpfiles accepts both, and names resolve
       # to whatever UID upstream NixOS or the host config assigned.
+      #
+      # Downloads + per-category dirs use sgid 2775 owned by qbittorrent:media
+      # so *arr's hardlink-and-delete-source flow works (it needs write+delete
+      # on these to clean up after import). See media-storage module.
       systemd.tmpfiles.rules = [
         "d ${cfg.profileDir} 0750 ${config.services.qbittorrent.user} ${config.services.qbittorrent.group} - -"
-        "d ${cfg.downloadsDir} 0775 ${config.services.qbittorrent.user} ${config.services.qbittorrent.group} - -"
+        "d ${cfg.downloadsDir} 2775 ${config.services.qbittorrent.user} media - -"
       ]
-      # One subdirectory per category for *arr handoff.
       ++ lib.mapAttrsToList (
-        _: path:
-        "d ${path} 0775 ${config.services.qbittorrent.user} ${config.services.qbittorrent.group} - -"
+        _: path: "d ${path} 2775 ${config.services.qbittorrent.user} media - -"
       ) effectiveCategories;
 
       systemd.services.qbittorrent.unitConfig.RequiresMountsFor = [

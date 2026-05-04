@@ -98,6 +98,8 @@ in
         };
       };
 
+      users.users.sonarr.extraGroups = [ "media" ];
+
       sops.secrets = {
         "sonarr/api-key".owner = "sonarr";
         "sonarr/postgres-password".owner = "sonarr";
@@ -113,10 +115,12 @@ in
 
       # Upstream sonarr's StateDirectory only kicks in for the default
       # /var/lib/sonarr/.config/NzbDrone path; with our override we create
-      # dataDir ourselves.
+      # dataDir ourselves. Each rootFolder is sgid 2775 owned by sonarr:media
+      # so *arr/qbittorrent/jellyfin cross-access works (see media-storage).
       systemd.tmpfiles.rules = [
         "d ${cfg.dataDir} 0750 ${toString config.ids.uids.sonarr} ${toString config.ids.gids.sonarr} - -"
-      ];
+      ]
+      ++ map (r: "d ${r.path} 2775 sonarr media - -") cfg.rootFolders;
 
       # Wait for media root mounts before starting (upstream already adds
       # cfg.dataDir; we extend with the configured root folders).

@@ -159,6 +159,7 @@ in
 
       users.users.sonarr-anime = {
         group = "sonarr-anime";
+        extraGroups = [ "media" ];
         home = cfg.dataDir;
         isSystemUser = true;
       };
@@ -179,7 +180,8 @@ in
 
       systemd.tmpfiles.rules = [
         "d ${cfg.dataDir} 0750 sonarr-anime sonarr-anime - -"
-      ];
+      ]
+      ++ map (r: "d ${r.path} 2775 sonarr-anime media - -") cfg.rootFolders;
 
       theonecfg.services.postgres.instances.sonarr-anime = {
         version = "16";

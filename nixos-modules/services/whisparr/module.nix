@@ -127,6 +127,8 @@ in
         };
       };
 
+      users.users.whisparr.extraGroups = [ "media" ];
+
       systemd.services.whisparr.serviceConfig.ExecStartPre = lib.mkAfter [
         "+${whisparrConfigSync}/bin/whisparr-config-sync"
       ];
@@ -145,6 +147,10 @@ in
       };
 
       systemd.services.whisparr.unitConfig.RequiresMountsFor = map (r: r.path) cfg.rootFolders;
+
+      # Each rootFolder is sgid 2775 owned by whisparr:media so *arr/qbittorrent/jellyfin
+      # cross-access works (see media-storage).
+      systemd.tmpfiles.rules = map (r: "d ${r.path} 2775 whisparr media - -") cfg.rootFolders;
 
       theonecfg.services.postgres.instances.whisparr = {
         version = "16";
