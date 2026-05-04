@@ -218,6 +218,45 @@ and Prowlarr's inline applications one-shot.
   really support OIDC in a useful way (no per-user RBAC). Jellyfin SSO
   via plugin (`jellyfin-plugin-sso`) would need its own one-shot to push
   config. Out of scope this iteration.
+- **LimeTorrents → Radarr push fails Prowlarr's auto-test.** Investigated
+  on 2026-05-03. Prowlarr's app-sync runs an empty-term sanity check
+  before pushing an indexer to an \*arr; for LimeTorrents the response
+  is parsed as 0 results in the Movies category, so Radarr never gets
+  it. Sonarr (TV/anime categories) passes the same check.
+
+  Root cause is in the bundled Cardigann YAML (`Prowlarr/Indexers
+  definitions/v11/limetorrents.yml`):
+
+  ```yaml
+  paths:
+    - path: "{{ if .Keywords }}search/all/{{ .Keywords }}/{{ .Config.sort }}/1/{{ else }}/latest100{{ end }}"
+  ```
+
+  Empty-keyword browse hits `/latest100` (a single global recent-uploads
+  endpoint, not category-specific), then Cardigann post-filters by
+  category. When the latest 100 happens to be light on movies, the
+  Movies post-filter returns 0 → auto-test fails → Radarr push skipped.
+  LimeTorrents itself does have a category-specific browse at
+  `/browse-torrents/<Category>/`, but the YAML doesn't use it.
+
+  Real keyword searches from Radarr would work — they hit `search/all/...`
+  and post-filter, which returns hits for any real movie title. The
+  auto-test is the only thing blocking Radarr registration.
+
+  Fix options, not pursued this round:
+  1. Manual Torznab add via Radarr's UI (one-time; bypasses the test;
+     drifts from declarative state).
+  2. Local Cardigann YAML override at `<prowlarr-data>/Definitions/Custom/limetorrents.yml`
+     using `/browse-torrents/<Category>/` for empty-keyword browse and
+     adjusted row selectors. Most "right" fix but requires carrying a
+     small local fork of one upstream YAML.
+  3. Upstream PR to `Prowlarr/Indexers`.
+
+  Currently (4) — accept the loss. Radarr has YTS (movies-dedicated)
+  and Nyaa.si (anime movies); LimeTorrents-as-movies is marginal
+  overlap. Revisit when (a) we add a private movie tracker and want
+  LimeTorrents as a fallback or (b) LimeTorrents becomes Radarr's only
+  realistic source.
 
 ## Files
 
