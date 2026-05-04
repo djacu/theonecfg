@@ -231,6 +231,17 @@ inputs: {
                 definitionFile = "sukebeinyaasi";
                 tags = [ "adult" ];
               })
+              # Empornium — private adult tracker. Username/password injected
+              # at runtime from sops via the `_usernameFile`/`_passwordFile`
+              # markers that mkArrApiPushService's secret-injection step
+              # resolves. The 2FA variant is `empornium2fa` if needed later.
+              (declarative.mkCardigannIndexerWithCreds {
+                name = "Empornium";
+                definitionFile = "empornium";
+                usernameFile = config.sops.secrets."empornium/username".path;
+                passwordFile = config.sops.secrets."empornium/password".path;
+                tags = [ "adult" ];
+              })
             ];
           };
           pinchflat = {
@@ -271,6 +282,13 @@ inputs: {
           monitoring.node-exporter.enable = false;
           monitoring.zfs-exporter.enable = false;
         };
+
+        # Indexer-specific credentials (sops). These live in the host
+        # config rather than the prowlarr module because they're tied to
+        # specific indexer entries declared above (Empornium); we'd
+        # populate per-host on a per-tracker basis.
+        sops.secrets."empornium/username".owner = "prowlarr";
+        sops.secrets."empornium/password".owner = "prowlarr";
       };
     };
 }
