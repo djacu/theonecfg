@@ -538,13 +538,26 @@ lib.fix (self: {
         script = ''
           set -euo pipefail
 
-          ${self.waitForApiScript {
-            url = "${baseUrl}/System/Info/Public";
-          }}
+          # Poll /Startup/Configuration directly. Jellyfin's HTTP server
+          # (and /System/Info/Public) come up several seconds before the
+          # StartupController is ready; using the actual endpoint we'll
+          # POST to as the readiness probe avoids 503s on the first POST.
+          # 200 → wizard pending, proceed. 401 → wizard already complete,
+          # short-circuit (idempotency). Any other code → keep polling.
+          end=$((SECONDS+300))
+          status=0
+          while true; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "${baseUrl}/Startup/Configuration" || echo 0)
+            case "$status" in
+              200|401) break ;;
+            esac
+            if [ $SECONDS -ge $end ]; then
+              echo "Timeout waiting for ${baseUrl}/Startup/Configuration (last status: $status)" >&2
+              exit 1
+            fi
+            sleep 2
+          done
 
-          # If the wizard is already complete, /Startup/Configuration returns 401.
-          # Use that as our idempotency check.
-          status=$(curl -s -o /dev/null -w "%{http_code}" "${baseUrl}/Startup/Configuration")
           if [ "$status" = "401" ]; then
             echo "Jellyfin wizard already complete; skipping bootstrap."
             exit 0
@@ -565,6 +578,14 @@ lib.fix (self: {
             }
 
           # 2. POST /Startup/User
+          # GET first — Jellyfin's POST handler calls _userManager.Users.First()
+          # which throws on an empty user list. The default user is seeded
+          # lazily inside GET /Startup/User via InitializeAsync(); the web
+          # wizard does GET on view-show, POST on submit, which is why the UI
+          # works but a POST-only script fails. Upstream issue:
+          # https://github.com/jellyfin/jellyfin/issues/16720
+          curl -fsS "${baseUrl}/Startup/User" >/dev/null
+
           adminpass="$(tr -d '\n' < "${adminPasswordFile}")"
           curl -fsS -X POST "${baseUrl}/Startup/User" \
             -H "Content-Type: application/json" \
@@ -665,15 +686,19 @@ lib.fix (self: {
           existing_names=$(jq -r '.[].Name' <<< "$current")
           desired_names=$(jq -r 'keys[]' <<< "$desired")
 
-          # Add missing
-          for name in $desired_names; do
+          # Add missing — use `while read -r` to preserve whitespace in
+          # library names ("TV Shows", "Home Videos", etc.). `for in $list`
+          # would word-split on space and turn "TV Shows" into two libraries.
+          while IFS= read -r name; do
+            [ -z "$name" ] && continue
             if ! grep -qx "$name" <<< "$existing_names"; then
               echo "Adding Jellyfin library: $name"
-              entry=$(jq -r --arg n "$name" '.[$n]' <<< "$desired")
+              entry=$(jq -c --arg n "$name" '.[$n]' <<< "$desired")
               ctype=$(jq -r '.type' <<< "$entry")
               # Build query string with ?paths= per path
-              query="name=$name&collectionType=$ctype&refreshLibrary=false"
-              while read -r p; do
+              query="name=$(jq -rn --arg s "$name" '$s | @uri')&collectionType=$ctype&refreshLibrary=false"
+              while IFS= read -r p; do
+                [ -z "$p" ] && continue
                 query="$query&paths=$(jq -rn --arg s "$p" '$s | @uri')"
               done < <(jq -r '.paths[]' <<< "$entry")
 
@@ -683,16 +708,17 @@ lib.fix (self: {
                 -H "Content-Type: application/json" \
                 -d "$opts" >/dev/null
             fi
-          done
+          done <<< "$desired_names"
 
-          # Delete extras
-          for name in $existing_names; do
+          # Delete extras — same word-split concern.
+          while IFS= read -r name; do
+            [ -z "$name" ] && continue
             if ! grep -qx "$name" <<< "$desired_names"; then
               echo "Removing Jellyfin library: $name"
               curl -fsS -X DELETE "${baseUrl}/Library/VirtualFolders?name=$(jq -rn --arg s "$name" '$s | @uri')" \
                 "''${auth[@]}" >/dev/null
             fi
-          done
+          done <<< "$existing_names"
         '';
       };
     };
