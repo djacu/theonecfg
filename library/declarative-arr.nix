@@ -20,16 +20,27 @@ lib.fix (self: {
   /**
     Wait until an HTTP endpoint responds with 200, with a timeout.
 
+    If `apiKeyFile` is given, the probe sends an `X-Api-Key:` header read
+    from that file at runtime. Required for *arr `/api/v3/system/status`,
+    which 401s without a key even when `auth.required = "DisabledForLocalAddresses"`
+    (that setting only relaxes UI login, not the REST API).
+
     Returns a Bash snippet usable inside `script` or `preStart`.
   */
   waitForApiScript =
     {
       url,
       timeout ? 300,
+      apiKeyFile ? null,
     }:
     ''
+      ${lib.optionalString (apiKeyFile != null) ''
+        wait_apikey="$(tr -d '\n' < "${apiKeyFile}")"
+      ''}
       end=$((SECONDS+${toString timeout}))
-      until ${pkgs.curl}/bin/curl -fsSk --max-time 5 "${url}" >/dev/null 2>&1; do
+      until ${pkgs.curl}/bin/curl -fsSk --max-time 5 ${
+        lib.optionalString (apiKeyFile != null) ''-H "X-Api-Key: $wait_apikey"''
+      } "${url}" >/dev/null 2>&1; do
         if [ $SECONDS -ge $end ]; then
           echo "Timeout waiting for ${url}" >&2
           exit 1
@@ -43,8 +54,9 @@ lib.fix (self: {
     from a file. Returns a derivation; the binary is at
     `$out/bin/curl-${name}`.
 
-    The wrapper also forces -fsS and JSON content-type. Use it for *arr
-    REST clients.
+    On HTTP errors (4xx/5xx) the wrapper prints the response body to stderr
+    before exiting non-zero. *arr APIs return validator messages in 400
+    bodies, which curl's -f flag would otherwise silently discard.
   */
   mkSecureCurl =
     {
@@ -63,11 +75,22 @@ lib.fix (self: {
           exit 1
         fi
         apikey="$(tr -d '\n' < "${apiKeyFile}")"
-        exec curl -fsS \
+        body=$(mktemp)
+        trap 'rm -f "$body"' EXIT
+        http_code=$(curl -sS \
           -H "X-Api-Key: $apikey" \
           -H "Content-Type: application/json" \
           -H "Accept: application/json" \
-          "$@"
+          -o "$body" \
+          -w "%{http_code}" \
+          "$@")
+        if [ "$http_code" -ge 400 ]; then
+          echo "HTTP $http_code from $*" >&2
+          cat "$body" >&2
+          echo >&2
+          exit 22
+        fi
+        cat "$body"
       '';
     };
 
@@ -86,12 +109,18 @@ lib.fix (self: {
       comparator  : field used to identify items for diff (default: "name")
       finalize    : optional jq filter applied to each desired item before
                     POST/PUT (e.g. ". + {enabled: true}")
+      noUpdate    : if true, skip PUT on comparator-match — use for endpoints
+                    that only expose POST/GET/DELETE (no PUT), notably
+                    *arr's /api/v3/rootfolder. Treats the resource as
+                    identity-by-comparator: matching key = nothing to do.
+                    Drift in non-comparator fields can't be reconciled,
+                    which is fine for rootfolder (only field is `path`).
 
     Behavior at runtime:
       1. Wait for ${baseUrl}${endpoint} to respond.
       2. GET current state.
       3. For each desired item: if comparator value matches an existing
-         item by the same comparator, PUT (update by id); else POST (create).
+         item, PUT (or skip if noUpdate); else POST.
       4. For each current item whose comparator value is NOT in desired,
          DELETE (cleans up drift).
   */
@@ -105,6 +134,7 @@ lib.fix (self: {
       items,
       comparator ? "name",
       finalize ? ".",
+      noUpdate ? false,
     }:
     let
       itemsFile = pkgs.writeText "${name}-items.json" (builtins.toJSON items);
@@ -133,6 +163,7 @@ lib.fix (self: {
 
           ${self.waitForApiScript {
             url = "${baseUrl}/api/v3/system/status";
+            inherit apiKeyFile;
           }}
 
           curl_cmd=curl-${name}
@@ -154,9 +185,18 @@ lib.fix (self: {
 
             if [ -n "''${existing_ids[$key]:-}" ]; then
               id="''${existing_ids[$key]}"
-              payload=$(jq --argjson id "$id" '. + { id: $id }' <<< "$item")
-              echo "PUT ${endpoint}/$id ($key)"
-              $curl_cmd -X PUT -d "$payload" "${baseUrl}${endpoint}/$id" >/dev/null
+              ${
+                if noUpdate then
+                  ''
+                    echo "SKIP ${endpoint}/$id ($key) — already exists"
+                  ''
+                else
+                  ''
+                    payload=$(jq --argjson id "$id" '. + { id: $id }' <<< "$item")
+                    echo "PUT ${endpoint}/$id ($key)"
+                    $curl_cmd -X PUT -d "$payload" "${baseUrl}${endpoint}/$id" >/dev/null
+                  ''
+              }
             else
               echo "POST ${endpoint} ($key)"
               $curl_cmd -X POST -d "$item" "${baseUrl}${endpoint}" >/dev/null
@@ -490,6 +530,7 @@ lib.fix (self: {
         pkgs.openssl
         pkgs.coreutils
         pkgs.gnused
+        pkgs.tinyxxd
       ];
       text = ''
         set -euo pipefail
