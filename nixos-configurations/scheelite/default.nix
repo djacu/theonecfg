@@ -248,8 +248,8 @@ inputs: {
             enable = false;
             mediaDir = "${tankMediaDir}/youtube";
           };
-          recyclarr.enable = false;
-          jellyseerr.enable = false;
+          recyclarr.enable = true;
+          jellyseerr.enable = true;
 
           # --- Phase 4: apps with DBs ---
           # Each enables its own postgres instance (defined in the service module).
