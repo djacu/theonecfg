@@ -780,14 +780,20 @@ lib.fix (self: {
             current=$(curl -fsS "${baseUrl}/api/v2/torrents/categories")
             desired=$(cat ${categoriesFile})
 
-            # Add/update each desired category
+            # Add/update each desired category. qBittorrent 5.1.4's
+            # /api/v2/torrents/editCategory returns 409 when the new options
+            # already equal the stored ones (sessionimpl.cpp::editCategory),
+            # so skip the edit call when savePath already matches — the API
+            # treats no-op edits as failures.
             for name in $(jq -r 'keys[]' <<< "$desired"); do
               save_path=$(jq -r --arg n "$name" '.[$n]' <<< "$desired")
               if jq -e --arg n "$name" '.[$n]' <<< "$current" >/dev/null; then
-                # Edit existing
-                curl -fsS -X POST "${baseUrl}/api/v2/torrents/editCategory" \
-                  --data-urlencode "category=$name" \
-                  --data-urlencode "savePath=$save_path" >/dev/null
+                current_save_path=$(jq -r --arg n "$name" '.[$n].savePath' <<< "$current")
+                if [ "$current_save_path" != "$save_path" ]; then
+                  curl -fsS -X POST "${baseUrl}/api/v2/torrents/editCategory" \
+                    --data-urlencode "category=$name" \
+                    --data-urlencode "savePath=$save_path" >/dev/null
+                fi
               else
                 curl -fsS -X POST "${baseUrl}/api/v2/torrents/createCategory" \
                   --data-urlencode "category=$name" \
