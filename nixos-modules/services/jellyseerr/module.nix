@@ -104,8 +104,9 @@ in
       # State lives at /var/lib/seerr (created by services.seerr); on hosts
       # that roll back root state (impermanence), the host's impermanence
       # config must list /var/lib/seerr among the persisted directories.
-
-      sops.secrets."jellyseerr/admin-password".owner = "seerr";
+      # Upstream services.seerr uses DynamicUser=true, so /var/lib/seerr is
+      # actually a symlink into /var/lib/private/seerr — see the host's
+      # impermanence pattern for DynamicUser services.
     }
 
     # Bootstrap one-shot. Logs into Seerr via Jellyfin (creating the Seerr
@@ -164,17 +165,22 @@ in
           cookie_jar=$(mktemp)
           trap 'rm -f "$cookie_jar"' EXIT
 
+          # Seerr expects hostname/port/useSsl/urlBase as separate fields, not a
+          # full URL — its `getHostname()` reassembles them, and a URL crammed
+          # into `hostname` is rejected with 404 INVALID_URL.
           curl -fsS -c "$cookie_jar" -X POST "${baseUrl}/api/v1/auth/jellyfin" \
             -H "Content-Type: application/json" \
             -d "$(jq -nc \
               --arg user "${jellyfinCfg.adminUser}" \
               --arg pass "$jf_password" \
-              --arg host "${jellyfinBaseUrl}" \
               --arg email "${cfg.jellyfinAdminEmail}" \
               '{
                 username: $user,
                 password: $pass,
-                hostname: $host,
+                hostname: "127.0.0.1",
+                port: ${toString jellyfinCfg.port},
+                useSsl: false,
+                urlBase: "",
                 email: $email,
                 serverType: 2
               }')" >/dev/null
