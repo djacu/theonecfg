@@ -126,6 +126,7 @@ in
 
     (mkIf config.theonecfg.services.caddy.enable {
       services.caddy.virtualHosts.${cfg.domain}.extraConfig = ''
+        import acme_resolvers
         reverse_proxy 127.0.0.1:${toString cfg.internalPort}
       '';
     })

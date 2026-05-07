@@ -109,6 +109,9 @@ immich:
 paperless:
   admin-password: $(gen_password)
   db-password: $(gen_password)
+porkbun:
+  api-key: REPLACE_WITH_pk1_FROM_PORKBUN
+  api-secret: REPLACE_WITH_sk1_FROM_PORKBUN
 EOF
 }
 

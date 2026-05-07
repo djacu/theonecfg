@@ -63,11 +63,6 @@ in
         extraConfig = {
           skip-provider-button = "true";
           whitelist-domain = cfg.cookieDomain;
-          # Caddy serves homelab vhosts with its internal CA, which
-          # the system trust store doesn't know about. Skip verification
-          # for the OIDC provider connection — it's same-host loopback
-          # to Caddy → kanidm.
-          ssl-insecure-skip-verify = "true";
         };
       };
 
@@ -112,6 +107,7 @@ in
 
     (mkIf config.theonecfg.services.caddy.enable {
       services.caddy.virtualHosts.${cfg.domain}.extraConfig = ''
+        import acme_resolvers
         reverse_proxy 127.0.0.1:${toString cfg.listenPort}
       '';
 

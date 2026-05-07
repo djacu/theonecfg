@@ -36,10 +36,13 @@ inputs: {
         # local/nix dataset can stay dedup=off (avoids DDT RAM cost).
         nix.settings.auto-optimise-store = true;
 
-        # Base LAN domain (pfSense's General Setup → Domain). Each service's
-        # `domain` defaults to <svc>.<this>; AdGuard's wildcard rewrite
-        # covers *.<this>.
-        theonecfg.networking.lanDomain = "literallyhell";
+        # Base LAN domain. Each service's `domain` defaults to <svc>.<this>;
+        # AdGuard's wildcard rewrite covers *.<this>. Real domain registered
+        # at Porkbun + Let's Encrypt DNS-01 issuing certs (see Caddy module),
+        # so browsers/services trust the certs natively — no per-device CA
+        # install needed. Subdomains aren't published in public DNS, so they
+        # only resolve via AdGuard on the LAN.
+        theonecfg.networking.lanDomain = "scheelite.dev";
 
         # Use the systemd-boot EFI boot loader.
         boot.loader.systemd-boot.enable = true;
@@ -102,6 +105,19 @@ inputs: {
           "1.0.0.1"
         ];
 
+        # AdGuard reads /etc/hosts on this host and serves it to any LAN
+        # client using scheelite as DNS. NixOS's default loopback alias
+        # (`127.0.0.2 scheelite`) would tell every other machine that
+        # "scheelite" lives on their own loopback — useless. Drop the alias
+        # and map the hostname to its real LAN IP instead so all clients
+        # get a reachable address.
+        networking.hosts = {
+          "127.0.0.2" = lib.mkForce [ ];
+          "${(builtins.head config.networking.interfaces.eno1.ipv4.addresses).address}" = [
+            config.networking.hostName
+          ];
+        };
+
         theonecfg.profiles.common.enable = true;
         theonecfg.profiles.server.enable = true;
 
@@ -116,7 +132,10 @@ inputs: {
           # module's sops.secrets.* entries; ZFS datasets created on tank0; router
           # DHCP advertises (scheelite-IP, 1.1.1.1) as DNS.
           sops.enable = true;
-          caddy.enable = true;
+          caddy = {
+            enable = true;
+            acmeEmail = theonecfg.knownUsers.djacu.email;
+          };
           adguard = {
             enable = true;
             # Read directly from the static address set on eno1 above.
@@ -264,7 +283,7 @@ inputs: {
             mediaLocation = "${tankMediaDir}/photos";
           };
           paperless = {
-            enable = false;
+            enable = true;
             dataDir = "${tankServicesDir}/paperless";
             mediaDir = "${tankServicesDir}/paperless/media";
             consumptionDir = "${tankServicesDir}/paperless/consume";

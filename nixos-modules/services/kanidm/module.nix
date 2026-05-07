@@ -145,6 +145,7 @@ in
 
     (mkIf config.theonecfg.services.caddy.enable {
       services.caddy.virtualHosts.${cfg.domain}.extraConfig = ''
+        import acme_resolvers
         reverse_proxy https://${cfg.bindAddress} {
           transport http {
             tls_insecure_skip_verify
