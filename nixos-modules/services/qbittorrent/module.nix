@@ -133,6 +133,15 @@ in
               # format; the upstream NixOS module's `gendeepINI` handles this.
             };
           };
+          BitTorrent.Session = {
+            # Honor each category's configured Save Path even when the user
+            # adds a torrent in Manual Torrent Management Mode (the default).
+            # Without this, picking a category in the Add-Torrent dialog
+            # leaves Save Path stuck at the global default; downloads land
+            # in cfg.downloadsDir instead of the per-*arr subdirectory and
+            # the *arr completed-download handler can't claim them.
+            UseCategoryPathsInManualMode = true;
+          };
         };
       };
 
