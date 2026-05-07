@@ -63,6 +63,15 @@ in
         extraConfig = {
           skip-provider-button = "true";
           whitelist-domain = cfg.cookieDomain;
+          # Enable PKCE on the OAuth2 authorization-code exchange. Kanidm's
+          # OIDC discovery doc advertises S256 support; binding the auth
+          # code to a per-flow code_verifier closes the intercepted-code
+          # attack window even though everything is loopback in our setup.
+          code-challenge-method = "S256";
+          # Only Caddy on loopback connects to oauth2-proxy. Restrict
+          # X-Forwarded-* trust to that — without this, oauth2-proxy logs
+          # a warning that it accepts forwarded headers from any source.
+          trusted-proxy-ip = "127.0.0.1/32";
         };
       };
 
@@ -114,11 +123,23 @@ in
       # Named Caddyfile snippet that per-service modules import to gate
       # themselves behind oauth2-proxy. Usage in a vhost:
       #   import forward_auth_kanidm
+      #
+      # On 401 from oauth2-proxy (no session), Caddy's `forward_auth`
+      # passes the response through verbatim — the user sees a bare
+      # "Unauthorized" page. `handle_response @unauthorized` intercepts
+      # that and redirects the browser to /oauth2/start (which kicks off
+      # the OIDC flow with Kanidm), passing the original URL as `rd` so
+      # we land back on the requested page after login.
       services.caddy.extraConfig = ''
         (forward_auth_kanidm) {
           forward_auth 127.0.0.1:${toString cfg.listenPort} {
             uri /oauth2/auth
             copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Groups
+
+            @unauthorized status 401
+            handle_response @unauthorized {
+              redir https://${cfg.domain}/oauth2/start?rd={scheme}://{host}{uri} 302
+            }
           }
         }
       '';
