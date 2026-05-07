@@ -47,7 +47,11 @@ let
       arrApiKeyFile = config.sops.secrets."sonarr/api-key".path;
       rootFolder = (lib.head sonarrCfg.rootFolders).path;
       isDefault = true;
-      is4k = true;
+      # `is4k` in Seerr means "this is the dedicated 4K instance in a
+      # two-instance (1080p + 4K) split", not "this server can serve 4K
+      # content". With one Sonarr handling everything, leave it false —
+      # Seerr otherwise has no non-4K target and stalls pending requests.
+      is4k = false;
       seriesType = "standard";
     }
     ++ lib.optional (sonarrAnimeCfg.enable && sonarrAnimeCfg.rootFolders != [ ]) {
@@ -67,7 +71,9 @@ let
       arrApiKeyFile = config.sops.secrets."radarr/api-key".path;
       rootFolder = (lib.head radarrCfg.rootFolders).path;
       isDefault = true;
-      is4k = true;
+      # See is4k comment on the Sonarr entry above — single instance, not
+      # the 4K leg of a 1080p+4K split.
+      is4k = false;
     };
 
   arrInstancesFile = pkgs.writeText "seerr-arr-instances.json" (builtins.toJSON arrInstances);
@@ -244,7 +250,7 @@ in
                   port: $port,
                   apiKey: $key,
                   useSsl: false,
-                  baseUrl: "/",
+                  baseUrl: "",
                   activeProfileId: $profileId,
                   activeProfileName: $profileName,
                   activeDirectory: $root,
@@ -279,7 +285,7 @@ in
                   port: $port,
                   apiKey: $key,
                   useSsl: false,
-                  baseUrl: "/",
+                  baseUrl: "",
                   activeProfileId: $profileId,
                   activeProfileName: $profileName,
                   activeDirectory: $root,
