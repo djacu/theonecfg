@@ -270,6 +270,35 @@ and Prowlarr's inline applications one-shot.
      `/api/v1/indexer/schema` for the `empornium2fa` definition —
      `totpSecret` or similar).
   3. Deploy. Prowlarr's auto-test logs in with the live TOTP code.
+- **`qbt-password-hash` corrupts the PBKDF2 hash via NUL stripping.**
+  `library/declarative-arr.nix:860-871` captures raw binary from
+  `xxd -r -p` in a shell variable, and bash's `$(...)` substitution
+  strips NUL bytes (the journal shows
+  `warning: command substitution: ignored null byte in input` on
+  every restart). Salt and key end up shorter than spec, so the
+  `WebUI\Password_PBKDF2=@ByteArray(<salt>:<key>)` line written into
+  qBittorrent.conf is wrong — observed key portion was 84 chars
+  instead of the expected 88 (3 bytes shy of 64). Currently
+  invisible because `AuthSubnetWhitelist=127.0.0.1/32` means every
+  loopback request auto-auths and nobody actually password-logs-in.
+  Fix: pipe binary straight into base64 instead of going through a
+  shell variable, e.g.
+  `salt_b64=$(printf '%s' "$salt_hex" | xxd -r -p | base64 -w0)`.
+- **`prowlarr-applications.service` race on simultaneous \*arr
+  cold-start.** When sonarr / sonarr-anime / radarr / whisparr all
+  cold-start at the same instant (e.g. after a manual `systemctl
+  stop` followed by `nixos-rebuild switch`), prowlarr-applications
+  runs as soon as Prowlarr's API responds but before the four
+  \*arrs have bound their ports. Prowlarr's per-application
+  connection-test on each PUT fails with
+  `Connection refused (127.0.0.1:<port>)` and the unit exits 22.
+  Workaround: `sudo systemctl start prowlarr-applications` once
+  the \*arrs warm up — it's idempotent and converges. Real fix:
+  extend `mkArrApiPushService` (or add a sibling helper) to take
+  a list of "pre-wait" API URLs, emit one `waitForApiScript` per
+  URL before the reconcile loop, so prowlarr-applications waits
+  on each registered \*arr's `/api/v3/system/status` before any
+  PUT is attempted.
 
 ## Files
 
