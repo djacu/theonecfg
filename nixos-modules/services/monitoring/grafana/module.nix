@@ -52,6 +52,11 @@ in
             domain = cfg.domain;
             root_url = "https://${cfg.domain}/";
           };
+          # NixOS 26.05 removed the default secret_key; Grafana uses this to
+          # encrypt sensitive values (datasource credentials, plugin secrets)
+          # at rest in its DB. Read from sops via Grafana's $__file provider
+          # so the value never enters the world-readable Nix store.
+          security.secret_key = "$__file{${config.sops.secrets."grafana/secret-key".path}}";
         };
 
         provision = {
@@ -70,6 +75,8 @@ in
             });
         };
       };
+
+      sops.secrets."grafana/secret-key".owner = "grafana";
     }
 
     (mkIf kanidmCfg.enable {
@@ -77,13 +84,25 @@ in
         enabled = true;
         name = "Kanidm";
         client_id = "grafana";
-        client_secret = "$__file{${config.sops.secrets."kanidm/oauth-grafana".path}}";
+        # Same OAuth2 client secret as kanidm-provision uses, but read from
+        # a grafana-owned sops template — the original sops file is
+        # kanidm-owned so kanidm-provision can read it during provisioning.
+        # See `sops.templates."grafana-oauth-client-secret"` below.
+        client_secret = "$__file{${config.sops.templates."grafana-oauth-client-secret".path}}";
         scopes = "openid profile email groups";
         auth_url = "https://${kanidmCfg.domain}/ui/oauth2";
         token_url = "https://${kanidmCfg.domain}/oauth2/token";
         api_url = "https://${kanidmCfg.domain}/oauth2/openid/grafana/userinfo";
         allow_sign_up = true;
-        role_attribute_path = "contains(groups[*], 'homelab-users') && 'Admin' || 'Viewer'";
+        # Kanidm refuses authorize requests without PKCE
+        # (allowInsecureClientDisablePkce defaults to false on the kanidm
+        # side; without this, Grafana's authorize call is rejected with
+        # "Error Code: InvalidState").
+        use_pkce = true;
+        # Kanidm emits the `groups` claim in SPN form
+        # ("<group>@<kanidm-domain>"), not the bare group name. JMESPath's
+        # `contains` does exact string match, so match against the full SPN.
+        role_attribute_path = "contains(groups[*], 'homelab-users@${kanidmCfg.domain}') && 'Admin' || 'Viewer'";
       };
 
       services.kanidm.provision.systems.oauth2.grafana = {
@@ -99,7 +118,19 @@ in
         ];
       };
 
-      sops.secrets."kanidm/oauth-grafana".owner = "grafana";
+      # kanidm-provision reads this as the kanidm user when registering the
+      # OAuth2 client; the template below renders the same value into a
+      # grafana-readable file for Grafana's $__file provider.
+      sops.secrets."kanidm/oauth-grafana" = {
+        owner = "kanidm";
+        group = "kanidm";
+      };
+
+      sops.templates."grafana-oauth-client-secret" = {
+        content = "${config.sops.placeholder."kanidm/oauth-grafana"}";
+        owner = "grafana";
+        group = "grafana";
+      };
     })
 
     (mkIf config.theonecfg.services.caddy.enable {
