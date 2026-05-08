@@ -290,7 +290,6 @@ inputs: {
           };
 
           # --- Phase 5: monitoring ---
-          # Increments A+B+C online; D (Scrutiny) still off.
           monitoring.prometheus.enable = true;
           monitoring.node-exporter.enable = true;
           monitoring.zfs-exporter.enable = true;
@@ -300,7 +299,7 @@ inputs: {
           };
           monitoring.alloy.enable = true;
           monitoring.grafana.enable = true;
-          monitoring.scrutiny.enable = false;
+          monitoring.scrutiny.enable = true;
         };
 
         # Indexer-specific credentials (sops). These live in the host
