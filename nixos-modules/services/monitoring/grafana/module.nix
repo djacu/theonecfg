@@ -35,7 +35,9 @@ in
     };
     port = mkOption {
       type = int;
-      default = 3000;
+      # Grafana upstream default is 3000, but AdGuard's web UI also defaults
+      # to 3000 — pick a non-colliding port so both can coexist on loopback.
+      default = 3001;
     };
   };
 
