@@ -307,9 +307,12 @@ inputs: {
           monitoring.scrutiny.enable = true;
 
           # --- Phase 6: dashboard (per scheelite-homepage-dashboard.md) ---
-          # Phase 1 of that plan — Glances first so Homepage's later
-          # `glances` widget points at a healthy backend on first paint.
+          # Glances supplies system-stats to the Homepage `glances`
+          # widget on loopback and serves its own UI on glances.<lan>.
+          # Homepage auto-derives every tile from the enabled services
+          # above.
           glances.enable = true;
+          homepage.enable = true;
         };
 
         # Indexer-specific credentials (sops). These live in the host
