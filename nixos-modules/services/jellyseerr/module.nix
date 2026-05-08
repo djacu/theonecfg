@@ -311,6 +311,60 @@ in
       };
     }
 
+    # API-key extraction follow-up. Seerr generates a random API key on
+    # first start and stores it in /var/lib/private/seerr/settings.json
+    # (DynamicUser private path). Homepage's `jellyseerr` widget needs
+    # that key to query Seerr's API. This oneshot reads the JSON and
+    # writes the key to a stable path on tmpfs (/run), regenerated on
+    # every boot from Seerr's persisted state.
+    #
+    # World-readable mode 0444: any process on this host can read. With
+    # one human + system services on a single homelab box, that's the
+    # same threat model as the rest of the api-keys-on-disk story.
+    {
+      systemd.services.jellyseerr-api-key = {
+        description = "Extract Jellyseerr API key for downstream consumers";
+        after = [ "jellyseerr-bootstrap.service" ];
+        requires = [ "jellyseerr-bootstrap.service" ];
+        wantedBy = [ "multi-user.target" ];
+        path = [
+          pkgs.jq
+          pkgs.coreutils
+        ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          set -euo pipefail
+
+          # NixOS 26.05 renamed the unit to seerr.service but
+          # StateDirectory= is still `jellyseerr`, and the upstream
+          # service exports CONFIG_DIRECTORY=/var/lib/jellyseerr/config
+          # so settings.json lands one level deeper than the state dir
+          # itself.
+          settingsFile=/var/lib/private/jellyseerr/config/settings.json
+          keyFile=/run/jellyseerr/api-key.txt
+
+          if [ ! -r "$settingsFile" ]; then
+            echo "Seerr settings not yet present at $settingsFile" >&2
+            exit 1
+          fi
+
+          apiKey=$(jq -r '.main.apiKey' "$settingsFile")
+
+          if [ -z "$apiKey" ] || [ "$apiKey" = "null" ]; then
+            echo "No apiKey in $settingsFile" >&2
+            exit 1
+          fi
+
+          install -D -m 0644 /dev/null "$keyFile"
+          printf '%s' "$apiKey" > "$keyFile"
+          chmod 0444 "$keyFile"
+        '';
+      };
+    }
+
     (mkIf config.theonecfg.services.caddy.enable {
       services.caddy.virtualHosts.${cfg.domain}.extraConfig = ''
         import acme_resolvers
