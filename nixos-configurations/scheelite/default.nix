@@ -290,7 +290,11 @@ inputs: {
           };
 
           # --- Phase 5: monitoring ---
-          monitoring.prometheus.enable = false;
+          # Increment A: exporters + Prometheus. B/C/D land Loki+Alloy,
+          # Grafana, and Scrutiny respectively.
+          monitoring.prometheus.enable = true;
+          monitoring.node-exporter.enable = true;
+          monitoring.zfs-exporter.enable = true;
           monitoring.grafana.enable = false;
           monitoring.loki = {
             enable = false;
@@ -298,8 +302,6 @@ inputs: {
           };
           monitoring.alloy.enable = false;
           monitoring.scrutiny.enable = false;
-          monitoring.node-exporter.enable = false;
-          monitoring.zfs-exporter.enable = false;
         };
 
         # Indexer-specific credentials (sops). These live in the host
