@@ -23,6 +23,7 @@ let
   cfg = config.theonecfg.services.monitoring.prometheus;
   nodeCfg = config.theonecfg.services.monitoring.node-exporter;
   zfsCfg = config.theonecfg.services.monitoring.zfs-exporter;
+  smartctlCfg = config.theonecfg.services.monitoring.smartctl-exporter;
 
   scrapeJob = name: target: {
     job_name = name;
@@ -59,6 +60,7 @@ in
         scrapeConfigs =
           (lib.optional nodeCfg.enable (scrapeJob "node" "127.0.0.1:${toString nodeCfg.port}"))
           ++ (lib.optional zfsCfg.enable (scrapeJob "zfs" "127.0.0.1:${toString zfsCfg.port}"))
+          ++ (lib.optional smartctlCfg.enable (scrapeJob "smartctl" "127.0.0.1:${toString smartctlCfg.port}"))
           ++ [
             (scrapeJob "prometheus" "127.0.0.1:${toString cfg.port}")
           ];
