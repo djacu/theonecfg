@@ -103,6 +103,7 @@ adguard:
   admin-password: $(gen_password)
 grafana:
   secret-key: $(gen_oauth_secret)
+  admin-password: $(gen_password)
 jellyfin:
   admin-password: $(gen_password)
 nextcloud:
