@@ -32,7 +32,10 @@ in
     };
     port = mkOption {
       type = int;
-      default = 8080;
+      # Scrutiny upstream default is 8080, but qBittorrent's WebUI also
+      # defaults to 8080 — pick a non-colliding port so both can coexist
+      # on loopback.
+      default = 8083;
     };
   };
 
