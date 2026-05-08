@@ -290,17 +290,16 @@ inputs: {
           };
 
           # --- Phase 5: monitoring ---
-          # Increment A: exporters + Prometheus. B/C/D land Loki+Alloy,
-          # Grafana, and Scrutiny respectively.
+          # Increments A+B online; C (Grafana) and D (Scrutiny) still off.
           monitoring.prometheus.enable = true;
           monitoring.node-exporter.enable = true;
           monitoring.zfs-exporter.enable = true;
-          monitoring.grafana.enable = false;
           monitoring.loki = {
-            enable = false;
+            enable = true;
             dataDir = "${tankServicesDir}/loki";
           };
-          monitoring.alloy.enable = false;
+          monitoring.alloy.enable = true;
+          monitoring.grafana.enable = false;
           monitoring.scrutiny.enable = false;
         };
 
