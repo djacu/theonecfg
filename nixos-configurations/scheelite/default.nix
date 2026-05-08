@@ -305,6 +305,11 @@ inputs: {
           monitoring.alloy.enable = true;
           monitoring.grafana.enable = true;
           monitoring.scrutiny.enable = true;
+
+          # --- Phase 6: dashboard (per scheelite-homepage-dashboard.md) ---
+          # Phase 1 of that plan — Glances first so Homepage's later
+          # `glances` widget points at a healthy backend on first paint.
+          glances.enable = true;
         };
 
         # Indexer-specific credentials (sops). These live in the host
