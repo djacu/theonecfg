@@ -99,6 +99,8 @@ prowlarr:
   postgres-password: $(gen_password)
 qbittorrent:
   password: $(gen_password)
+grafana:
+  secret-key: $(gen_oauth_secret)
 jellyfin:
   admin-password: $(gen_password)
 nextcloud:
