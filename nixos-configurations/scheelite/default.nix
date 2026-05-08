@@ -293,6 +293,11 @@ inputs: {
           monitoring.prometheus.enable = true;
           monitoring.node-exporter.enable = true;
           monitoring.zfs-exporter.enable = true;
+          # SAS drive temperatures via smartctl_exporter — Scrutiny's
+          # collector (0.8.6/0.9.2) parses SAS temps as null and the UI
+          # shows them as ∞; this exporter feeds the same data into
+          # Prometheus where Grafana can graph it correctly.
+          monitoring.smartctl-exporter.enable = true;
           monitoring.loki = {
             enable = true;
             dataDir = "${tankServicesDir}/loki";
