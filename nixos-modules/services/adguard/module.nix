@@ -1,11 +1,13 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
 
   inherit (lib.modules)
+    mkAfter
     mkIf
     mkMerge
     ;
@@ -21,6 +23,53 @@ let
     ;
 
   cfg = config.theonecfg.services.adguard;
+
+  # Bcrypt the sops-managed plaintext into AdGuardHome.yaml's
+  # users[0].password field on every restart. AdGuard requires a bcrypt
+  # hash (no plaintext support); we keep the plaintext in sops and hash
+  # at runtime so the hash never lands in the world-readable Nix store.
+  # Same shape as qbtPasswordHashScript in library/declarative-arr.nix
+  # but using bcrypt + yq-go for AdGuard's YAML format.
+  passwordHashApp = pkgs.writeShellApplication {
+    name = "adguardhome-password-hash";
+    runtimeInputs = [
+      pkgs.mkpasswd
+      pkgs.yq-go
+      pkgs.coreutils
+    ];
+    text = ''
+      set -euo pipefail
+
+      configFile=/var/lib/private/AdGuardHome/AdGuardHome.yaml
+      plaintextFile=${config.sops.secrets."adguard/admin-password".path}
+
+      if [ ! -r "$plaintextFile" ]; then
+        echo "AdGuard plaintext password file not readable: $plaintextFile" >&2
+        exit 1
+      fi
+
+      if [ ! -f "$configFile" ]; then
+        echo "AdGuardHome.yaml not yet present: $configFile; nothing to do." >&2
+        exit 0
+      fi
+
+      plaintext=$(tr -d '\n' < "$plaintextFile")
+      hash=$(mkpasswd -m bcrypt -s <<< "$plaintext")
+
+      # yq -i replaces the file via atomic-rename; since we run as root
+      # via the `+` ExecStartPre prefix, the new file ends up root:root.
+      # Capture the original DynamicUser ownership/mode and restore it
+      # after, so adguardhome's runtime can still read/write the file.
+      orig_uid=$(stat -c '%u' "$configFile")
+      orig_gid=$(stat -c '%g' "$configFile")
+      orig_mode=$(stat -c '%a' "$configFile")
+
+      NEW_HASH=$hash yq -i '.users[0].password = strenv(NEW_HASH)' "$configFile"
+
+      chown "$orig_uid:$orig_gid" "$configFile"
+      chmod "$orig_mode" "$configFile"
+    '';
+  };
 
 in
 {
@@ -68,6 +117,17 @@ in
         port = cfg.port;
         openFirewall = false;
         settings = {
+          users = [
+            {
+              name = "admin";
+              # Placeholder. The bcrypt hash gets sed-injected into the
+              # rendered AdGuardHome.yaml at runtime by the
+              # `adguardhome-password-hash` ExecStartPre below. Keeping
+              # the placeholder here means the hash never lands in the
+              # world-readable Nix store.
+              password = "ADGUARD_PASSWORD_PLACEHOLDER";
+            }
+          ];
           dns = {
             bind_hosts = [ "0.0.0.0" ];
             port = 53;
@@ -104,6 +164,19 @@ in
           };
         };
       };
+
+      # Bcrypt the admin password into the live AdGuardHome.yaml after
+      # upstream's ExecStartPre installs the placeholder-bearing config.
+      # `+` prefix runs the helper as root regardless of upstream's
+      # User= (DynamicUser); root is needed to read the sops-protected
+      # plaintext and to touch the DynamicUser-owned config file. The
+      # helper itself restores the original ownership/mode after the
+      # in-place yq edit.
+      systemd.services.adguardhome.serviceConfig.ExecStartPre = mkAfter [
+        "+${passwordHashApp}/bin/adguardhome-password-hash"
+      ];
+
+      sops.secrets."adguard/admin-password" = { };
     }
 
     (mkIf config.theonecfg.services.caddy.enable {
