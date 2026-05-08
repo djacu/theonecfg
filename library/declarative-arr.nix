@@ -857,8 +857,15 @@ lib.fix (self: {
 
         password=$(tr -d '\n' < "${plaintextFile}")
         salt_hex=$(openssl rand -hex 16)
-        salt_bin=$(printf '%s' "$salt_hex" | xxd -r -p)
-        salt_b64=$(printf '%s' "$salt_bin" | base64 -w0)
+
+        # Pipe the raw binary straight from xxd into base64 instead of
+        # capturing it in a shell variable first. bash's $(...) command
+        # substitution strips embedded NUL bytes (with a "command
+        # substitution: ignored null byte in input" warning), which would
+        # corrupt the 16-byte salt and 64-byte key — qBittorrent's stored
+        # PBKDF2 line would then have base64 decoding to the wrong bytes
+        # and password login would silently always fail.
+        salt_b64=$(printf '%s' "$salt_hex" | xxd -r -p | base64 -w0)
 
         key_hex=$(openssl kdf \
           -keylen 64 \
@@ -867,8 +874,7 @@ lib.fix (self: {
           -kdfopt "hexsalt:$salt_hex" \
           -kdfopt iter:100000 \
           PBKDF2 | tr -d ':' | tr '[:upper:]' '[:lower:]' | tr -d '\n')
-        key_bin=$(printf '%s' "$key_hex" | xxd -r -p)
-        key_b64=$(printf '%s' "$key_bin" | base64 -w0)
+        key_b64=$(printf '%s' "$key_hex" | xxd -r -p | base64 -w0)
 
         hash="@ByteArray($salt_b64:$key_b64)"
 
