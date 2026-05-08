@@ -136,6 +136,16 @@ lib.fix (self: {
       finalize ? ".",
       noUpdate ? false,
       tagsSourceUrl ? null,
+      # Optional list of `{ url, apiKeyFile? }` API endpoints to wait on
+      # *before* the reconcile loop runs, in addition to the parent
+      # baseUrl+endpoint. Use this when the target API will perform its
+      # own connection tests against downstream services as part of the
+      # PUT/POST — Prowlarr's /api/v1/applications validates each *arr's
+      # /api/v3/system/status before accepting an Application entry, so
+      # all four *arrs must be listening, not just Prowlarr itself.
+      # `systemd.after` only guarantees the units have started, not that
+      # their HTTP servers have bound their ports.
+      extraApiWaits ? [ ],
     }:
     let
       itemsFile = pkgs.writeText "${name}-items.json" (builtins.toJSON items);
@@ -168,6 +178,14 @@ lib.fix (self: {
             url = "${baseUrl}${endpoint}";
             inherit apiKeyFile;
           }}
+
+          ${lib.concatMapStrings (
+            w:
+            self.waitForApiScript {
+              url = w.url;
+              apiKeyFile = w.apiKeyFile or null;
+            }
+          ) extraApiWaits}
 
           curl_cmd=curl-${name}
 

@@ -271,6 +271,14 @@ in
     # Applications carry a per-*arr `_apiKeyFile` marker (sops path) and a
     # `tags` array of label strings; mkArrApiPushService's secret injection
     # + tags resolution handle both at runtime.
+    #
+    # extraApiWaits: Prowlarr's POST /api/v1/applications connection-tests
+    # each *arr before accepting the entry, so all four *arrs must be
+    # actually listening — not just have their systemd unit started. With
+    # all four cold-starting in the same `nixos-rebuild switch` activation,
+    # systemd.after ordering isn't sufficient (it waits for unit start,
+    # not for the HTTP server to bind). Wait on each *arr's
+    # /api/v3/system/status before any PUT.
     (mkIf (applications != [ ]) (declarative.mkArrApiPushService {
       name = "prowlarr-applications";
       after =
@@ -281,6 +289,10 @@ in
       apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
       endpoint = "/api/v1/applications";
       items = applications;
+      extraApiWaits = lib.mapAttrsToList (name: arrCfg: {
+        url = "http://127.0.0.1:${toString arrCfg.port}/api/v3/system/status";
+        apiKeyFile = config.sops.secrets."${name}/api-key".path;
+      }) enabledArrs;
     }))
 
     (mkIf config.theonecfg.services.caddy.enable {
