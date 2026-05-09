@@ -41,7 +41,7 @@ in
       }
 
       loki.source.journal "journal" {
-        forward_to    = [loki.write.default.receiver]
+        forward_to    = [loki.process.level.receiver]
         relabel_rules = loki.relabel.journal.rules
         labels        = {
           job  = "systemd-journal",
@@ -55,6 +55,43 @@ in
         rule {
           source_labels = ["__journal__systemd_unit"]
           target_label  = "unit"
+        }
+      }
+
+      // Extract a real `level` label from message bodies. Two formats
+      // cover most services here: Go logfmt (`level=info`) and
+      // Serilog/AdGuard/celery (`[Info]`, `[error]`, `[INFO]`). Lines
+      // without a recognized level word (HTTP access logs, bare redis
+      // text) end up `level=unlabeled` so the dashboard's level filter
+      // never silently hides them.
+      loki.process "level" {
+        forward_to = [loki.write.default.receiver]
+
+        // Default; the regex below overwrites on a successful match.
+        stage.template {
+          source   = "level"
+          template = "unlabeled"
+        }
+
+        stage.regex {
+          expression = "(?:level=|\\[)(?P<level>(?i:fatal|crit|critical|err|error|wrn|warn|warning|inf|info|notice|dbg|debug|trace))(?:\\b|\\])"
+        }
+
+        // Lowercase so the if-chain compares only lowercase variants.
+        stage.template {
+          source   = "level"
+          template = "{{ ToLower .Value }}"
+        }
+
+        // Normalize to {critical, error, warning, info, debug}.
+        // Anything else (including the "unlabeled" default) passes through.
+        stage.template {
+          source   = "level"
+          template = "{{ if or (eq .Value \"fatal\") (eq .Value \"crit\") (eq .Value \"critical\") }}critical{{ else if or (eq .Value \"err\") (eq .Value \"error\") }}error{{ else if or (eq .Value \"wrn\") (eq .Value \"warn\") (eq .Value \"warning\") }}warning{{ else if or (eq .Value \"inf\") (eq .Value \"info\") (eq .Value \"notice\") }}info{{ else if or (eq .Value \"dbg\") (eq .Value \"debug\") (eq .Value \"trace\") }}debug{{ else }}{{ .Value }}{{ end }}"
+        }
+
+        stage.labels {
+          values = { level = "" }
         }
       }
     '';
