@@ -1,8 +1,40 @@
 # scheelite — Loki `level` label
 
-Status: planning
+Status: completed 2026-05-09
 Owner: dan
 Last updated: 2026-05-09
+
+## Outcome
+
+All five phases shipped on 2026-05-09. The dashboard now filters by a real
+Loki label (`level`) extracted at Alloy ingestion. Loki is back at default
+`info` log level (full operational visibility); known-noise warn-level
+patterns are dropped at the Alloy shipper before they reach Loki.
+
+Two deviations from the original plan, both explained inline below:
+
+- **Phase 3** also updated `docs/reference/grafana-dashboards/README.md`
+  (originally deferred to Phase 5). The README's existing description
+  was about to be inaccurate after the JSON change, so fixing both
+  in one commit was natural.
+- **Phase 5** added an Alloy `stage.match` block that drops two known
+  Loki self-noise patterns (`failed mapping AST`, `could not determine
+  query overlaps`). This wasn't in the original plan — it surfaced
+  during Phase 4 UI verification when the user noticed Loki was still
+  emitting warn-level lines on every dashboard interaction. With those
+  dropped at ingestion, reverting Phase 1's `log_level = "warn"` no
+  longer re-pollutes the dashboard.
+
+Commits, in order:
+
+| Phase | Commit | Description |
+|---|---|---|
+| (plan) | `3653857` | docs/plans/active: add scheelite-loki-level-label plan |
+| 1 | `097a4fa` | nixos-modules/services/monitoring/loki: set log_level=warn |
+| 2 | `57d5881` | nixos-modules/services/monitoring/alloy: extract level label from journal lines |
+| 3 | `83ad2a8` | docs/reference/grafana-dashboards/homelab-logs: filter by level label |
+| 5 | `c7ff1be` | nixos-modules/services/monitoring/alloy: drop loki self-noise at ingestion |
+| 5 | `4f34c7e` | nixos-modules/services/monitoring/loki: restore default log_level |
 
 ## Goal
 
@@ -81,7 +113,7 @@ default streams-per-tenant limits.
 
 ---
 
-## Phase 1 — Loki `log_level=warn` (insurance)
+## Phase 1 — Loki `log_level=warn` (insurance) — done in `097a4fa`, reverted in Phase 5 (`4f34c7e`)
 
 **Why first**: silences Loki's own info chatter immediately so the dashboard
 isn't drowning in self-feedback noise during phases 2–4. Trivially revertable
@@ -116,7 +148,7 @@ isn't tuning Loki. Revert is a single-line removal.
 
 ---
 
-## Phase 2 — Add `level` extraction in Alloy
+## Phase 2 — Add `level` extraction in Alloy — done in `57d5881`
 
 **Files**:
 - `nixos-modules/services/monitoring/alloy/module.nix`
@@ -212,10 +244,12 @@ loki.process "level" {
 
 ---
 
-## Phase 3 — Update the Logs dashboard
+## Phase 3 — Update the Logs dashboard — done in `83ad2a8`
 
-**Files**:
+**Files** (the README update was originally Phase 5; folded in here because
+the existing description would otherwise contradict the new behavior):
 - `docs/reference/grafana-dashboards/homelab-logs.json`
+- `docs/reference/grafana-dashboards/README.md`
 
 **Changes** (six panels + one template variable):
 
@@ -279,42 +313,82 @@ provisioning watches the file (verify in `nixos-modules/services/monitoring/graf
 
 ---
 
-## Phase 4 — End-to-end verification
+## Phase 4 — End-to-end verification — done
 
-After phases 1–3 are deployed:
+API-level checks all passed:
 
-1. Open the Logs dashboard (default time range: last 6h).
-2. Default selection should hide Loki's info chatter and surface real
-   issues (AdGuard DoH transients, *arr import errors, etc.).
-3. Switch level dropdown to `info` only — confirm it shows actual
-   info-level lines (not just lines whose body contains "info").
-4. Switch to `unlabeled` only — confirm family-C services are visible.
-5. Confirm cardinality stayed sane:
-   - `ssh scheelite 'curl -sG --data-urlencode label=level http://127.0.0.1:3100/loki/api/v1/label/level/values'`
-     — should return exactly the 6 expected values.
+- Cardinality stayed at the 6 planned values (`critical`, `error`,
+  `warning`, `info`, `debug`, `unlabeled`); only the buckets that
+  had matching events were populated at first observation.
+- Family A (Go logfmt): grafana, alloy, prometheus, loki — all
+  correctly tagged.
+- Family B (Serilog/AdGuard/celery): sonarr, sonarr-anime, prowlarr,
+  whisparr, radarr, jellyfin (`[ERR]` works; multi-line .NET stack
+  trace continuations correctly stay `unlabeled`), adguardhome
+  (`[error]` works) — all correctly tagged.
+- Family C (no level concept): oauth2-proxy, redis-paperless, kanidm,
+  recyclarr — correctly bucketed as `unlabeled`.
+- Top-10 errors panel cleanly dominated by services that genuinely
+  error (AdGuard DoH transients, jellyfin DB errors), not Loki itself.
 
-If anything is off, fix in place; do not commit broken state.
+UI-level check surfaced an unplanned issue: with the user's default
+selection of `[critical, error, warning]`, Loki's own warn-level
+lines on query cancellation and on a transient schema-config quirk
+were still showing up — caused by routine dashboard interaction, not
+by anything actionable. This drove the Phase 5 deviation below.
 
 ---
 
-## Phase 5 — Documentation + revert option 1
+## Phase 5 — Drop Loki self-noise + revert Phase 1 — done in `c7ff1be` and `4f34c7e`
+
+The original plan had Phase 5 as just (a) documentation and (b) optional
+revert of Phase 1. The README documentation work was already folded into
+Phase 3. The revert turned out to need one more change first.
+
+**Problem found in Phase 4 UI verification**: Loki at `log_level=warn`
+emits two patterns of warn-level chatter that survive the dashboard's
+level filter and pollute the default view:
+
+- `failed mapping AST` + `context canceled` — fires every time a query
+  is cancelled (every dashboard filter change, every auto-refresh that
+  arrives mid-query). This is a side-effect of dashboard *use*, not of
+  any actionable problem.
+- `could not determine query overlaps on tsdb vs non-tsdb schemas` —
+  Loki itself logs this as warn, but says in the same line "letting
+  downstream code handle it gracefully." Cosmetic.
+
+Both are real warn-level events, so the label-based filter (correctly)
+surfaces them. They're not noise we can silence at the dashboard;
+attempting to add `unit!="loki.service"` to the panel filter would
+also break "drill into Loki via the unit dropdown" because the static
+exclusion would override even an explicit user pick.
+
+**Fix**: drop the two patterns at the Alloy shipper before they reach
+Loki. A `stage.match` block at the top of the `loki.process "level"`
+pipeline targets `unit="loki.service"` with a line filter for the two
+phrases and `action = "drop"`. Other Loki warn/error lines (real
+ingester problems, slow queries, storage failures) still flow through
+normally; the unit dropdown still surfaces all non-noise Loki lines.
+
+With the noise patterns dropped at ingestion, Loki at default `info`
+no longer pollutes the dashboard either: info-level lines carry
+`level=info` and are excluded by the default selection. So we
+reverted Phase 1's `log_level = "warn"`. Loki regains full
+operational visibility (per-query latency, cache stats, ingester
+bytes) without re-polluting the dashboard.
 
 **Files**:
-- `docs/reference/grafana-dashboards/README.md` (if it exists, or create)
-- `nixos-modules/services/monitoring/loki/module.nix` (revert option 1, optional)
+- `nixos-modules/services/monitoring/alloy/module.nix` — added
+  `stage.match` drop block (`c7ff1be`).
+- `nixos-modules/services/monitoring/loki/module.nix` — removed
+  `log_level = "warn"` (`4f34c7e`).
 
-**Documentation**: add a short note to the dashboards README describing
-the level mapping, which services contribute level data, and what to do
-when adding a service with a novel log format (extend the regex in
-`alloy/module.nix`).
-
-**Revert option 1 (optional)**: with phase 2 working, Loki's info chatter
-is correctly tagged `level=info` and excluded from default dashboard views.
-Removing `log_level = "warn"` restores Loki's operational visibility (slow
-queries, cache hit rates) without re-polluting the dashboard. Defer this
-until you have at least a week of confidence in the level-label pipeline.
-
-**Commit message** (suggested for revert): `nixos-modules/services/monitoring/loki: restore default log_level`
+**Verified**:
+- Loki at info producing ~1300 info-level lines per 3 minutes,
+  all correctly tagged `level=info`.
+- Loki noise patterns absent from Loki's TSDB after deploy.
+- `loki_process_dropped_lines_total{reason="loki_self_noise"}`
+  counter incrementing on the Alloy `/metrics` endpoint.
 
 ---
 
