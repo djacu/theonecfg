@@ -41,12 +41,16 @@ The Logs dashboard exposes two template variables at the top:
   just those units. The "Top 10 units by error count" and the global
   error counters are intentionally **not** scoped to `$unit` — they are
   always system-wide so you can spot a noisy unit you forgot about.
-- **`level`** — multi-select from a fixed list (`error`, `warn`, `info`,
-  `debug`). Default is `error|warn`. The selected values are joined into
-  a regex alternation and applied as a case-insensitive substring match
-  (`|~ "(?i)$level"`) — i.e. it matches lines that contain those words
-  anywhere, not parsed log levels. That's the right move for journald,
-  where log-level structure is inconsistent across units.
+- **`level`** — multi-select from a fixed list (`critical`, `error`,
+  `warning`, `info`, `debug`, `unlabeled`). Default is
+  `critical|error|warning`. Matches against the `level` Loki label set
+  at ingestion time by Alloy, which parses `level=foo` (Go logfmt) and
+  `[Foo]` (Serilog/AdGuard/celery) from each line and normalizes the
+  result to one of the five canonical buckets. Lines without a
+  recognized level word (HTTP access logs, redis bare text, .NET
+  stack-trace continuation lines) are tagged `unlabeled` so the level
+  filter can never silently hide them — pick `unlabeled` from the
+  dropdown to see them.
 
 To dig into a specific service: pick its unit, switch level to `info` to
 see everything, widen the time range, then narrow back down once you've

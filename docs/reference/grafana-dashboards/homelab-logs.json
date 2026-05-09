@@ -156,7 +156,7 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({job=\"systemd-journal\"} |~ \"(?i)error\" [1h]))",
+          "expr": "sum(count_over_time({job=\"systemd-journal\", level=~\"error|critical\"} [1h]))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -226,7 +226,7 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({job=\"systemd-journal\"} |~ \"(?i)error\" [24h]))",
+          "expr": "sum(count_over_time({job=\"systemd-journal\", level=~\"error|critical\"} [24h]))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -336,7 +336,7 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "topk(10, sum by (unit) (count_over_time({job=\"systemd-journal\"} |~ \"(?i)error\" [1h])))",
+          "expr": "topk(10, sum by (unit) (count_over_time({job=\"systemd-journal\", level=~\"error|critical\"} [1h])))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -446,7 +446,7 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "sum by (unit) (count_over_time({job=\"systemd-journal\", unit=~\"$unit\"} |~ \"(?i)$level\" [$__interval]))",
+          "expr": "sum by (unit) (count_over_time({job=\"systemd-journal\", unit=~\"$unit\", level=~\"$level\"} [$__interval]))",
           "queryType": "range",
           "refId": "A"
         }
@@ -484,7 +484,7 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "{job=\"systemd-journal\", unit=~\"$unit\"} |~ \"(?i)$level\"",
+          "expr": "{job=\"systemd-journal\", unit=~\"$unit\", level=~\"$level\"}",
           "queryType": "range",
           "refId": "A"
         }
@@ -540,12 +540,14 @@
         "current": {
           "selected": true,
           "text": [
+            "critical",
             "error",
-            "warn"
+            "warning"
           ],
           "value": [
+            "critical",
             "error",
-            "warn"
+            "warning"
           ]
         },
         "hide": 0,
@@ -556,13 +558,18 @@
         "options": [
           {
             "selected": true,
+            "text": "critical",
+            "value": "critical"
+          },
+          {
+            "selected": true,
             "text": "error",
             "value": "error"
           },
           {
             "selected": true,
-            "text": "warn",
-            "value": "warn"
+            "text": "warning",
+            "value": "warning"
           },
           {
             "selected": false,
@@ -573,9 +580,14 @@
             "selected": false,
             "text": "debug",
             "value": "debug"
+          },
+          {
+            "selected": false,
+            "text": "unlabeled",
+            "value": "unlabeled"
           }
         ],
-        "query": "error,warn,info,debug",
+        "query": "critical,error,warning,info,debug,unlabeled",
         "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
