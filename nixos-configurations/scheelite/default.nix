@@ -172,6 +172,10 @@ inputs: {
             enable = true;
             profileDir = "${tankServicesDir}/qbittorrent";
             downloadsDir = tankDownloadsDir;
+            # Save-path for releases that Prowlarr grabs directly from
+            # its UI (i.e. not via an *arr). Manual grabs land here
+            # before the user sorts/imports them somewhere.
+            extraCategories.prowlarr = "${tankDownloadsDir}/prowlarr";
           };
           # prowlarrTags follow a content-type taxonomy: each app's tag list
           # describes what it consumes; each indexer's tag list (below) describes
@@ -260,6 +264,21 @@ inputs: {
                 usernameFile = config.sops.secrets."empornium/username".path;
                 passwordFile = config.sops.secrets."empornium/password".path;
                 tags = [ "adult" ];
+              })
+            ];
+            # Prowlarr's own download client — only used when grabbing
+            # releases directly from Prowlarr's UI (the *arrs each have
+            # their own qBittorrent client, pushed via the *arr's own
+            # download-clients reconciler). Without this, Prowlarr UI
+            # grabs fail with `DownloadClientUnavailableException:
+            # Torrent Download client isn't configured yet`. The
+            # `prowlarr` category routes to ${tankDownloadsDir}/prowlarr
+            # via qbittorrent.extraCategories above.
+            downloadClients = [
+              (declarative.mkQbtDownloadClient {
+                port = config.theonecfg.services.qbittorrent.webUiPort;
+                category = "prowlarr";
+                variant = "prowlarr";
               })
             ];
           };
