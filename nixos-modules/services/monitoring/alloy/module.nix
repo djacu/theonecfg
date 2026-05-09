@@ -67,6 +67,21 @@ in
       loki.process "level" {
         forward_to = [loki.write.default.receiver]
 
+        // Drop two known-noise patterns from Loki's own logs before
+        // they're indexed: "failed mapping AST" fires on every query
+        // cancellation (each dashboard interaction generates these),
+        // and "could not determine query overlaps" is transient
+        // schema-config bookkeeping. Both are warn-level so they slip
+        // past the dashboard's level filter; dropping at ingestion
+        // keeps Loki at default `info` (full operational visibility)
+        // without polluting the dashboard. Other Loki warn/error lines
+        // (real ingester problems, slow queries) flow through.
+        stage.match {
+          selector            = "{unit=\"loki.service\"} |~ \"(failed mapping AST|could not determine query overlaps)\""
+          action              = "drop"
+          drop_counter_reason = "loki_self_noise"
+        }
+
         // Default; the regex below overwrites on a successful match.
         stage.template {
           source   = "level"
