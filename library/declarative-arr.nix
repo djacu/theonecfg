@@ -291,22 +291,26 @@ lib.fix (self: {
 
   /**
     Build a single qBittorrent download-client entry shaped for *arr's
-    /api/v3/downloadclient. Returns an attrset matching `arrTypes.downloadClientType`.
+    /api/v3/downloadclient or Prowlarr's /api/v1/downloadclient. Returns
+    an attrset matching `arrTypes.downloadClientType`.
 
     Sonarr v4 / Sonarr-anime / Whisparr (Sonarr-v3 fork) and Radarr share
     most fields but differ on the category + priority field names:
-      - "tv"    : tvCategory, recentTvPriority, olderTvPriority
-      - "movie" : movieCategory, recentMoviePriority, olderMoviePriority
+      - "tv"       : tvCategory, recentTvPriority, olderTvPriority
+      - "movie"    : movieCategory, recentMoviePriority, olderMoviePriority
+      - "prowlarr" : category (no per-age priority — Prowlarr's
+                     download-client schema only carries a single
+                     `category` field for manually-grabbed releases)
     Verified against each app's QBittorrentSettings.cs on the develop branch.
 
     `username` / `password` are empty: qBittorrent's
     AuthSubnetWhitelist=127.0.0.1/32 lets localhost connections in without
-    auth, and *arr binds to / connects from 127.0.0.1.
+    auth, and *arr / Prowlarr bind to / connect from 127.0.0.1.
 
     Args:
       port      : qBittorrent webUI port (e.g. 8080)
       category  : qBittorrent category name (matches autoCategories)
-      variant   : "tv" (default) or "movie"
+      variant   : "tv" (default), "movie", or "prowlarr"
   */
   mkQbtDownloadClient =
     {
@@ -319,67 +323,98 @@ lib.fix (self: {
         if variant == "movie" then
           {
             cat = "movieCategory";
-            recent = "recentMoviePriority";
-            older = "olderMoviePriority";
+            priorityFields = [
+              "recentMoviePriority"
+              "olderMoviePriority"
+            ];
+          }
+        else if variant == "prowlarr" then
+          {
+            cat = "category";
+            # Prowlarr's qBittorrent download client expects a single
+            # `priority` field (download priority within qBittorrent),
+            # NOT the *arr's recent/older split. Confirmed against
+            # /api/v1/downloadclient/schema; omitting it triggers a
+            # null-ref on the test ("Object reference not set to an
+            # instance of an object").
+            priorityFields = [ "priority" ];
           }
         else
           {
             cat = "tvCategory";
-            recent = "recentTvPriority";
-            older = "olderTvPriority";
+            priorityFields = [
+              "recentTvPriority"
+              "olderTvPriority"
+            ];
           };
     in
     {
       name = "qBittorrent";
       enable = true;
       priority = 1;
-      removeCompletedDownloads = true;
-      removeFailedDownloads = true;
       implementation = "QBittorrent";
       implementationName = "qBittorrent";
       configContract = "QBittorrentSettings";
       tags = [ ];
-      fields = [
-        {
-          name = "host";
-          value = "127.0.0.1";
-        }
-        {
-          name = "port";
-          value = port;
-        }
-        {
-          name = "useSsl";
-          value = false;
-        }
-        {
-          name = "urlBase";
-          value = "";
-        }
-        {
-          name = "username";
-          value = "";
-        }
-        {
-          name = "password";
-          value = "";
-        }
-        {
-          name = fieldNames.cat;
-          value = category;
-        }
-        {
-          name = fieldNames.recent;
+    }
+    # `removeCompletedDownloads` / `removeFailedDownloads` are *arr-only
+    # behaviors (the *arrs manage import + cleanup). Prowlarr's qBittorrent
+    # client schema doesn't have them — sending them produces no test
+    # failure but is noise.
+    // lib.optionalAttrs (variant != "prowlarr") {
+      removeCompletedDownloads = true;
+      removeFailedDownloads = true;
+    }
+    # `protocol` and `categories` are required by Prowlarr's
+    # /api/v1/downloadclient schema; missing `protocol` triggers a
+    # null-ref in the test path ("Object reference not set to an
+    # instance of an object"). The *arrs derive protocol from
+    # implementation and don't expose it as a payload field.
+    // lib.optionalAttrs (variant == "prowlarr") {
+      protocol = "torrent";
+      categories = [ ];
+    }
+    // {
+      fields =
+        [
+          {
+            name = "host";
+            value = "127.0.0.1";
+          }
+          {
+            name = "port";
+            value = port;
+          }
+          {
+            name = "useSsl";
+            value = false;
+          }
+          {
+            name = "urlBase";
+            value = "";
+          }
+          {
+            name = "username";
+            value = "";
+          }
+          {
+            name = "password";
+            value = "";
+          }
+          {
+            name = fieldNames.cat;
+            value = category;
+          }
+        ]
+        ++ map (n: {
+          name = n;
           value = 0;
-        }
-        {
-          name = fieldNames.older;
-          value = 0;
-        }
-        {
-          name = "initialState";
-          value = 0;
-        }
+        }) fieldNames.priorityFields
+        ++ [
+          {
+            name = "initialState";
+            value = 0;
+          }
         {
           name = "sequentialOrder";
           value = false;
