@@ -24,6 +24,10 @@ in
 
   config = mkIf cfg.enable {
     services.alloy.enable = true;
+    # Opt out of Alloy's anonymous usage reporting to stats.grafana.org;
+    # otherwise the daemon retries forever when the endpoint is blocked
+    # (e.g. by an upstream DNS filter), spamming the journal.
+    services.alloy.extraFlags = [ "--disable-reporting" ];
 
     # Alloy config in /etc/alloy/ so the daemon picks it up and reloads on
     # nixos-rebuild switch. River syntax. Reads journald (alloy is in
