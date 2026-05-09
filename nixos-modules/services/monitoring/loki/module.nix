@@ -44,6 +44,13 @@ in
         server = {
           http_listen_address = "127.0.0.1";
           http_listen_port = cfg.port;
+          # Default `info` makes Loki log every query it executes (caller,
+          # latency, cache stats, ingester bytes). On a single-tenant
+          # homelab where we're not tuning Loki, that volume dwarfs every
+          # other service in the journal and dominates the Logs dashboard.
+          # `warn` keeps real problems (slow queries, ingester errors,
+          # storage failures) and drops the per-query bookkeeping.
+          log_level = "warn";
         };
         common = {
           path_prefix = cfg.dataDir;
