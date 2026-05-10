@@ -88,6 +88,16 @@ in
 
       users.users.stash.extraGroups = [ "media" ];
 
+      # Upstream's tmpfiles rule for dataDir is type `d` (create-with-
+      # owner), which only sets ownership on creation. When dataDir is
+      # a ZFS dataset created out-of-band (root-owned by `zfs create`),
+      # tmpfiles sees an existing dir and skips ownership; Stash's
+      # ExecStartPre then can't write to it. `z` adjusts ownership on
+      # every switch.
+      systemd.tmpfiles.rules = [
+        "z ${cfg.dataDir} 0755 stash media - -"
+      ];
+
       systemd.services.stash.serviceConfig.ExecStartPre = lib.mkAfter [
         "+${stashApikeySplice}/bin/stash-apikey-splice"
       ];
