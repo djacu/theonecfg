@@ -5,6 +5,7 @@ inputs: {
   };
   modules =
     {
+      config,
       pkgs,
       theonecfg,
       ...
@@ -27,6 +28,19 @@ inputs: {
         boot.loader.efi.efiSysMountPoint = "/boot";
         boot.supportedFilesystems = [ "zfs" ];
         boot.zfs.devNodes = "/dev/disk/by-id";
+
+        boot.initrd.systemd.services.rollback-root = {
+          description = "Rollback ZFS root to empty snapshot";
+          wantedBy = [ "initrd.target" ];
+          after = [ "zfs-import-zroot.service" ];
+          before = [ "sysroot.mount" ];
+          unitConfig.DefaultDependencies = "no";
+          serviceConfig.Type = "oneshot";
+          path = [ config.boot.zfs.package ];
+          script = ''
+            zfs rollback -r zroot/local/root@empty && echo "rollback of zroot complete"
+          '';
+        };
 
         hardware.bluetooth.enable = true;
 
