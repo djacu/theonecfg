@@ -302,6 +302,10 @@ inputs: {
           };
           recyclarr.enable = true;
           jellyseerr.enable = true;
+          stasharr = {
+            enable = true;
+            dataDir = "${tankServicesDir}/stasharr";
+          };
 
           # --- Phase 4: apps with DBs ---
           # Each enables its own postgres instance (defined in the service module).

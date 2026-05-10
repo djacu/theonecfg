@@ -312,6 +312,15 @@
               atime = "off";
             };
           };
+          "safe/persist/postgres/stasharr" = {
+            type = "zfs_fs";
+            mountpoint = "/persist/postgres/stasharr";
+            options = {
+              mountpoint = "/persist/postgres/stasharr";
+              recordsize = "16K";
+              atime = "off";
+            };
+          };
         };
       };
 
@@ -457,6 +466,11 @@
             type = "zfs_fs";
             mountpoint = "/tank0/services/radarr";
             options.mountpoint = "/tank0/services/radarr";
+          };
+          "tank0/services/stasharr" = {
+            type = "zfs_fs";
+            mountpoint = "/tank0/services/stasharr";
+            options.mountpoint = "/tank0/services/stasharr";
           };
           "tank0/services/whisparr" = {
             type = "zfs_fs";
