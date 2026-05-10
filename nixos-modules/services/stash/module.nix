@@ -63,6 +63,16 @@ in
         user = "stash";
         group = "media";
         mutableSettings = true;
+        # Upstream's setup script unconditionally string-interpolates
+        # `${cfg.passwordFile}` into bash, so passwordFile=null (the
+        # documented "no local auth" default) crashes Nix evaluation.
+        # Set username + empty-content passwordFile to satisfy the
+        # assertion AND the interpolation; the renderer's
+        # `with(select($password != ""))` guard skips writing the
+        # password field, so config.yml ends up with no usable local
+        # login. Caddy + kanidm forward_auth gates access instead.
+        username = "admin";
+        passwordFile = pkgs.writeText "stash-no-local-auth" "";
         jwtSecretKeyFile     = config.sops.secrets."stash/jwt-secret".path;
         sessionStoreKeyFile  = config.sops.secrets."stash/session-store-key".path;
         settings = {
