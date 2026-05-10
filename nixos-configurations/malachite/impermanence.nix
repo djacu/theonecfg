@@ -17,8 +17,7 @@
       "/var/lib/sddm"
       "/var/lib/power-profiles-daemon"
       "/var/lib/udisks2"
-      "/var/lib/cups/ppd"
-      "/var/lib/cups/ssl"
+      "/var/lib/cups"
       "/var/spool"
       "/var/tmp"
       "/etc/NetworkManager/system-connections"
@@ -29,9 +28,6 @@
       "/etc/ssh/ssh_host_ed25519_key.pub"
       "/etc/ssh/ssh_host_rsa_key"
       "/etc/ssh/ssh_host_rsa_key.pub"
-      "/var/lib/cups/subscriptions.conf"
-      "/var/lib/cups/printers.conf"
-      "/var/lib/cups/classes.conf"
     ];
   };
 }
