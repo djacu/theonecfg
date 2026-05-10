@@ -651,6 +651,23 @@ in Phase 3 only applies to server-side fetches).
    served behind Caddy + kanidm forward_auth with valid Let's Encrypt
    certs.
 
+## Outcome (2026-05-10)
+
+Phases 0-3 + Tasks 4.1 (auto-bootstrapped admin + integrations) all
+landed cleanly. Stash is live and serves the original PHash-on-mega-pack
+motivation. Stasharr is live with all three integrations CONFIGURED.
+
+**Task 4.2 (scene-request smoke test) failed.** Stasharr's Whisparr
+adapter calls `/api/v3/movie?stashId=<uuid>` (Radarr-fork shape from
+Whisparr's `eros` branch); nixpkgs ships Whisparr `v2-develop` which is
+a Sonarr-fork (series/episode-shaped, no `/movie` endpoint). User chose
+to live with the limitation — Stasharr's catalog browsing and
+local-availability badge still work, only the "Request → Whisparr"
+button is broken.
+
+Detailed root cause + patch options captured in
+`docs/plans/active/stasharr-whisparr-eros-fork-investigation.md`.
+
 ## Implementation tasks
 
 ### Pre-flight
