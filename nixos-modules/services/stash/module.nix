@@ -2,7 +2,7 @@
 let
   inherit (lib.modules) mkIf mkMerge;
   inherit (lib.options) mkEnableOption mkOption;
-  inherit (lib.types) bool listOf int str submodule;
+  inherit (lib.types) bool listOf int nullOr str submodule;
 
   cfg = config.theonecfg.services.stash;
 
@@ -17,6 +17,15 @@ let
         echo "stash config.yml not found at $config" >&2
         exit 1
       fi
+
+      ${lib.optionalString (cfg.apiKeyFile != null) ''
+        if [ ! -r "${cfg.apiKeyFile}" ]; then
+          echo "stash apikey file not readable: ${cfg.apiKeyFile}" >&2
+          exit 1
+        fi
+        NEW_KEY="$(tr -d '\r\n' < "${cfg.apiKeyFile}")" \
+          yq -i '.api_key = strenv(NEW_KEY)' "$config"
+      ''}
 
       ${lib.concatMapStringsSep "\n" (b: ''
         if [ ! -r "${b.apiKeyFile}" ]; then
@@ -53,6 +62,16 @@ in
     dataDir = mkOption { type = str; default = "/var/lib/stash"; };
     stashes = mkOption { type = listOf stashType; default = [ ]; };
     stashBoxes = mkOption { type = listOf stashBoxType; default = [ ]; };
+    apiKeyFile = mkOption {
+      type = nullOr str;
+      default = null;
+      description = ''
+        Path to a file containing Stash's own API key. When set, the key is
+        spliced into config.yml on every restart, overriding Stash's
+        auto-generated key. Used by other services (e.g. Stasharr) to
+        authenticate against Stash's REST/GraphQL API.
+      '';
+    };
   };
 
   config = mkIf cfg.enable (mkMerge [
@@ -83,6 +102,9 @@ in
             inherit (b) name endpoint;
             apikey = "@APIKEY_${b.name}@";
           }) cfg.stashBoxes;
+        }
+        // lib.optionalAttrs (cfg.apiKeyFile != null) {
+          api_key = "@APIKEY_STASH@";
         };
       };
 
