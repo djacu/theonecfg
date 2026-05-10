@@ -20,14 +20,20 @@ buildDotnetModule (finalAttrs: {
   nugetDeps = ./deps.json;
 
   dotnet-sdk = dotnetCorePackages.sdk_9_0;
-  dotnet-runtime = dotnetCorePackages.aspnetcore_9_0;
+  dotnet-runtime = dotnetCorePackages.runtime_9_0;
 
   # Plugin is library-only; no executables to wrap into $out/bin.
   executables = [ ];
 
-  # Default install runs `dotnet publish` and dumps everything into
-  # $out/lib/<pname>/. We only want the plugin dlls. Override.
-  # ILRepack does not run on Linux; install Stash.dll + Newtonsoft.Json.dll.
+  # The `net9.0` segment must match the upstream csproj's <TargetFramework>;
+  # the `linux-x64` segment is `dotnet-sdk`'s default runtime ID for this
+  # platform. Both will need updating if upstream bumps target framework
+  # or if the build is cross-targeted.
+  #
+  # ILRepack (which the upstream Windows CI uses to merge Newtonsoft.Json
+  # into a single Stash.dll) does not run cleanly under `dotnet build` on
+  # Linux, so install both DLLs separately. Jellyfin's plugin loader picks
+  # up whatever's in the plugin folder.
   installPhase = ''
     runHook preInstall
     install -d $out/share/jellyfin-plugin-stash
