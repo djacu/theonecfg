@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 let
@@ -26,7 +25,6 @@ in
     i18n.defaultLocale = "en_US.UTF-8";
 
     nix = {
-      package = pkgs.nixVersions.nix_2_30;
       channel.enable = mkDefault false; # opt out of nix channels
       settings = {
         experimental-features = [
