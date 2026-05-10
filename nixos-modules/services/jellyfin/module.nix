@@ -21,6 +21,8 @@ let
     attrsOf
     bool
     int
+    listOf
+    package
     str
     ;
 
@@ -123,6 +125,20 @@ in
       default = { };
       description = "Additional libraries beyond the auto-derived ones.";
     };
+    plugins = mkOption {
+      type = listOf package;
+      default = [ ];
+      description = ''
+        Jellyfin plugin packages to install. Each package must place its
+        dll(s) at `$out/share/<pname>/`. The module symlinks each into
+        `${cfg.dataDir}/config/plugins/<pname>_<version>/` at activation
+        time so Jellyfin's plugin loader picks them up.
+
+        Plugin configuration (per-plugin settings, secrets) is set in the
+        Jellyfin UI after install; that state persists in the same config
+        directory.
+      '';
+    };
   };
 
   config = mkIf cfg.enable (mkMerge [
@@ -146,6 +162,12 @@ in
         cfg.dataDir
       ]
       ++ lib.concatMap (library: library.paths) (lib.attrValues effectiveLibraries);
+
+      systemd.tmpfiles.rules = [
+        "d ${cfg.dataDir}/config/plugins 0755 jellyfin jellyfin - -"
+      ] ++ map (
+        plugin: "L+ ${cfg.dataDir}/config/plugins/${plugin.pname}_${plugin.version} - jellyfin jellyfin - ${plugin}/share/${plugin.pname}"
+      ) cfg.plugins;
 
       sops.secrets."jellyfin/admin-password".owner = "jellyfin";
     }
