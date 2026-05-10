@@ -163,10 +163,14 @@ in
       ]
       ++ lib.concatMap (library: library.paths) (lib.attrValues effectiveLibraries);
 
+      # L+ (force-replace) is used instead of L (create-if-missing) because
+      # Jellyfin may create an empty plugins/<name>_<version>/ directory on
+      # first boot before tmpfiles runs, which would cause L to silently no-op
+      # and leave the symlink uninstalled.
       systemd.tmpfiles.rules = [
-        "d ${cfg.dataDir}/config/plugins 0755 jellyfin jellyfin - -"
+        "d ${config.services.jellyfin.configDir}/plugins 0755 ${config.services.jellyfin.user} ${config.services.jellyfin.group} - -"
       ] ++ map (
-        plugin: "L+ ${cfg.dataDir}/config/plugins/${plugin.pname}_${plugin.version} - jellyfin jellyfin - ${plugin}/share/${plugin.pname}"
+        plugin: "L+ ${config.services.jellyfin.configDir}/plugins/${plugin.pname}_${plugin.version} - ${config.services.jellyfin.user} ${config.services.jellyfin.group} - ${plugin}/share/${plugin.pname}"
       ) cfg.plugins;
 
       sops.secrets."jellyfin/admin-password".owner = "jellyfin";
