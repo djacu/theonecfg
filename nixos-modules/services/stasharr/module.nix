@@ -87,6 +87,12 @@ in
           APP_DATA_DIR = cfg.dataDir;
           SESSION_SECRET_FILE = "${cfg.dataDir}/session-secret";
           STASHARR_VERSION = pkgs.stasharr-portal.version;
+          # Prisma's "Precompiled engine files are not available for
+          # nixos" — it can't ship a binary that works on nixos's
+          # libc, so it expects this env var to point at a locally-
+          # built schema-engine. nixpkgs' prisma-engines_7 builds
+          # exactly that.
+          PRISMA_SCHEMA_ENGINE_BINARY = "${pkgs.prisma-engines_7}/bin/schema-engine";
         };
         serviceConfig = {
           User = "stasharr";
