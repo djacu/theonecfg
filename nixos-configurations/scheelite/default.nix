@@ -167,6 +167,7 @@ inputs: {
             dataDir = "${tankServicesDir}/jellyfin";
             cacheDir = "${tankServicesDir}/jellyfin-cache";
             adminUser = theonecfg.knownUsers.djacu.username;
+            plugins = [ pkgs.jellyfin-plugin-stash ];
           };
           qbittorrent = {
             enable = true;
