@@ -30,6 +30,19 @@ inputs: {
         boot.supportedFilesystems = [ "zfs" ];
         boot.zfs.devNodes = "/dev/disk/by-id";
 
+        boot.initrd.systemd.services.rollback-root = {
+          description = "Rollback ZFS root to empty snapshot";
+          wantedBy = [ "initrd.target" ];
+          after = [ "zfs-import-zroot.service" ];
+          before = [ "sysroot.mount" ];
+          unitConfig.DefaultDependencies = "no";
+          serviceConfig.Type = "oneshot";
+          path = [ config.boot.zfs.package ];
+          script = ''
+            zfs rollback -r zroot/local/root@empty && echo "rollback of zroot complete"
+          '';
+        };
+
         hardware.bluetooth.enable = true;
 
         networking.hostId = lib.substring 0 8 (builtins.hashString "sha256" config.networking.hostName);
