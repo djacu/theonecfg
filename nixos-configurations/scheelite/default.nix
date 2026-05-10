@@ -196,6 +196,7 @@ inputs: {
           stash = {
             enable = true;
             dataDir = "${tankServicesDir}/stash";
+            apiKeyFile = config.sops.secrets."stash/api-key".path;
             stashes = [
               { path = "${tankMediaDir}/adult"; }
             ];
@@ -305,6 +306,30 @@ inputs: {
           stasharr = {
             enable = true;
             dataDir = "${tankServicesDir}/stasharr";
+            bootstrapAdmin = {
+              usernameFile = config.sops.secrets."stasharr/admin-username".path;
+              passwordFile = config.sops.secrets."stasharr/admin-password".path;
+            };
+            # Stasharr's server-side fetch goes loopback (it has no
+            # kanidm session for *.scheelite.dev — those vhosts gate
+            # behind forward_auth_kanidm).
+            integrations = [
+              {
+                type = "WHISPARR";
+                baseUrl = "http://127.0.0.1:${toString config.theonecfg.services.whisparr.port}";
+                apiKeyFile = config.sops.secrets."whisparr/api-key".path;
+              }
+              {
+                type = "STASH";
+                baseUrl = "http://127.0.0.1:${toString config.theonecfg.services.stash.port}";
+                apiKeyFile = config.sops.secrets."stash/api-key".path;
+              }
+              {
+                type = "STASHDB";
+                baseUrl = "https://stashdb.org/graphql";
+                apiKeyFile = config.sops.secrets."stashdb/api-key".path;
+              }
+            ];
           };
 
           # --- Phase 4: apps with DBs ---
@@ -359,6 +384,9 @@ inputs: {
         sops.secrets."empornium/username".owner = "prowlarr";
         sops.secrets."empornium/password".owner = "prowlarr";
         sops.secrets."stashdb/api-key".owner = "stash";
+        sops.secrets."stash/api-key".owner = "stash";
+        sops.secrets."stasharr/admin-username".owner = "stasharr";
+        sops.secrets."stasharr/admin-password".owner = "stasharr";
       };
     };
 }
