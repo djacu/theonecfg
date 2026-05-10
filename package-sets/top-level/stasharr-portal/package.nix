@@ -76,7 +76,15 @@ stdenv.mkDerivation (finalAttrs: {
     # Match the Dockerfile's runtime-image layout (/tmp/investigate/
     # stasharr-portal/Dockerfile lines 30-39). cp -r preserves pnpm's
     # symlink-farm node_modules layout (no -L).
-    cp -r package.json prisma.config.ts node_modules prisma \
+    #
+    # `prisma.config.ts` is intentionally NOT installed: upstream's
+    # config file imports `dotenv/config`, which is a transitive
+    # dep that pnpm leaves only under .pnpm/ (not top-level
+    # node_modules). At runtime, `prisma migrate deploy --schema
+    # ./prisma/schema.prisma` with DATABASE_URL from env works
+    # without the config file — schema path is explicit, datasource
+    # url comes from env.
+    cp -r package.json node_modules prisma \
           $out/share/stasharr-portal/
     cp -r apps/sp-api/dist apps/sp-api/node_modules apps/sp-api/package.json \
           $out/share/stasharr-portal/apps/sp-api/
