@@ -93,10 +93,9 @@ sudo rsync -aHAX --info=stats0 /.zfs/snapshot/premigration/var/lib/cups/ssl/ /pe
 sudo rsync -aHAX --info=stats0 /.zfs/snapshot/premigration/var/lib/systemd/ /persist/var/lib/systemd/
 ```
 
-Then the two files that needed snapshot-side recovery (will no-op if the source doesn't exist):
+Then the file that needs snapshot-side recovery (will no-op if the source doesn't exist):
 
 ```sh
-test -f /.zfs/snapshot/premigration/var/lib/logrotate.status && sudo cp -p /.zfs/snapshot/premigration/var/lib/logrotate.status /persist/var/lib/logrotate.status
 test -f /.zfs/snapshot/premigration/var/lib/cups/subscriptions.conf && sudo cp -p /.zfs/snapshot/premigration/var/lib/cups/subscriptions.conf /persist/var/lib/cups/subscriptions.conf
 ```
 
@@ -160,6 +159,7 @@ Expected:
 - **Fish + multi-line scripts.** Pasting a multi-line `for ... end` loop from Claude Code's chat into fish frequently splits at the soft-wrap, leaving the second half of the iterable as a separate command. Default to one command per line.
 - **Per-host snapshot scope.** The recovery snapshot only covers the host you're on. If you migrate a host while logged in over SSH from a different host, the snapshot still has to be taken locally on the target.
 - **Persist list drift.** This runbook documents the persist list as of the initial rollout. If `nixos-configurations/<host>/impermanence.nix` has gained new entries since, add corresponding rsync lines in step 3.
+- **Atomic-rename-incompatible files.** Do not add a file to the persist `files = [ ... ]` list if the application that owns it writes via `rename(tmp, target)` (logrotate, pacman/dpkg-style updaters, many config writers). The kernel returns `EBUSY` on a `rename()` whose destination is a bind-mounted file, and a symlink target gets clobbered. `/var/lib/logrotate.status` was tried during initial rollout and removed in `4b4114d`/`91bb2ab`/`79f3f57` for this reason. If you need that kind of state persisted, either persist its parent *directory* (the rename happens inside a bind-mounted dir, which is fine) or reconfigure the app to write to a path inside an already-persisted dir.
 
 ## Related
 
