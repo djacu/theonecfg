@@ -88,18 +88,11 @@ sudo rsync -aHAX --info=stats0 /.zfs/snapshot/premigration/var/lib/power-profile
 sudo rsync -aHAX --info=stats0 /.zfs/snapshot/premigration/var/lib/udisks2/ /persist/var/lib/udisks2/
 sudo rsync -aHAX --info=stats0 /.zfs/snapshot/premigration/var/lib/private/ /persist/var/lib/private/
 sudo rsync -aHAX --info=stats0 /.zfs/snapshot/premigration/var/lib/fprint/ /persist/var/lib/fprint/
-sudo rsync -aHAX --info=stats0 /.zfs/snapshot/premigration/var/lib/cups/ppd/ /persist/var/lib/cups/ppd/
-sudo rsync -aHAX --info=stats0 /.zfs/snapshot/premigration/var/lib/cups/ssl/ /persist/var/lib/cups/ssl/
+sudo rsync -aHAX --info=stats0 /.zfs/snapshot/premigration/var/lib/cups/ /persist/var/lib/cups/
 sudo rsync -aHAX --info=stats0 /.zfs/snapshot/premigration/var/lib/systemd/ /persist/var/lib/systemd/
 ```
 
-Then the file that needs snapshot-side recovery (will no-op if the source doesn't exist):
-
-```sh
-test -f /.zfs/snapshot/premigration/var/lib/cups/subscriptions.conf && sudo cp -p /.zfs/snapshot/premigration/var/lib/cups/subscriptions.conf /persist/var/lib/cups/subscriptions.conf
-```
-
-(Fish form: `; and sudo cp ...` instead of `&& sudo cp ...`.)
+The `/var/lib/cups` rsync pulls in nix-store symlinks pointing at the *pre-migration* generation's cups package. That's fine: cupsd's `ExecStartPre` removes all symlinks under `/var/lib/cups` and recreates them from the current store path each time it starts, so these get refreshed on first boot after rollback.
 
 If the persist list in `impermanence.nix` has been expanded beyond what this runbook documents, also rsync any new paths from the snapshot.
 
@@ -159,7 +152,8 @@ Expected:
 - **Fish + multi-line scripts.** Pasting a multi-line `for ... end` loop from Claude Code's chat into fish frequently splits at the soft-wrap, leaving the second half of the iterable as a separate command. Default to one command per line.
 - **Per-host snapshot scope.** The recovery snapshot only covers the host you're on. If you migrate a host while logged in over SSH from a different host, the snapshot still has to be taken locally on the target.
 - **Persist list drift.** This runbook documents the persist list as of the initial rollout. If `nixos-configurations/<host>/impermanence.nix` has gained new entries since, add corresponding rsync lines in step 3.
-- **Atomic-rename-incompatible files.** Do not add a file to the persist `files = [ ... ]` list if the application that owns it writes via `rename(tmp, target)` (logrotate, pacman/dpkg-style updaters, many config writers). The kernel returns `EBUSY` on a `rename()` whose destination is a bind-mounted file, and a symlink target gets clobbered. `/var/lib/logrotate.status` was tried during initial rollout and removed in `4b4114d`/`91bb2ab`/`79f3f57` for this reason. If you need that kind of state persisted, either persist its parent *directory* (the rename happens inside a bind-mounted dir, which is fine) or reconfigure the app to write to a path inside an already-persisted dir.
+- **Atomic-rename-incompatible files.** Do not add a file to the persist `files = [ ... ]` list if the application that owns it writes via `rename(tmp, target)` (logrotate, pacman/dpkg-style updaters, many config writers including CUPS). The kernel returns `EBUSY` on a `rename()` whose destination is a bind-mounted file, and a symlink target gets clobbered. `/var/lib/logrotate.status` was tried during initial rollout and removed in `4b4114d`/`91bb2ab`/`79f3f57` for this reason. If you need that kind of state persisted, either persist its parent *directory* (the rename happens inside a bind-mounted dir, which is fine) or reconfigure the app to write to a path inside an already-persisted dir.
+- **Applications that prune their own state directory.** Some services run an `ExecStartPre` that removes files (typically symlinks) from the directory they expect to own. `cupsd` cleans all symlinks under `/var/lib/cups` on every start, then re-creates only the 5 nix-store-managed config symlinks. If you persist individual files under such a directory, impermanence's `auto` mode creates dangling symlinks for non-existing targets — which the service's pre-start then deletes. Persist the *parent directory* instead, so impermanence uses a bind mount and the service's pre-start operates on `/persist` contents. Initial rollout persisted `/var/lib/cups/{ppd,ssl,subscriptions.conf,printers.conf,classes.conf}` individually; changed to `/var/lib/cups` wholesale in `2671390`/`81e22cc`/`99fcdcd`.
 
 ## Related
 
