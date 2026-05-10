@@ -5,9 +5,29 @@
   dotnetCorePackages,
 }:
 
+let
+  pluginVersion = "1.2.0.3";
+  metaJson = builtins.toFile "meta.json" (builtins.toJSON {
+    category = "Metadata";
+    name = "Stash";
+    owner = "DirtyRacer";
+    description = "";
+    overview = "";
+    guid = "57b8ef5d-8835-436d-9514-a709ee25faf2";
+    version = pluginVersion;
+    targetAbi = "10.11.0.0";
+    changelog = "Added Support Jellyfin 10.11; Added Support Emby 4.9; Minor Changes";
+    timestamp = "2025-10-22T20:33:52Z";
+    autoUpdate = false;
+    imagePath = "";
+    status = "Active";
+    assemblies = [ "Jellyfin.Plugin.Stash.dll" ];
+  });
+in
+
 buildDotnetModule (finalAttrs: {
   pname = "jellyfin-plugin-stash";
-  version = "1.2.0.3";
+  version = pluginVersion;
 
   src = fetchFromGitHub {
     owner = "DirtyRacer1337";
@@ -34,6 +54,12 @@ buildDotnetModule (finalAttrs: {
   # into a single Stash.dll) does not run cleanly under `dotnet build` on
   # Linux, so install both DLLs separately. Jellyfin's plugin loader picks
   # up whatever's in the plugin folder.
+  #
+  # meta.json is generated from the values in upstream's manifest.json for
+  # this version. Without it, Jellyfin falls back to parsing the directory
+  # name for display metadata, which produces "jellyfin-plugin-stash" instead
+  # of "Stash". The json content tracks upstream's manifest.json entry for
+  # the installed version.
   installPhase = ''
     runHook preInstall
     install -d $out/share/jellyfin-plugin-stash
@@ -41,6 +67,7 @@ buildDotnetModule (finalAttrs: {
        $out/share/jellyfin-plugin-stash/Jellyfin.Plugin.Stash.dll
     cp Jellyfin.Plugin.Stash/bin/Release/net9.0/linux-x64/Newtonsoft.Json.dll \
        $out/share/jellyfin-plugin-stash/Newtonsoft.Json.dll
+    install -m644 ${metaJson} $out/share/jellyfin-plugin-stash/meta.json
     runHook postInstall
   '';
 
