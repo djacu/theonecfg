@@ -193,6 +193,20 @@ inputs: {
             rootFolders = [ { path = "${tankMediaDir}/anime"; } ];
             prowlarrTags = [ "anime" ];
           };
+          stash = {
+            enable = true;
+            dataDir = "${tankServicesDir}/stash";
+            stashes = [
+              { path = "${tankMediaDir}/adult"; }
+            ];
+            stashBoxes = [
+              {
+                name = "StashDB";
+                endpoint = "https://stashdb.org/graphql";
+                apiKeyFile = config.sops.secrets."stashdb/api-key".path;
+              }
+            ];
+          };
           radarr = {
             enable = true;
             dataDir = "${tankServicesDir}/radarr";
@@ -340,6 +354,7 @@ inputs: {
         # populate per-host on a per-tracker basis.
         sops.secrets."empornium/username".owner = "prowlarr";
         sops.secrets."empornium/password".owner = "prowlarr";
+        sops.secrets."stashdb/api-key".owner = "stash";
       };
     };
 }

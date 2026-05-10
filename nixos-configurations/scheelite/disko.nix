@@ -444,6 +444,15 @@
             mountpoint = "/tank0/services/sonarr-anime";
             options.mountpoint = "/tank0/services/sonarr-anime";
           };
+          "tank0/services/stash" = {
+            type = "zfs_fs";
+            mountpoint = "/tank0/services/stash";
+            options = {
+              mountpoint = "/tank0/services/stash";
+              recordsize = "16K";
+              atime = "off";
+            };
+          };
           "tank0/services/radarr" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/radarr";
