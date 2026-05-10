@@ -24,6 +24,7 @@ in
   config = mkIf cfg.enable {
     home.packages = [
 
+      pkgs.glow
       pkgs.zathura
 
     ];
