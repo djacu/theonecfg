@@ -77,20 +77,19 @@ stdenv.mkDerivation (finalAttrs: {
     # stasharr-portal/Dockerfile lines 30-39). cp -r preserves pnpm's
     # symlink-farm node_modules layout (no -L).
     #
-    # `prisma.config.ts` is intentionally NOT installed: upstream's
-    # config file imports `dotenv/config`, which is a transitive
-    # dep that pnpm leaves only under .pnpm/ (not top-level
-    # node_modules). Without the config file, prisma reads the
-    # datasource url from schema.prisma's `url = env(...)` line —
-    # which upstream's schema doesn't have (the url lives in
-    # prisma.config.ts). Patch schema.prisma below to add it.
-    cp -r package.json node_modules prisma \
+    cp -r package.json prisma.config.ts node_modules prisma \
           $out/share/stasharr-portal/
 
-    # Inject `url = env("DATABASE_URL")` into datasource db (see
-    # comment above on prisma.config.ts removal).
-    sed -i '/provider = "postgresql"/a\  url      = env("DATABASE_URL")' \
-      $out/share/stasharr-portal/prisma/schema.prisma
+    # Prisma 7 removed `url` from schema.prisma; the datasource
+    # url has to live in prisma.config.ts. Upstream's config file
+    # opens with `import "dotenv/config"` — a side-effect import
+    # that loads `.env` files in dev. At runtime we pass
+    # DATABASE_URL directly via systemd's environment, so we don't
+    # need dotenv to load anything. Strip the import: pnpm leaves
+    # dotenv only under .pnpm/ (transitive dep, not hoisted to
+    # top-level node_modules), so the require fails on first load.
+    sed -i '/import "dotenv\/config"/d' \
+      $out/share/stasharr-portal/prisma.config.ts
     cp -r apps/sp-api/dist apps/sp-api/node_modules apps/sp-api/package.json \
           $out/share/stasharr-portal/apps/sp-api/
     cp -r apps/sp-web/dist $out/share/stasharr-portal/apps/sp-web/
