@@ -67,11 +67,11 @@ let
           -c "$cookie_jar" \
           -H "Content-Type: application/json" \
           -d "$body" \
-          "$base_url/api/auth/bootstrap-admin")
+          "$base_url/api/auth/bootstrap")
         case "$code" in
-          200|201) echo "bootstrap-admin: created admin (HTTP $code)" ;;
+          200|201) echo "bootstrap: created admin (HTTP $code)" ;;
           409)
-            echo "bootstrap-admin: already bootstrapped (HTTP $code), logging in"
+            echo "bootstrap: already done (HTTP $code), logging in"
             login_code=$(curl -s -o /dev/null -w "%{http_code}" \
               -c "$cookie_jar" \
               -H "Content-Type: application/json" \
@@ -82,7 +82,7 @@ let
               exit 1
             fi
             ;;
-          *) echo "bootstrap-admin failed (HTTP $code)" >&2; exit 1 ;;
+          *) echo "bootstrap failed (HTTP $code)" >&2; exit 1 ;;
         esac
       ''}
 
@@ -156,7 +156,7 @@ in
       default = null;
       description = ''
         If set, an idempotent systemd one-shot creates the local-admin
-        account on first run via /api/auth/bootstrap-admin and logs in
+        account on first run via /api/auth/bootstrap and logs in
         on subsequent runs to maintain a session for integration upserts.
       '';
     };
