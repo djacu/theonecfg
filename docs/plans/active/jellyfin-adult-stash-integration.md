@@ -322,9 +322,33 @@ Expected: no `jellyfin-plugin-stash` result. (Confirmed during plan-writing via 
   dotnetCorePackages,
 }:
 
+let
+  pluginVersion = "1.2.0.3";
+  # Without meta.json next to the DLLs, Jellyfin falls back to parsing the
+  # plugin directory name and shows it as "jellyfin-plugin-stash" instead
+  # of "Stash". Values track the upstream manifest.json entry for this
+  # version.
+  metaJson = builtins.toFile "meta.json" (builtins.toJSON {
+    category = "Metadata";
+    name = "Stash";
+    owner = "DirtyRacer";
+    description = "";
+    overview = "";
+    guid = "57b8ef5d-8835-436d-9514-a709ee25faf2";
+    version = pluginVersion;
+    targetAbi = "10.11.0.0";
+    changelog = "Added Support Jellyfin 10.11; Added Support Emby 4.9; Minor Changes";
+    timestamp = "2025-10-22T20:33:52Z";
+    autoUpdate = false;
+    imagePath = "";
+    status = "Active";
+    assemblies = [ "Jellyfin.Plugin.Stash.dll" ];
+  });
+in
+
 buildDotnetModule (finalAttrs: {
   pname = "jellyfin-plugin-stash";
-  version = "1.2.0.3";
+  version = pluginVersion;
 
   src = fetchFromGitHub {
     owner = "DirtyRacer1337";
@@ -337,7 +361,7 @@ buildDotnetModule (finalAttrs: {
   nugetDeps = ./deps.json;
 
   dotnet-sdk = dotnetCorePackages.sdk_9_0;
-  dotnet-runtime = dotnetCorePackages.aspnetcore_9_0;
+  dotnet-runtime = dotnetCorePackages.runtime_9_0;
 
   # Plugin is library-only; no executables to wrap into $out/bin.
   executables = [ ];
@@ -347,6 +371,8 @@ buildDotnetModule (finalAttrs: {
   # run cleanly under `dotnet build` on Linux, so the merged single-dll
   # the upstream Windows CI produces does not happen here — install
   # both `Stash.dll` (renamed) and `Newtonsoft.Json.dll` separately.
+  # meta.json is also required by Jellyfin's plugin manager to display
+  # the proper name and to whitelist Jellyfin.Plugin.Stash.dll explicitly.
   installPhase = ''
     runHook preInstall
     install -d $out/share/jellyfin-plugin-stash
@@ -354,6 +380,7 @@ buildDotnetModule (finalAttrs: {
        $out/share/jellyfin-plugin-stash/Jellyfin.Plugin.Stash.dll
     cp Jellyfin.Plugin.Stash/bin/Release/net9.0/linux-x64/Newtonsoft.Json.dll \
        $out/share/jellyfin-plugin-stash/Newtonsoft.Json.dll
+    install -m644 ${metaJson} $out/share/jellyfin-plugin-stash/meta.json
     runHook postInstall
   '';
 
@@ -493,17 +520,19 @@ Inside the first `mkMerge` branch (the always-on one starting around line 129), 
 
 ```nix
 systemd.tmpfiles.rules = [
-  "d ${cfg.dataDir}/config/plugins 0755 jellyfin jellyfin - -"
+  "d ${cfg.dataDir}/plugins 0700 ${config.services.jellyfin.user} ${config.services.jellyfin.group} - -"
 ] ++ map (
-  plugin: "L+ ${cfg.dataDir}/config/plugins/${plugin.pname}_${plugin.version} - jellyfin jellyfin - ${plugin}/share/${plugin.pname}"
+  plugin: "L+ ${cfg.dataDir}/plugins/${plugin.pname}_${plugin.version} - ${config.services.jellyfin.user} ${config.services.jellyfin.group} - ${plugin}/share/${plugin.pname}"
 ) cfg.plugins;
 ```
 
 Notes:
 
-- The `d` rule ensures the parent dir exists before symlinks land. The upstream module creates `${configDir}` itself but does not pre-create `plugins/` — Jellyfin creates it lazily on startup. We pre-create it deterministically.
-- `L+` forces creation (removes existing symlink if path conflicts). Safe because the path is namespaced by `<pname>_<version>`; switching plugin versions invalidates the old symlink path automatically.
-- The symlink target is `${plugin}/share/${plugin.pname}`, which is the convention enforced by the package derivation in Task 3.2 (`install -Dm644 ... $out/share/jellyfin-plugin-stash/...`).
+- **The path is `${cfg.dataDir}/plugins`, NOT `${cfg.dataDir}/config/plugins`.** Jellyfin computes `PluginsPath = Path.Combine(ProgramDataPath, "plugins")` where `ProgramDataPath` is the value of `--datadir`, not `--configdir`. This was wrong in earlier drafts and produced symlinks Jellyfin never scanned. Verified in `BaseApplicationPaths.cs:58` of the Jellyfin source.
+- Mode `0700` matches what Jellyfin produces when it creates the plugins dir itself (`UMask = "0077"` is set on the upstream systemd unit, so 0777 & ~0077 = 0700).
+- The `d` rule ensures the parent dir exists before symlinks land.
+- `L+` forces creation (removes existing entry if path conflicts). Safe because the path is namespaced by `<pname>_<version>`; switching plugin versions invalidates the old symlink path automatically.
+- The symlink target is `${plugin}/share/${plugin.pname}`, which is the convention enforced by the package derivation in Task 3.2.
 
 - [ ] **Step 4: Run flake check**
 
