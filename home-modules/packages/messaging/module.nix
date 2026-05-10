@@ -27,6 +27,7 @@ in
 
       pkgs.discord
       pkgs.element-desktop
+      pkgs.fluffychat
       pkgs.signal-desktop
       pkgs.slack
       pkgs.wasistlos
