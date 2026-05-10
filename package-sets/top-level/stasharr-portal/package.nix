@@ -80,12 +80,17 @@ stdenv.mkDerivation (finalAttrs: {
     # `prisma.config.ts` is intentionally NOT installed: upstream's
     # config file imports `dotenv/config`, which is a transitive
     # dep that pnpm leaves only under .pnpm/ (not top-level
-    # node_modules). At runtime, `prisma migrate deploy --schema
-    # ./prisma/schema.prisma` with DATABASE_URL from env works
-    # without the config file — schema path is explicit, datasource
-    # url comes from env.
+    # node_modules). Without the config file, prisma reads the
+    # datasource url from schema.prisma's `url = env(...)` line —
+    # which upstream's schema doesn't have (the url lives in
+    # prisma.config.ts). Patch schema.prisma below to add it.
     cp -r package.json node_modules prisma \
           $out/share/stasharr-portal/
+
+    # Inject `url = env("DATABASE_URL")` into datasource db (see
+    # comment above on prisma.config.ts removal).
+    sed -i '/provider = "postgresql"/a\  url      = env("DATABASE_URL")' \
+      $out/share/stasharr-portal/prisma/schema.prisma
     cp -r apps/sp-api/dist apps/sp-api/node_modules apps/sp-api/package.json \
           $out/share/stasharr-portal/apps/sp-api/
     cp -r apps/sp-web/dist $out/share/stasharr-portal/apps/sp-web/
