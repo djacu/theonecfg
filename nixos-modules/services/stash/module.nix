@@ -10,7 +10,7 @@ let
     name = "stash-apikey-splice";
     runtimeInputs = [ pkgs.coreutils pkgs.yq-go ];
     text = ''
-      set -euo pipefail
+
       config="${cfg.dataDir}/config.yml"
 
       if [ ! -f "$config" ]; then
@@ -19,12 +19,14 @@ let
       fi
 
       ${lib.concatMapStringsSep "\n" (b: ''
-        if [ -r "${b.apiKeyFile}" ]; then
-          NEW_KEY="$(tr -d '\r\n' < "${b.apiKeyFile}")" \
-            yq -i \
-            '(.stash_boxes[] | select(.name == "${b.name}") | .apikey) = strenv(NEW_KEY)' \
-            "$config"
+        if [ ! -r "${b.apiKeyFile}" ]; then
+          echo "stash apikey file not readable: ${b.apiKeyFile} (stash_boxes[${b.name}])" >&2
+          exit 1
         fi
+        NEW_KEY="$(tr -d '\r\n' < "${b.apiKeyFile}")" \
+          yq -i \
+          '(.stash_boxes[] | select(.name == "${b.name}") | .apikey) = strenv(NEW_KEY)' \
+          "$config"
       '') cfg.stashBoxes}
 
       chown stash:media "$config"
