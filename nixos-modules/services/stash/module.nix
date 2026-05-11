@@ -43,6 +43,57 @@ let
     '';
   };
 
+  identifyBody = builtins.toJSON {
+    query = "mutation Identify($sources: [ScraperSourceInput!]!) { metadataIdentify(input: { sources: $sources }) }";
+    variables.sources = map (b: {
+      source = { stash_box_endpoint = b.endpoint; };
+    }) cfg.stashBoxes;
+  };
+
+  simpleBody = mutation: builtins.toJSON {
+    query = "mutation { ${mutation} }";
+  };
+
+  scanBody     = simpleBody "metadataScan(input: {})";
+  autoTagBody  = simpleBody "metadataAutoTag(input: {})";
+  generateBody = simpleBody "metadataGenerate(input: {})";
+  cleanBody    = simpleBody "metadataClean(input: {})";
+
+  stashMaintenance = pkgs.writeShellApplication {
+    name = "stash-maintenance";
+    runtimeInputs = [ pkgs.curl pkgs.jq pkgs.coreutils ];
+    text = ''
+      if [ ! -r "${toString cfg.apiKeyFile}" ]; then
+        echo "stash API key not readable: ${toString cfg.apiKeyFile}" >&2
+        exit 1
+      fi
+      apikey="$(tr -d '\r\n' < "${toString cfg.apiKeyFile}")"
+      endpoint="http://127.0.0.1:${toString cfg.port}/graphql"
+
+      post() {
+        local label="$1" body="$2" response
+        echo "Triggering: $label"
+        response="$(curl -fsS --max-time 30 -X POST "$endpoint" \
+          -H "Content-Type: application/json" \
+          -H "ApiKey: $apikey" \
+          -d "$body")"
+        if jq -e '.errors' <<< "$response" >/dev/null 2>&1; then
+          echo "  GraphQL error: $response" >&2
+          return 1
+        fi
+        echo "  Job ID: $(jq -r '.data | to_entries[0].value' <<< "$response")"
+      }
+
+      post "scan"     '${scanBody}'
+      post "identify" '${identifyBody}'
+      post "autotag"  '${autoTagBody}'
+      post "generate" '${generateBody}'
+      post "clean"    '${cleanBody}'
+
+      echo "All maintenance tasks queued. Stash executes them serially via its internal task queue."
+    '';
+  };
+
   stashType = submodule { options = {
     path = mkOption { type = str; };
     excludevideo = mkOption { type = bool; default = false; };
@@ -71,6 +122,17 @@ in
         auto-generated key. Used by other services (e.g. Stasharr) to
         authenticate against Stash's REST/GraphQL API.
       '';
+    };
+    scheduledMaintenance = {
+      enable = mkEnableOption "Daily Stash library maintenance (scan + identify + auto tag + generate + clean)";
+      schedule = mkOption {
+        type = str;
+        default = "*-*-* 03:00:00";
+        description = ''
+          systemd OnCalendar expression for when the maintenance pipeline fires.
+          Default is 03:00 local time, daily.
+        '';
+      };
     };
   };
 
@@ -130,6 +192,32 @@ in
       sops.secrets = {
         "stash/jwt-secret".owner = "stash";
         "stash/session-store-key".owner = "stash";
+      };
+
+      assertions = [
+        {
+          assertion = !cfg.scheduledMaintenance.enable || cfg.apiKeyFile != null;
+          message = "theonecfg.services.stash.scheduledMaintenance.enable requires apiKeyFile to be set (Stash's GraphQL mutations refuse requests without an ApiKey header).";
+        }
+      ];
+
+      systemd.timers.stash-maintenance = mkIf cfg.scheduledMaintenance.enable {
+        description = "Daily Stash library maintenance";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnCalendar = cfg.scheduledMaintenance.schedule;
+          Persistent = true;
+        };
+      };
+
+      systemd.services.stash-maintenance = mkIf cfg.scheduledMaintenance.enable {
+        description = "Stash library maintenance: scan + identify + auto tag + generate + clean";
+        after = [ "stash.service" ];
+        requires = [ "stash.service" ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${stashMaintenance}/bin/stash-maintenance";
+        };
       };
     }
 
