@@ -44,6 +44,102 @@ let
     whisparr = "Whisparr";
   };
 
+  # Per-app SyncCategories pushed as application fields. Each list
+  # mirrors Prowlarr's compiled-in default for the app type plus
+  # Newznab `8000` (Other). Several public-tracker Cardigann
+  # definitions (notably LimeTorrents) classify keywordless-browse
+  # results as `Other` rather than the apparent content category,
+  # which fails the *arr's add-time test with 400 "no results in
+  # configured categories". Including 8000 unblocks the test; runtime
+  # keyword searches are specific enough that Other-category results
+  # rarely match spuriously. AnimeSyncCategories is set on Sonarr
+  # instances only (Radarr / Whisparr don't have that field).
+  defaultProwlarrSyncFields = {
+    sonarr = [
+      {
+        name = "syncCategories";
+        value = [
+          5000
+          5010
+          5020
+          5030
+          5040
+          5045
+          5050
+          5090
+          8000
+        ];
+      }
+      {
+        name = "animeSyncCategories";
+        value = [
+          5070
+          8000
+        ];
+      }
+    ];
+    sonarr-anime = [
+      {
+        name = "syncCategories";
+        value = [
+          5000
+          5010
+          5020
+          5030
+          5040
+          5045
+          5050
+          5090
+          8000
+        ];
+      }
+      {
+        name = "animeSyncCategories";
+        value = [
+          5070
+          8000
+        ];
+      }
+    ];
+    radarr = [
+      {
+        name = "syncCategories";
+        value = [
+          2000
+          2010
+          2020
+          2030
+          2040
+          2045
+          2050
+          2060
+          2070
+          2080
+          2090
+          8000
+        ];
+      }
+    ];
+    whisparr = [
+      {
+        name = "syncCategories";
+        value = [
+          6000
+          6010
+          6020
+          6030
+          6040
+          6045
+          6050
+          6070
+          6080
+          6090
+          8000
+        ];
+      }
+    ];
+  };
+
   enabledArrs = lib.filterAttrs (_: c: c.enable or false) (
     lib.getAttrs (lib.attrNames arrImpls) config.theonecfg.services
   );
@@ -72,7 +168,7 @@ let
         name = "baseUrl";
         value = "http://127.0.0.1:${toString arrCfg.port}";
       }
-    ];
+    ] ++ defaultProwlarrSyncFields.${name};
     _apiKeyFile = config.sops.secrets."${name}/api-key".path;
   }) enabledArrs;
 
