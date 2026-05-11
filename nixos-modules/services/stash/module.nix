@@ -57,7 +57,7 @@ let
   scanBody     = simpleBody "metadataScan(input: {})";
   autoTagBody  = simpleBody "metadataAutoTag(input: {})";
   generateBody = simpleBody "metadataGenerate(input: {})";
-  cleanBody    = simpleBody "metadataClean(input: {})";
+  cleanBody    = simpleBody "metadataClean(input: { dryRun: false })";
 
   stashMaintenance = pkgs.writeShellApplication {
     name = "stash-maintenance";
