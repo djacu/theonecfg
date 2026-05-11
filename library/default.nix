@@ -44,6 +44,37 @@ let
 in
 fix (finalLibrary: {
 
+  /**
+    Helpers for declarative configuration of media-server REST APIs
+    (Sonarr/Radarr/Whisparr/Prowlarr/Jellyfin/qBittorrent/Seerr).
+
+    Returns a function-of-pkgs because the helpers internally use
+    pkgs.writeShellApplication to build curl wrappers.
+
+    Usage in a service module:
+
+      ```nix
+      { config, lib, pkgs, theonecfg, ... }:
+      let
+        declarative = theonecfg.library.declarative pkgs;
+      in
+      lib.mkMerge [
+        (declarative.mkArrApiPushService { name = "sonarr-rootfolders"; ... })
+      ]
+      ```
+  */
+  declarative =
+    pkgs:
+    import ./declarative-arr.nix {
+      inherit lib pkgs;
+    };
+
+  /**
+    Shared option types for declarative *arr / Jellyfin configuration.
+    No pkgs dependency.
+  */
+  arrTypes = import ./arr-types.nix { inherit lib; };
+
   systems = {
 
     defaultSystems = genAttrs [

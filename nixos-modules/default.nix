@@ -25,6 +25,7 @@ inputs: {
       imports = [
         inputs.disko.nixosModules.default
         inputs.impermanence.nixosModules.impermanence
+        inputs.sops-nix.nixosModules.sops
       ]
       ++ map (flip pipe [
         (joinParentToPaths ./.)
