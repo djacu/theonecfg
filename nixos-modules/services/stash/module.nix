@@ -62,6 +62,10 @@ let
   stashMaintenance = pkgs.writeShellApplication {
     name = "stash-maintenance";
     runtimeInputs = [ pkgs.curl pkgs.jq pkgs.coreutils ];
+    # SC2016: the JSON bodies contain `$sources` as a GraphQL variable
+    # reference, not a bash variable. Keeping them in single quotes so
+    # bash passes them literally is intentional.
+    excludeShellChecks = [ "SC2016" ];
     text = ''
       if [ ! -r "${toString cfg.apiKeyFile}" ]; then
         echo "stash API key not readable: ${toString cfg.apiKeyFile}" >&2
