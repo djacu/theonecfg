@@ -44,7 +44,7 @@ let
   };
 
   identifyBody = builtins.toJSON {
-    query = "mutation Identify($sources: [ScraperSourceInput!]!) { metadataIdentify(input: { sources: $sources }) }";
+    query = "mutation Identify($sources: [IdentifySourceInput!]!) { metadataIdentify(input: { sources: $sources }) }";
     variables.sources = map (b: {
       source = { stash_box_endpoint = b.endpoint; };
     }) cfg.stashBoxes;
