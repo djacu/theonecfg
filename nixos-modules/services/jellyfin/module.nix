@@ -130,9 +130,9 @@ in
       default = [ ];
       description = ''
         Jellyfin plugin packages to install. Each package must place its
-        dll(s) at `$out/share/<pname>/`. The module symlinks each into
-        `${cfg.dataDir}/plugins/<pname>_<version>/` at activation
-        time so Jellyfin's plugin loader picks them up.
+        dll(s) at `$out/share/<pname>/`. The module copies each into
+        `${cfg.dataDir}/plugins/<pname>_<version>/` via a oneshot
+        service that runs before jellyfin.service.
 
         Plugin configuration (per-plugin settings, secrets) is set in the
         Jellyfin UI after install; that state persists in the same config
@@ -163,19 +163,33 @@ in
       ]
       ++ lib.concatMap (library: library.paths) (lib.attrValues effectiveLibraries);
 
-      # L+ (force-replace) is used instead of L (create-if-missing) because
-      # Jellyfin may create an empty plugins/<name>_<version>/ directory on
-      # first boot before tmpfiles runs, which would cause L to silently no-op
-      # and leave the symlink uninstalled.
-      #
-      # Path: Jellyfin resolves PluginsPath as Path.Combine(ProgramDataPath, "plugins"),
-      # where ProgramDataPath is set by --datadir, not --configdir. Mode 0700 matches
-      # what Jellyfin creates itself (its systemd unit sets UMask = "0077").
-      systemd.tmpfiles.rules = [
-        "d ${cfg.dataDir}/plugins 0700 ${config.services.jellyfin.user} ${config.services.jellyfin.group} - -"
-      ] ++ map (
-        plugin: "L+ ${cfg.dataDir}/plugins/${plugin.pname}_${plugin.version} - ${config.services.jellyfin.user} ${config.services.jellyfin.group} - ${plugin}/share/${plugin.pname}"
-      ) cfg.plugins;
+      # Jellyfin's PluginManager.CreatePluginInstance writes back to meta.json
+      # on every successful load (to normalize version/status fields). Symlinks
+      # into /nix/store are read-only; the write fails and the plugin is
+      # disabled. Copy plugin files into a writable directory instead. Negligible
+      # disk cost (~hundreds of KB per plugin); plugin updates pick up on every
+      # nixos-rebuild because the script body changes when the store paths do.
+      systemd.services.jellyfin-plugins-install = mkIf (cfg.plugins != [ ]) {
+        description = "Install Jellyfin plugins into ${cfg.dataDir}/plugins";
+        before = [ "jellyfin.service" ];
+        requiredBy = [ "jellyfin.service" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          set -euo pipefail
+          pluginsDir=${cfg.dataDir}/plugins
+          install -d -m 0700 -o ${config.services.jellyfin.user} -g ${config.services.jellyfin.group} "$pluginsDir"
+          ${lib.concatMapStringsSep "\n" (plugin: ''
+            dest="$pluginsDir/${plugin.pname}_${plugin.version}"
+            rm -rf "$dest"
+            cp -r ${plugin}/share/${plugin.pname} "$dest"
+            chmod -R u+w "$dest"
+            chown -R ${config.services.jellyfin.user}:${config.services.jellyfin.group} "$dest"
+          '') cfg.plugins}
+        '';
+      };
 
       sops.secrets."jellyfin/admin-password".owner = "jellyfin";
     }
