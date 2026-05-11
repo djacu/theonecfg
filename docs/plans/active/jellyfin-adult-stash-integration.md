@@ -503,9 +503,9 @@ plugins = mkOption {
   default = [ ];
   description = ''
     Jellyfin plugin packages to install. Each package must place its
-    dll(s) at `$out/share/<pname>/`. The module symlinks each into
-    `${cfg.dataDir}/config/plugins/<pname>_<version>/` at activation
-    time so Jellyfin's plugin loader picks them up.
+    dll(s) at `$out/share/<pname>/`. The module copies each into
+    `${cfg.dataDir}/plugins/<pname>_<version>/` via a oneshot service
+    that runs before jellyfin.service.
 
     Plugin configuration (per-plugin settings, secrets) is set in the
     Jellyfin UI after install; that state persists in the same config
@@ -514,25 +514,47 @@ plugins = mkOption {
 };
 ```
 
-- [ ] **Step 3: Add the tmpfiles wiring**
+- [ ] **Step 3: Add the install service**
 
 Inside the first `mkMerge` branch (the always-on one starting around line 129), after the existing `systemd.services.jellyfin.unitConfig.RequiresMountsFor` block, add:
 
 ```nix
-systemd.tmpfiles.rules = [
-  "d ${cfg.dataDir}/plugins 0700 ${config.services.jellyfin.user} ${config.services.jellyfin.group} - -"
-] ++ map (
-  plugin: "L+ ${cfg.dataDir}/plugins/${plugin.pname}_${plugin.version} - ${config.services.jellyfin.user} ${config.services.jellyfin.group} - ${plugin}/share/${plugin.pname}"
-) cfg.plugins;
+# Jellyfin's PluginManager.CreatePluginInstance writes back to meta.json
+# on every successful load (to normalize version/status fields). Symlinks
+# into /nix/store are read-only; the write fails and the plugin is
+# disabled. Copy plugin files into a writable directory instead. Negligible
+# disk cost (~hundreds of KB per plugin); plugin updates pick up on every
+# nixos-rebuild because the script body changes when the store paths do.
+systemd.services.jellyfin-plugins-install = mkIf (cfg.plugins != [ ]) {
+  description = "Install Jellyfin plugins into ${cfg.dataDir}/plugins";
+  before = [ "jellyfin.service" ];
+  requiredBy = [ "jellyfin.service" ];
+  serviceConfig = {
+    Type = "oneshot";
+    RemainAfterExit = true;
+  };
+  script = ''
+    set -euo pipefail
+    pluginsDir=${cfg.dataDir}/plugins
+    install -d -m 0700 -o ${config.services.jellyfin.user} -g ${config.services.jellyfin.group} "$pluginsDir"
+    ${lib.concatMapStringsSep "\n" (plugin: ''
+      dest="$pluginsDir/${plugin.pname}_${plugin.version}"
+      rm -rf "$dest"
+      cp -r ${plugin}/share/${plugin.pname} "$dest"
+      chmod -R u+w "$dest"
+      chown -R ${config.services.jellyfin.user}:${config.services.jellyfin.group} "$dest"
+    '') cfg.plugins}
+  '';
+};
 ```
 
 Notes:
 
-- **The path is `${cfg.dataDir}/plugins`, NOT `${cfg.dataDir}/config/plugins`.** Jellyfin computes `PluginsPath = Path.Combine(ProgramDataPath, "plugins")` where `ProgramDataPath` is the value of `--datadir`, not `--configdir`. This was wrong in earlier drafts and produced symlinks Jellyfin never scanned. Verified in `BaseApplicationPaths.cs:58` of the Jellyfin source.
-- Mode `0700` matches what Jellyfin produces when it creates the plugins dir itself (`UMask = "0077"` is set on the upstream systemd unit, so 0777 & ~0077 = 0700).
-- The `d` rule ensures the parent dir exists before symlinks land.
-- `L+` forces creation (removes existing entry if path conflicts). Safe because the path is namespaced by `<pname>_<version>`; switching plugin versions invalidates the old symlink path automatically.
-- The symlink target is `${plugin}/share/${plugin.pname}`, which is the convention enforced by the package derivation in Task 3.2.
+- **The path is `${cfg.dataDir}/plugins`, NOT `${cfg.dataDir}/config/plugins`.** Jellyfin computes `PluginsPath = Path.Combine(ProgramDataPath, "plugins")` where `ProgramDataPath` is the value of `--datadir`, not `--configdir`. Verified in `BaseApplicationPaths.cs:58` of the Jellyfin source.
+- **Copy, not symlink.** Jellyfin's `PluginManager.CreatePluginInstance` writes back to `meta.json` on every successful plugin load (to normalize version/status fields). Symlinks pointing into `/nix/store` are read-only, so the write fails with `UnauthorizedAccessException` and the plugin is marked Malfunctioned — and the failure cascades into Jellyfin not starting at all. Copying into a writable dir avoids this. Negligible disk cost.
+- Mode `0700` matches what Jellyfin produces when it creates the plugins dir itself (`UMask = "0077"` is set on the upstream systemd unit).
+- The script body changes (different `${plugin}` store paths) whenever any plugin's version or content changes, so systemd considers the unit changed and re-runs it on each `nixos-rebuild`. Plugin updates take effect automatically.
+- `before` + `requiredBy` on `jellyfin.service`: the install runs before jellyfin starts; jellyfin requires it to succeed before starting. Note: this only fires when `jellyfin.service` is restarted — if a deploy doesn't trigger a restart (e.g. only this install service changed), manually run `sudo systemctl restart jellyfin` to trigger the cascade.
 
 - [ ] **Step 4: Run flake check**
 
@@ -648,7 +670,32 @@ Open `https://jellyfin.scheelite.dev` → Dashboard → Plugins. `Stash` should 
 
 Operational. After Phase 3 deploys cleanly.
 
-### Task 4.1 — Generate a Stash API key
+### Task 4.1 — Identify scenes in Stash against StashDB
+
+**Stash's library scan only computes PHashes; it does not pull scene metadata. Identify is the separate task that matches scenes against StashDB and pulls titles/performers/studios/tags into Stash's DB.** Without this, the Jellyfin plugin will find scenes via filename lookup but they'll have no metadata to return.
+
+**Steps:**
+
+- [ ] **Step 1: Enable Advanced Mode in Stash**
+
+Stash UI → Settings (cog icon) → scroll the left sidebar to the very bottom → toggle **Advanced Mode** on. `Identify` (and several other advanced tasks) only appears when Advanced Mode is enabled.
+
+- [ ] **Step 2: Run Identify**
+
+Settings → Tasks tab → scroll to find **Identify** → click it.
+
+In the dialog:
+- Source: **StashDB**.
+- Options / Field Strategy: leave defaults (typically "Merge" or "Overwrite").
+- Click **Start**.
+
+The task queue (bell/activity icon, top-right) shows progress.
+
+- [ ] **Step 3: Verify**
+
+Once complete, open Stash → Scenes → pick any scene. Confirm Title (real scene title, not filename), Performers, Studio, and Date are populated. If everything is still blank, the scene's PHash didn't match anything in StashDB; run Stash → Tasks → Auto Tag (advanced too) or manually attach metadata.
+
+### Task 4.2 — Generate a Stash API key
 
 **Steps:**
 
@@ -660,7 +707,7 @@ Operational. After Phase 3 deploys cleanly.
 
 If a key already exists, copy its value. If not, click `Generate API Key`. Stash shows the key once — copy immediately.
 
-### Task 4.2 — Configure the Jellyfin plugin
+### Task 4.3 — Configure the Jellyfin plugin
 
 **Steps:**
 
@@ -670,59 +717,106 @@ Jellyfin UI → Dashboard → Plugins → Stash → `Configure` (or click the pl
 
 - [ ] **Step 2: Set Stash server URL and API key**
 
-- Server URL: `http://127.0.0.1:9999` (loopback to scheelite-local Stash; same loopback pattern the Stasharr Portal would use per its design — server-side fetches stay inside the host's network namespace).
-- API Key: paste from Task 4.1.
+- Server URL: `http://127.0.0.1:9999` (loopback to scheelite-local Stash).
+- API Key: paste from Task 4.2.
 
-If the plugin's UI has additional toggles (search-by-PHash, force matching, etc.), default values are fine for now.
+If the plugin's UI has additional toggles (search-by-PHash, force matching, etc.), default values are fine.
 
 - [ ] **Step 3: Save**
 
 Plugin config persists at `${cfg.dataDir}/config/plugins/configurations/Stash.xml`. Survives Jellyfin restarts and rebuilds (tank0 storage).
 
-### Task 4.3 — Trigger a metadata refresh on the Adult library
+### Task 4.4 — Enable Stash as a metadata downloader on the Adult library
+
+**Plugins install themselves but are NOT automatically enabled per library.** Without this step, Jellyfin only does a connectivity ping against Stash on refresh; it never actually queries for scene metadata.
+
+**Steps:**
+
+- [ ] **Step 1: Edit the Adult library**
+
+Jellyfin UI → Dashboard → Libraries → click **Adult** to edit it.
+
+- [ ] **Step 2: Enable Stash in Metadata downloaders**
+
+Scroll to **"Metadata downloaders for movies"** (or similarly named section). Find **Stash** in the list and check it. Position in the priority list doesn't matter much; defaults are fine.
+
+- [ ] **Step 3: Disable Nfo metadata saver**
+
+Scroll to **"Metadata savers"** (separate section). **Uncheck Nfo.** Reason: Stash is the source of truth for adult metadata; the media tree is single-writer (Whisparr only), and Jellyfin attempting to write `.nfo` files into studio subdirs will fail with `UnauthorizedAccessException` — those errors flood the journal on every refresh otherwise.
+
+Also uncheck "Save artwork into media folders" / "Save metadata into media folders" if they appear, for the same reason.
+
+- [ ] **Step 4: Save**
+
+The same NFO disable applies to TV / movie libraries unless the media-tree permissions are relaxed (out of scope).
+
+### Task 4.5 — Trigger a metadata refresh on the Adult library
 
 **Steps:**
 
 - [ ] **Step 1: Refresh Metadata (Replace All)**
 
-Jellyfin UI → Libraries → Adult → three-dot menu → `Refresh Metadata`. Choose `Replace existing metadata` (not just `Add missing`) — guarantees a clean re-resolve through the new plugin.
+From the library page (or Dashboard → Libraries), open the **Adult** library → top-right `⋮` / three-dot → **Refresh Metadata**.
 
-- [ ] **Step 2: Watch the job**
+In the dialog:
+- Refresh mode: **Replace all metadata** (radio).
+- **Check** "Replace existing images" — old TMDb placeholder posters get replaced with Stash-sourced ones.
+- **Leave unchecked** "Replace existing trickplay images" — expensive to regenerate; unrelated to metadata.
 
-Dashboard → Tasks. The `Library Scan` (or `Refresh Metadata`) task progresses through every scene. On a large library this takes minutes to tens of minutes.
+Click Refresh.
 
-- [ ] **Step 3: Tail the journal during the scan**
+- [ ] **Step 2: Tail the journals during the scan**
 
-```bash
-ssh scheelite "journalctl -u jellyfin -f"
+On scheelite:
+
+```fish
+journalctl -u jellyfin --since '1 minute ago' --no-pager | tail -30
+journalctl -u stash --since '1 minute ago' --no-pager | tail -30
 ```
 
-Expected: a stream of plugin lookups against `127.0.0.1:9999`. No 401 errors (would indicate API key wrong) or connection refused errors (would indicate Stash isn't running).
+Expected: Stash's journal shows GraphQL POSTs to `127.0.0.1:9999` with substantive response sizes (kilobytes, not 55-byte heartbeats). Jellyfin's journal shows metadata save events. No 401 / connection-refused errors.
 
-### Task 4.4 — Spot-check a sample of scenes
+### Task 4.6 — Spot-check scene metadata
 
 **Steps:**
 
-- [ ] **Step 1: Open a scene tile in the Adult library**
+- [ ] **Step 1: Open a scene's detail page**
 
-Pick one that previously stacked. Confirm:
+Pick a scene that previously stacked. The detail page should show, sourced from Stash:
 
-- Title shown matches the Stash scene title (not the filename).
-- Cast list populated with performers.
-- Studio shown.
-- Poster / fanart present.
-- Release year shown.
-- Description / plot present (if Stash has one).
+- Title (real scene title, not filename).
+- Studios chip(s) (e.g., the studio name).
+- Cast & Crew chips (performers).
+- Year / release date.
+- Description / plot if Stash has one.
+- Poster + fanart.
+- Genres / Tags.
 
-- [ ] **Step 2: Spot-check 3-5 more scenes across different studios**
+If all values are blank, common causes:
 
-Look for scenes that fail to populate. Common reasons:
+- Stash hasn't *identified* the scene against StashDB (run Task 4.1 first).
+- Stash provider not enabled on the library (Task 4.4 Step 2).
+- Stash URL or API key wrong (re-check Task 4.3).
 
-- Stash doesn't have the scene identified (PHash didn't match StashDB) — plugin can't return metadata. Run Stash's `Identify` task on the scene to attempt match.
-- Filename in Jellyfin doesn't resolve a Stash scene by path lookup — verify Stash's path index is current (Phase 2 Task 2.3 should have handled this; rerun Stash scan if needed).
-- Plugin lookup hit an error — check journal for the specific scene.
+### Task 4.7 — Library scan to populate ItemByName chips
 
-### Task 4.5 — Cast verification
+**Metadata refresh populates scene metadata strings (Studios, Genres) but does NOT promote them to standalone ItemByName entities. Without that, clicking a Studio or Genre chip on a scene's detail page 404s because the underlying Item doesn't exist.** People (cast) chips work because the plugin uses `result.People` which Jellyfin specifically processes to create Person items.
+
+**Steps:**
+
+- [ ] **Step 1: Run Library Scan**
+
+Jellyfin UI → Dashboard → Scheduled Tasks → find **Scan Media Library** (or **Scan All Libraries**) → click the Play / Run icon.
+
+- [ ] **Step 2: Verify**
+
+Once complete, return to a scene's detail page → click a Studio chip. Expected: navigates to the studio's listing page (showing all scenes from that studio).
+
+If still 404: this points to a deeper plugin / Jellyfin version interaction. The workaround is to file a feature request upstream at `DirtyRacer1337/Jellyfin.Plugin.Stash` for ItemByName creation parity with People. Meanwhile, browse via the People (cast) chips, which work regardless.
+
+### Task 4.8 — Cast verification
+
+**The original reason for keeping Jellyfin in the stack.**
 
 **Steps:**
 
@@ -736,7 +830,7 @@ Expected: device shows scene title, poster, optional cast list (depends on clien
 
 Verify the title and poster are correct on the cast device's chrome (e.g., Chromecast's "Now Playing" overlay, Roku's playback header, smart-TV native UI).
 
-This verifies the metadata propagates through Jellyfin's transcoding/streaming pipeline to clients — not just the web UI.
+This verifies the metadata propagates through Jellyfin's streaming pipeline to clients, not just the web UI.
 
 If metadata is missing at the cast device but present in the Jellyfin web UI: the client probably caches metadata; let it refresh or restart the client app.
 
@@ -748,24 +842,19 @@ If metadata is missing at the cast device but present in the Jellyfin web UI: th
 2. `nix build .#nixosConfigurations.scheelite.config.system.build.toplevel` succeeds.
 3. Whisparr's Standard Episode Format is `{Release-Date} - {Site Title} - {Episode CleanTitle} [{Quality Full}]`.
 4. Spot-check on disk: `ssh scheelite "ls /tank0/media/adult/<some-studio>/"` shows date-prefixed filenames.
-5. Stash UI → Scenes → file paths reflect the new names.
-6. Jellyfin UI → Adult library → scenes show as individual items (no stacking dots / "alternate version" UI), with Stash-sourced posters and titles.
-7. Jellyfin UI → Dashboard → Plugins → `Stash` is listed as Active.
-8. Casting from a TV / Roku / Chromecast displays scene title and poster correctly.
+5. Stash UI → Scenes → file paths reflect the new names; spot-checked scenes have populated Title / Performers / Studio / Date (i.e., Identify ran).
+6. Jellyfin UI → Adult library → scenes show as individual items (no stacking dots / "alternate version" UI), with Stash-sourced titles, posters, performers, studio chips.
+7. Jellyfin UI → Dashboard → Plugins → `Stash` listed as Active.
+8. Studio / Genre / Cast chips on a scene detail page resolve (not 404) after a Library Scan task.
+9. Casting from a TV / Roku / Chromecast displays scene title and poster correctly.
 
 ## Decisions deferred
 
 - **Declarative plugin configuration** (templating `Stash.xml` to set the Stash URL and API key without UI clicks): out of scope. The XML schema isn't documented; UI configure once, persist on tank0 is acceptable.
 - **Declarative Whisparr naming push** (a singleton-PUT helper for `/api/v3/config/naming`): user opted to set manually. If a future host's Whisparr should default to this format too, revisit and add a `theonecfg.services.whisparr.naming` option then.
 - **Auto-trigger Stash scans after Whisparr renames**: nice-to-have; for now, manual via UI is fine. A `path-up` watcher or systemd `Path` unit could fire `stash --task scan` automatically. Not blocking.
+- **Scheduled Stash `Identify`**: Stash's UI has no built-in scheduler; new scenes need a manual Identify run after each scan. Easiest path is a systemd timer on scheelite that POSTs the `metadataIdentify` GraphQL mutation against Stash. Could be added as a `theonecfg.services.stash.scheduledTasks` option later.
+- **Stash Movies → Jellyfin Collections sync**: Stash's "Movies" concept (scene compilations / anthologies) doesn't currently map to Jellyfin Collections via the plugin. A separate sync script (or a feature request upstream against `DirtyRacer1337/Jellyfin.Plugin.Stash`) would give better grouping than the per-studio chip listing alone.
+- **Studio/Genre chip ItemByName creation**: in 10.11.x the plugin populates `Item.AddStudio` / `Item.Genres` strings but Jellyfin only promotes them to ItemByName entities during library scan, not during metadata refresh. Today this is worked around by running a "Scan Media Library" task after each bulk refresh. Long-term fix is upstream plugin parity with the `result.People` mechanism, which auto-creates Person entities.
+- **NFO writer permissions**: Jellyfin's built-in NFO saver (`MediaBrowser.XbmcMetadata.Savers.BaseNfoSaver`) tries to write `.nfo` files into media-folder subdirs that are mode `drwxr-sr-x whisparr:media` (read-only for the `media` group). We chose option 1: disable the NFO saver per library (Adult + TV + movies). Stash / TMDb / TVDB remain the metadata sources of truth, accessed live by Jellyfin's plugins and providers. To switch later to option 2 (NFO on disk), relax Whisparr / Sonarr / Radarr `UMask` to `0007` so studio/series/movie subdirs become group-writable (mode 2770), then re-enable the NFO saver per library.
 - **Plugin auto-update** (newer plugin releases): manually bump the `version` and re-run `fetch-deps` in `package-sets/top-level/jellyfin-plugin-stash/`. Could be a future `update.nix` script, but yagni for now.
-
-## Execution
-
-Plan complete and saved to `docs/plans/active/jellyfin-adult-stash-integration.md`. Two execution options:
-
-**1. Subagent-Driven (recommended)** — fresh subagent per task, review between tasks, fast iteration.
-
-**2. Inline Execution** — execute tasks in this session using `superpowers:executing-plans`, batch execution with checkpoints.
-
-Which approach?
