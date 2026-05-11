@@ -208,6 +208,7 @@ inputs: {
                 apiKeyFile = config.sops.secrets."stashdb/api-key".path;
               }
             ];
+            scheduledMaintenance.enable = true;
           };
           radarr = {
             enable = true;
