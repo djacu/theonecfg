@@ -60,6 +60,11 @@ in
         setXauthrequest = true;
         httpAddress = "127.0.0.1:${toString cfg.listenPort}";
         keyFile = config.sops.templates."oauth2-proxy.env".path;
+        # Only Caddy on loopback connects to oauth2-proxy. Restrict
+        # X-Forwarded-* trust to that — without this, oauth2-proxy accepts
+        # forwarded headers from any source and a direct client could spoof
+        # them.
+        trustedProxyIP = [ "127.0.0.1/32" ];
         extraConfig = {
           skip-provider-button = "true";
           whitelist-domain = cfg.cookieDomain;
@@ -68,10 +73,6 @@ in
           # code to a per-flow code_verifier closes the intercepted-code
           # attack window even though everything is loopback in our setup.
           code-challenge-method = "S256";
-          # Only Caddy on loopback connects to oauth2-proxy. Restrict
-          # X-Forwarded-* trust to that — without this, oauth2-proxy logs
-          # a warning that it accepts forwarded headers from any source.
-          trusted-proxy-ip = "127.0.0.1/32";
         };
       };
 
