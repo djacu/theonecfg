@@ -75,7 +75,7 @@ in
         # Upstream removed the unversioned `pkgs.kanidm` alias; the
         # module now requires an explicit version. The provision feature
         # we use needs the `WithSecretProvisioning` variant.
-        package = pkgs.kanidmWithSecretProvisioning_1_9;
+        package = pkgs.kanidmWithSecretProvisioning_1_10;
         server.enable = true;
         server.settings = {
           domain = cfg.domain;
