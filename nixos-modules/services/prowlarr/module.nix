@@ -260,10 +260,16 @@ in
       };
       users.groups.prowlarr = { };
 
+      # Upstream's ExecStart hardcodes -data=/var/lib/prowlarr; only the
+      # DynamicUser bind-mount chain makes that resolve to cfg.dataDir.
+      # With DynamicUser=false we have to point -data at cfg.dataDir
+      # ourselves and drop StateDirectory so /var/lib/prowlarr isn't created.
       systemd.services.prowlarr.serviceConfig = {
         DynamicUser = lib.mkForce false;
         User = "prowlarr";
         Group = "prowlarr";
+        StateDirectory = lib.mkForce "";
+        ExecStart = lib.mkForce "${lib.getExe config.services.prowlarr.package} -nobrowser -data=${cfg.dataDir}";
       };
 
       services.prowlarr = {
