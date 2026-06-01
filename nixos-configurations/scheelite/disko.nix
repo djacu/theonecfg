@@ -219,12 +219,12 @@
           "safe/home" = {
             type = "zfs_fs";
             mountpoint = "/home";
-            options.mountpoint = "/home";
+            options.mountpoint = "legacy";
           };
           "safe/persist" = {
             type = "zfs_fs";
             mountpoint = "/persist";
-            options.mountpoint = "/persist";
+            options.mountpoint = "legacy";
           };
 
           # Per-instance postgres datasets — see scheelite-homelab-services.md.
@@ -237,14 +237,14 @@
           "safe/persist/postgres" = {
             type = "zfs_fs";
             mountpoint = "/persist/postgres";
-            options.mountpoint = "/persist/postgres";
+            options.mountpoint = "legacy";
             options.canmount = "off";
           };
           "safe/persist/postgres/nextcloud" = {
             type = "zfs_fs";
             mountpoint = "/persist/postgres/nextcloud";
             options = {
-              mountpoint = "/persist/postgres/nextcloud";
+              mountpoint = "legacy";
               recordsize = "16K";
               atime = "off";
             };
@@ -253,7 +253,7 @@
             type = "zfs_fs";
             mountpoint = "/persist/postgres/immich";
             options = {
-              mountpoint = "/persist/postgres/immich";
+              mountpoint = "legacy";
               recordsize = "16K";
               atime = "off";
             };
@@ -262,7 +262,7 @@
             type = "zfs_fs";
             mountpoint = "/persist/postgres/paperless";
             options = {
-              mountpoint = "/persist/postgres/paperless";
+              mountpoint = "legacy";
               recordsize = "16K";
               atime = "off";
             };
@@ -271,7 +271,7 @@
             type = "zfs_fs";
             mountpoint = "/persist/postgres/sonarr";
             options = {
-              mountpoint = "/persist/postgres/sonarr";
+              mountpoint = "legacy";
               recordsize = "16K";
               atime = "off";
             };
@@ -280,7 +280,7 @@
             type = "zfs_fs";
             mountpoint = "/persist/postgres/sonarr-anime";
             options = {
-              mountpoint = "/persist/postgres/sonarr-anime";
+              mountpoint = "legacy";
               recordsize = "16K";
               atime = "off";
             };
@@ -289,7 +289,7 @@
             type = "zfs_fs";
             mountpoint = "/persist/postgres/radarr";
             options = {
-              mountpoint = "/persist/postgres/radarr";
+              mountpoint = "legacy";
               recordsize = "16K";
               atime = "off";
             };
@@ -298,7 +298,7 @@
             type = "zfs_fs";
             mountpoint = "/persist/postgres/whisparr";
             options = {
-              mountpoint = "/persist/postgres/whisparr";
+              mountpoint = "legacy";
               recordsize = "16K";
               atime = "off";
             };
@@ -307,7 +307,7 @@
             type = "zfs_fs";
             mountpoint = "/persist/postgres/prowlarr";
             options = {
-              mountpoint = "/persist/postgres/prowlarr";
+              mountpoint = "legacy";
               recordsize = "16K";
               atime = "off";
             };
@@ -316,7 +316,7 @@
             type = "zfs_fs";
             mountpoint = "/persist/postgres/stasharr";
             options = {
-              mountpoint = "/persist/postgres/stasharr";
+              mountpoint = "legacy";
               recordsize = "16K";
               atime = "off";
             };
@@ -350,7 +350,7 @@
           tank0 = {
             type = "zfs_fs";
             mountpoint = "/tank0";
-            options.mountpoint = "/tank0";
+            options.mountpoint = "legacy";
           };
 
           # Hierarchical media datasets, recordsize=1M for sequential reads
@@ -360,7 +360,7 @@
             type = "zfs_fs";
             mountpoint = "/tank0/media";
             options = {
-              mountpoint = "/tank0/media";
+              mountpoint = "legacy";
               recordsize = "1M";
               compression = "zstd-1";
             };
@@ -368,47 +368,47 @@
           "tank0/media/tv" = {
             type = "zfs_fs";
             mountpoint = "/tank0/media/tv";
-            options.mountpoint = "/tank0/media/tv";
+            options.mountpoint = "legacy";
           };
           "tank0/media/anime" = {
             type = "zfs_fs";
             mountpoint = "/tank0/media/anime";
-            options.mountpoint = "/tank0/media/anime";
+            options.mountpoint = "legacy";
           };
           "tank0/media/movies" = {
             type = "zfs_fs";
             mountpoint = "/tank0/media/movies";
-            options.mountpoint = "/tank0/media/movies";
+            options.mountpoint = "legacy";
           };
           "tank0/media/adult" = {
             type = "zfs_fs";
             mountpoint = "/tank0/media/adult";
-            options.mountpoint = "/tank0/media/adult";
+            options.mountpoint = "legacy";
           };
           "tank0/media/music" = {
             type = "zfs_fs";
             mountpoint = "/tank0/media/music";
-            options.mountpoint = "/tank0/media/music";
+            options.mountpoint = "legacy";
           };
           "tank0/media/audiobooks" = {
             type = "zfs_fs";
             mountpoint = "/tank0/media/audiobooks";
-            options.mountpoint = "/tank0/media/audiobooks";
+            options.mountpoint = "legacy";
           };
           "tank0/media/books" = {
             type = "zfs_fs";
             mountpoint = "/tank0/media/books";
-            options.mountpoint = "/tank0/media/books";
+            options.mountpoint = "legacy";
           };
           "tank0/media/photos" = {
             type = "zfs_fs";
             mountpoint = "/tank0/media/photos";
-            options.mountpoint = "/tank0/media/photos";
+            options.mountpoint = "legacy";
           };
           "tank0/media/youtube" = {
             type = "zfs_fs";
             mountpoint = "/tank0/media/youtube";
-            options.mountpoint = "/tank0/media/youtube";
+            options.mountpoint = "legacy";
           };
 
           # Downloads — recordsize=1M, compression off (torrents are
@@ -417,7 +417,7 @@
             type = "zfs_fs";
             mountpoint = "/tank0/downloads";
             options = {
-              mountpoint = "/tank0/downloads";
+              mountpoint = "legacy";
               recordsize = "1M";
               compression = "off";
             };
@@ -429,35 +429,35 @@
           "tank0/services" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services";
-            options.mountpoint = "/tank0/services";
+            options.mountpoint = "legacy";
           };
           "tank0/services/jellyfin" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/jellyfin";
-            options.mountpoint = "/tank0/services/jellyfin";
+            options.mountpoint = "legacy";
           };
           "tank0/services/jellyfin-cache" = {
             # Separate dataset so a snapshot policy can exclude it (cache is
             # regenerable; no value snapshotting it).
             type = "zfs_fs";
             mountpoint = "/tank0/services/jellyfin-cache";
-            options.mountpoint = "/tank0/services/jellyfin-cache";
+            options.mountpoint = "legacy";
           };
           "tank0/services/sonarr" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/sonarr";
-            options.mountpoint = "/tank0/services/sonarr";
+            options.mountpoint = "legacy";
           };
           "tank0/services/sonarr-anime" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/sonarr-anime";
-            options.mountpoint = "/tank0/services/sonarr-anime";
+            options.mountpoint = "legacy";
           };
           "tank0/services/stash" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/stash";
             options = {
-              mountpoint = "/tank0/services/stash";
+              mountpoint = "legacy";
               recordsize = "16K";
               atime = "off";
             };
@@ -465,52 +465,52 @@
           "tank0/services/radarr" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/radarr";
-            options.mountpoint = "/tank0/services/radarr";
+            options.mountpoint = "legacy";
           };
           "tank0/services/stasharr" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/stasharr";
-            options.mountpoint = "/tank0/services/stasharr";
+            options.mountpoint = "legacy";
           };
           "tank0/services/whisparr" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/whisparr";
-            options.mountpoint = "/tank0/services/whisparr";
+            options.mountpoint = "legacy";
           };
           "tank0/services/prowlarr" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/prowlarr";
-            options.mountpoint = "/tank0/services/prowlarr";
+            options.mountpoint = "legacy";
           };
           "tank0/services/qbittorrent" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/qbittorrent";
-            options.mountpoint = "/tank0/services/qbittorrent";
+            options.mountpoint = "legacy";
           };
           "tank0/services/nextcloud" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/nextcloud";
-            options.mountpoint = "/tank0/services/nextcloud";
+            options.mountpoint = "legacy";
           };
           "tank0/services/paperless" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/paperless";
-            options.mountpoint = "/tank0/services/paperless";
+            options.mountpoint = "legacy";
           };
           "tank0/services/grafana" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/grafana";
-            options.mountpoint = "/tank0/services/grafana";
+            options.mountpoint = "legacy";
           };
           "tank0/services/prometheus" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/prometheus";
-            options.mountpoint = "/tank0/services/prometheus";
+            options.mountpoint = "legacy";
           };
           "tank0/services/loki" = {
             type = "zfs_fs";
             mountpoint = "/tank0/services/loki";
-            options.mountpoint = "/tank0/services/loki";
+            options.mountpoint = "legacy";
           };
         };
       };

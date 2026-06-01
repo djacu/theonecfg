@@ -42,9 +42,9 @@ let
   forwardedHosts = attrNames (filterAttrs (const (getAttr "forwardAgent")) theonecfg.knownHosts);
 
   mkHostMatchBlock = flip genAttrs (host: {
-    hostname = host;
-    forwardAgent = true;
-    remoteForwards = [
+    HostName = host;
+    ForwardAgent = true;
+    RemoteForward = [
       {
         bind.address = config.home.sessionVariables.GPG_AGENT_SOCK;
         host.address = config.home.sessionVariables.GPG_EXTRA_SOCK;
@@ -139,18 +139,18 @@ in
       programs.ssh.enable = true;
       # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.ssh.enableDefaultConfig
       programs.ssh.enableDefaultConfig = false;
-      programs.ssh.matchBlocks = {
+      programs.ssh.settings = {
         "*" = {
-          forwardAgent = false;
-          addKeysToAgent = "no";
-          compression = false;
-          serverAliveInterval = 0;
-          serverAliveCountMax = 3;
-          hashKnownHosts = false;
-          userKnownHostsFile = "~/.ssh/known_hosts";
-          controlMaster = "no";
-          controlPath = "~/.ssh/master-%r@%n:%p";
-          controlPersist = "no";
+          ForwardAgent = false;
+          AddKeysToAgent = "no";
+          Compression = false;
+          ServerAliveInterval = 0;
+          ServerAliveCountMax = 3;
+          HashKnownHosts = false;
+          UserKnownHostsFile = "~/.ssh/known_hosts";
+          ControlMaster = "no";
+          ControlPath = "~/.ssh/master-%r@%n:%p";
+          ControlPersist = "no";
         };
       }
       // (mkHostMatchBlock forwardedHosts);

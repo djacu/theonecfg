@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   theonecfg,
   ...
 }:
@@ -48,6 +49,13 @@ in
     home.homeDirectory = "/home/${config.home.username}";
 
     programs.home-manager.enable = true;
+
+    home.enableNixpkgsReleaseCheck = false;
+    warnings = lib.optional (lib.versionAtLeast pkgs.lib.trivial.release "26.11") ''
+      nixpkgs has caught up to home-manager (now ${pkgs.lib.trivial.release}).
+      Drop `home.enableNixpkgsReleaseCheck = false` from
+      home-modules/users/djacu/module.nix — the workaround is no longer needed.
+    '';
 
   };
 }

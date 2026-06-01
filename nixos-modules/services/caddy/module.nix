@@ -51,7 +51,7 @@ in
       # paste the real hash from the error message.
       package = pkgs.caddy.withPlugins {
         plugins = [ "github.com/caddy-dns/porkbun@v0.3.1" ];
-        hash = "sha256-pt4jyNcfacZKxzRH7zW7l2/+YfmVKWxGD4JTyWpvD1E=";
+        hash = "sha256-BKUsUoBE1IjnD9Xu8kTVkbRqqk2qvNtFDD/pvVkfRmI=";
       };
 
       # `acme_dns` makes Caddy issue every vhost's cert via Porkbun DNS-01
