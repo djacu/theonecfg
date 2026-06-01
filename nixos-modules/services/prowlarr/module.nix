@@ -303,13 +303,14 @@ in
         owner = "prowlarr";
       };
 
-      # prowlarr isn't in NixOS's `ids.nix` (upstream uses DynamicUser),
-      # and we override it to a static user above. Reference the user/group
-      # by name in tmpfiles — systemd-tmpfiles accepts both, and the
-      # users.users.prowlarr declaration above guarantees the user exists.
-      systemd.tmpfiles.rules = [
-        "d ${cfg.dataDir} 0750 prowlarr prowlarr - -"
-      ];
+      # mkForce overrides upstream's root:root 0700 in the same settings
+      # bucket; emitting via systemd.tmpfiles.rules instead would create a
+      # second, conflicting entry in /etc/tmpfiles.d/.
+      systemd.tmpfiles.settings."10-prowlarr".${cfg.dataDir}.d = {
+        user = lib.mkForce "prowlarr";
+        group = lib.mkForce "prowlarr";
+        mode = lib.mkForce "0750";
+      };
 
       systemd.services.prowlarr.unitConfig.RequiresMountsFor = [ cfg.dataDir ];
 
