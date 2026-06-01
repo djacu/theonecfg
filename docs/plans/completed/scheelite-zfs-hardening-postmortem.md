@@ -1,161 +1,216 @@
-# Scheelite ZFS hardening — postmortem (failed migration)
+# scheelite ZFS hardening — postmortem
 
 ## TL;DR
 
-Tried to migrate scheelite's ZFS datasets to `mountpoint=legacy` to
-solve a dual-mount race between `zfs-mount.service` and
-fstab-generated mount units, bundled with flipping
-`boot.zfs.forceImportRoot=false` to follow upstream guidance. The
-migration's next boot failed: disko's `options = ["zfsutil"]` in
-`fileSystems` is incompatible with `mountpoint=legacy` (mount.zfs's
-zfsutil mode refuses legacy datasets), so the stage-1 initrd mount of
-`/sysroot/persist` failed and dropped the host into initrd emergency
-mode. With `forceImportRoot=false`, there was no console recovery
-path on NixOS's editor-disabled systemd-boot, requiring a rescue USB
-to revert the live pool back to path mountpoints.
+scheelite's first boot under nixpkgs 26.05 tripped emergency.target
+because `tank0.mount` and its 27 sibling fstab-generated mount
+units raced against `zfs-mount.service`'s `zfs mount -a` and lost.
+The fix was to set `mountpoint=legacy` on every flippable dataset —
+the standard NixOS+ZFS pattern that makes `zfs-mount.service` skip
+the datasets entirely, leaving fstab units as the sole mounter.
 
-All commits associated with the migration were reverted on 2026-06-01.
-The race remains unfixed; scheelite is back to its prior
-recoverable-via-Ctrl-D state.
+A first attempt at the migration on 2026-05-31 bricked the host
+and required a rescue USB to recover. Initial diagnosis blamed the
+migration approach itself (claimed disko + mountpoint=legacy +
+zfsutil was incompatible); that diagnosis was wrong. The actual
+root cause was a combination of bundling `forceImportRoot=false`
+with the migration (removed the unattended-recovery escape hatch)
+and an activation cascade that left the pool in an unclean state,
+exacerbated by attempts to fall back to older generations that had
+different fstab content from the migrated live pool.
 
-## Context
+A second attempt on 2026-06-01 with the corrected understanding
+and a more careful execution succeeded. Three consecutive clean
+reboots confirmed the race is structurally fixed.
 
-scheelite's first boot under nixpkgs 26.05 (during the input-upgrades
-deploy on 2026-05-31) tripped emergency.target because `tank0.mount`
-(and 27 sibling fstab-generated mount units) raced and lost against
-`zfs-mount.service`'s `zfs mount -a`. The race was masked in earlier
-systemd by an auto-emitted skip-if-already-mounted condition that
-systemd 260.1's fstab-generator no longer produces.
+## Original symptom
 
-The plan was to set `mountpoint=legacy` on every flippable dataset
-across `scheelite-tank0` and `scheelite-root`. That would make
-`zfs-mount.service` skip them (legacy datasets aren't auto-mounted),
-leaving the fstab mount units as the sole mounters. The
-`forceImportRoot` flip to `false` was bundled in to align with
-upstream's new conservative default — separate goal, same deploy.
-
-## The trap
-
-disko's NixOS module generates this for every ZFS filesystem:
-
-```nix
-fileSystems."/path" = {
-  device = "pool/dataset";
-  fsType = "zfs";
-  options = [ "zfsutil" ];
-};
-```
-
-`mount.zfs` in zfsutil mode is mutually exclusive with legacy
-datasets — it refuses them. So setting `mountpoint=legacy` on a
-disko-managed dataset makes its fstab mount unit fail:
+After the 2026-05-31 input-upgrades deploy, scheelite reboots
+landed in emergency mode because `tank0.mount` failed with:
 
 ```
-filesystem 'pool/dataset' cannot be mounted using 'zfs mount'.
-Use 'zfs set mountpoint=/path' or 'mount -t zfs pool/dataset /path'.
+zfs-import-scheelite-tank0.service: Successfully imported scheelite-tank0
+tank0.mount: Directory /tank0 to mount over is not empty, mounting anyway.
+mount[…]: zfs_mount_at() failed: mountpoint or dataset is busy
+Failed to mount /tank0. → emergency.target trips
 ```
 
-For `/persist` (which has `neededForBoot = true`), this failure is
-fatal: stage-1 initrd's `/sysroot/persist` mount can't complete, and
-the host drops into initrd emergency mode with no usable shell (root
-account locked, no shell available). The bundled
-`forceImportRoot=false` change meant we couldn't even add
-`zfs_force=1` at the bootloader, since NixOS disables systemd-boot's
-editor by default (`boot.loader.systemd-boot.editor` defaults to
-`false`).
+The pool imported cleanly; only the systemd-generated mount unit
+failed. The host could be recovered by pressing Ctrl-D out of
+emergency mode, but every boot would trip again.
 
-The only recovery was a NixOS installer USB to reset the live pool
-properties back to their original paths.
+## Root cause of the race
 
-## Sequence of events (2026-05-31 → 2026-06-01)
+systemd-fstab-generator (the systemd unit responsible for
+producing `.mount` units from `/etc/fstab`) used to emit a
+skip-if-already-mounted condition on its generated units —
+historically this happened. systemd 260.1 (shipped with nixpkgs
+26.05) no longer emits any such condition. The journal on this
+host shows the older condition behavior on May 3 and May 6 boots
+(`Condition check resulted in /tank0 being skipped`), then the
+race-and-fail behavior under 26.05.
 
-- Deploy with disko legacy + `forceImportRoot=false` applied to
-  scheelite via `nixos-rebuild switch`. Activated cleanly; host
-  running.
-- Phase 1 live migration executed: stop services, `zfs set
-  mountpoint=legacy` on tank0 + most of root pool. `/persist` and
-  `/home` flipped via `zfs set -u` because impermanence bind-mounts
-  held them busy. Live state checked good.
-- `systemctl reboot`.
-- First boot drops to initrd emergency: `Failed to mount
-  /sysroot/persist`. The error message is opaque from the console.
-- Boot a previous generation (which had `forceImportRoot=true`):
-  same failure. The boot failure is from the on-disk pool state, not
-  from any generation's config.
-- Boot NixOS installer USB. Force-import pool; reproduce the legacy
-  mount failure manually (`mount -t zfs -o zfsutil
-  scheelite-root/safe/persist /mnt/persist` → "filesystem cannot be
-  mounted using 'zfs mount'"). Diagnosis confirmed.
-- Revert live pool: walk every flipped dataset, `zfs set -u
-  mountpoint=<original path>`. Export both pools cleanly; reboot.
-- Host comes back up. `tank0.mount` trips emergency mode as
-  before-the-deploy (the race we set out to fix), recoverable via
-  Ctrl-D.
+The race itself is between:
+- `zfs-mount.service` (After=zfs-import.target, Before=local-fs.target):
+  runs `zfs mount -a` which mounts all non-legacy datasets via
+  `zfs mount`.
+- Each fstab-generated `.mount` unit (e.g. `tank0.mount`): runs
+  `mount -t zfs -o zfsutil <dataset> <path>` via `mount.zfs`.
 
-## Root causes
+`zfs mount` is idempotent on already-mounted targets. `mount.zfs`
+called from systemd is not — it returns `EBUSY`. For tank0,
+where the import service runs in main systemd and both mounters
+become eligible at the same target completion, the race resolves
+unfavorably and the unit fails fatally.
 
-1. **disko + ZFS legacy + zfsutil incompatibility.** disko
-   unconditionally emits `options = ["zfsutil"]` in every NixOS
-   `fileSystems` entry it generates; `mount.zfs`'s zfsutil mode is
-   incompatible with legacy datasets. Setting `mountpoint=legacy` on
-   a disko-managed dataset silently creates a broken boot
-   configuration with no warning at deploy time.
+The root pool's datasets have the same dual-mount setup but
+their import happens in stage-1 initrd, so by the time
+zfs-mount.service runs in stage 2, the fstab units have had
+plenty of head-start. The race resolves favorably for root-pool
+mounts in practice.
 
-2. **Bundled flag flip removed the recovery escape.** Pinning
-   `forceImportRoot=false` simultaneously with the (untested)
-   migration meant the failed boot couldn't be force-imported past
-   at the bootloader. Even if NixOS's systemd-boot editor were
-   enabled, `zfs_force=1` wouldn't have fixed the actual problem
-   (legacy vs zfsutil), but the bundled flip removed even the
-   illusion of escape and made every generation's boot equally
-   broken.
+## The fix: `mountpoint=legacy`
 
-3. **No pre-deploy validation of the next-boot path.** The migration
-   was verified to work on the running system (filesystems
-   remounted, services restarted), but the *next boot* path through
-   stage-1 initrd was never exercised before deploying to production.
+Setting `mountpoint=legacy` on a dataset:
+- Tells `zfs mount -a` to skip it (legacy = user-managed).
+- Tells disko to omit `zfsutil` from the corresponding
+  `fileSystems.<path>.options` (verified at
+  `disko/lib/types/zfs_fs.nix:177`).
+- Lets `mount.zfs` in plain mode (no zfsutil) mount the dataset
+  via fstab.
 
-## What we should have done
+End result: only one mounter, no race.
 
-- Tested the disko legacy migration in `nixos-rebuild build-vm`
-  with a matching simulated pool state, before live-deploying to
-  scheelite. A test that exercises a full cold boot would have
-  surfaced the zfsutil/legacy incompatibility immediately.
-- Kept `forceImportRoot=true` until the migration was verified
-  successful on at least one cold-boot. The flag flip is a
-  separate goal with its own threat model — bundling them removed
-  the only mechanism that lets a sloppy migration recover
-  unattended.
-- Searched upstream (disko issues, nixpkgs PRs) for any prior art
-  on ZFS legacy mountpoint migrations under disko before assuming
-  it was a simple property flip.
+## What went wrong on 2026-05-31
 
-## What's deferred
+The first attempt was technically correct in approach but bundled
+several risk-amplifying changes in one deploy:
 
-- The original dual-mount race is unfixed. scheelite still boots
-  into emergency mode occasionally and requires Ctrl-D to continue.
-  A proper fix needs to either (a) override disko's zfsutil
-  emission to allow a clean legacy migration, or (b) find some
-  other way to make `zfs-mount.service` skip the conflicting
-  datasets — possibly a unit-level override that adds
-  `ConditionPathIsMountPoint=!<path>` back to the fstab-generated
-  units, replicating the old systemd-fstab-generator behavior.
-- `forceImportRoot=false` (upstream's recommended default) is still
-  unfollowed. Revisit only *after* the boot reliability issue is
-  resolved, and deploy as its own change with a clean
-  unattended-recovery story.
+1. **Migration was bundled with `forceImportRoot=false`.** The
+   stated goal was to align with upstream's new conservative
+   default. The actual effect was to remove the
+   force-import-past-an-unclean-pool recovery path.
 
-## Reverts (2026-06-01)
+2. **The activation cascade during `nixos-rebuild switch` itself
+   tripped emergency mode** before the live property migration ran.
+   The race was active during the unit-reload cascade. The host had
+   to be recovered via Ctrl-D, then live migration completed in a
+   limp-along state, then the reboot was attempted from an unclean
+   pool.
 
-| Commit | Subject |
-|--------|---------|
-| `<this set>` | `nixosConfigurations.scheelite: revert ZFS mountpoints from legacy back to paths` |
-| `<this set>` | `nixosConfigurations.argentite: revert boot.zfs.forceImportRoot back to true` |
-| `<this set>` | `nixosConfigurations.cassiterite: revert boot.zfs.forceImportRoot back to true` |
-| `<this set>` | `nixosConfigurations.malachite: revert boot.zfs.forceImportRoot back to true` |
-| `<this set>` | `nixosConfigurations.scheelite: revert boot.zfs.forceImportRoot back to true` |
-| `<this set>` | `docs/plans: move scheelite-zfs-hardening to completed as postmortem` |
+3. **The unclean pool state, combined with `forceImportRoot=false`,
+   prevented the new generation from importing.** The error
+   manifested as "Failed to mount /sysroot" but the underlying
+   issue was the pool refusing to import without `-f`.
 
-Live pool was reverted via rescue USB on the night of 2026-05-31; the
-config reverts above bring the disko / per-host config back in sync
-with that live state.
+4. **The operator fell back to a previous generation** whose disko
+   config still had path mountpoints. That generation's fstab had
+   `zfsutil` for every dataset. Live pool had been flipped to
+   legacy. mount.zfs zfsutil-mode + legacy = mount refused. The
+   `Failed to mount /sysroot/persist` error in this case really was
+   the zfsutil/legacy incompatibility — but only because the
+   operator was running an *older* config than the live pool state.
+
+5. **Rescue USB rollback** worked: reverted the live pool back to
+   path mountpoints, brought the host back up.
+
+The initial postmortem misread step 4's manual reproduction
+(`mount -t zfs -o zfsutil ... legacy` failing) as a general
+incompatibility. It's actually only a problem when the fstab in
+question was generated *before* the live pool was flipped to
+legacy. In the proper end-state (disko + live pool both legacy),
+disko correctly omits zfsutil and the migration works.
+
+## The retry: 2026-06-01
+
+The retry plan (`docs/plans/completed/scheelite-zfs-legacy-retry.md`)
+addressed every finding from an adversarial review:
+
+- Pre-deploy `nix eval` gate on `fileSystems.<path>.options`
+  confirmed disko was producing the expected output (no zfsutil
+  on flipped datasets, zfsutil retained on `/` and `/nix`).
+- Excluded `/` and `/nix` from the flip — they can't be
+  unmounted from a running system, and the resulting
+  partial-migration state would have created the same fstab/live
+  mismatch that broke yesterday's previous-generation boot.
+- Used `nixos-rebuild boot` instead of `switch`, deferring
+  activation to the next reboot. This avoided the activation
+  cascade that tripped emergency mode last time.
+- Kept `forceImportRoot=true` throughout, preserving the
+  recovery escape hatch.
+- Accepted `zfs set -u` (set-without-unmount) for `/persist` and
+  `/home` as the correct tool — not a band-aid — for paths that
+  can't be live-unmounted (impermanence bind-mounts hold
+  `/var/log`, `/etc/machine-id`, etc.).
+- Pruned older generations via `nix-collect-garbage` to reduce
+  the surface area of "wrong generation to boot if migration
+  fails."
+- Documented the rescue-USB rollback procedure inline so a
+  stressed operator wouldn't have to piece it together.
+
+Outcome: deploy succeeded, live migration completed without
+incident, three consecutive reboots came up clean.
+
+## What stays deferred
+
+- **`local/root` (`/`) and `local/nix` (`/nix`)** still have path
+  mountpoints. Their race is theoretical (resolves favorably in
+  practice due to stage-1 initrd timing), but they should be
+  migrated to legacy via a rescue-USB maintenance event for
+  consistency.
+- **`boot.zfs.forceImportRoot = false`** (upstream's
+  conservative default) is still unfollowed. Worth revisiting,
+  but only as its own change after the migration has had time to
+  bake.
+- **The "directory not empty" warning** still appears in
+  `tank0.mount`'s journal:
+  `tank0.mount: Directory /tank0 to mount over is not empty,
+  mounting anyway.`
+  The mount succeeds. The cause is that child mountpoint
+  directories get created (probably by tmpfiles or by the act of
+  generating the .mount units' directories) before `tank0.mount`
+  fires. Cosmetic only; doesn't cause failure.
+
+## Lessons
+
+1. **Don't bundle ZFS pool property changes with
+   forceImport flag changes.** A failed migration with
+   `forceImportRoot=false` and no editor-enabled bootloader is
+   genuinely unrecoverable without external media.
+2. **Don't fall back to older generations after a live pool
+   property migration.** Older generations have a different
+   fstab and will fail the boot with a misleading-looking error.
+3. **Verify rendered config before deploying.** `nix eval` on
+   `fileSystems.<path>.options` is cheap, easy, and would have
+   surfaced any disko-behavior surprises before they could brick
+   the host.
+4. **`nixos-rebuild boot` is safer than `switch` when the deploy
+   involves live state changes** that need to happen between
+   config and activation. Defer activation to the next boot;
+   give yourself time to put the live state right first.
+5. **`zfs set -u` is a first-class tool for paths that can't be
+   unmounted live**, not a workaround. Use it when impermanence
+   bind-mounts or active sessions hold paths open.
+6. **An adversarial review of a "retry" plan saves real
+   downtime.** The first draft of the retry plan inherited
+   several quiet assumptions from the original failed attempt
+   (band-aids unnecessary, /and /nix could be flipped, etc.) —
+   external review caught all of them.
+
+## Reference timeline
+
+- 2026-05-31 evening: First migration attempt. Activation
+  cascade trips emergency mode. Live migration completed in
+  limp-along state. Reboot fails because of
+  forceImportRoot=false + unclean pool. Rescue USB to revert
+  live pool. Host back up but on a pre-migration generation, in
+  the original racey state.
+- 2026-06-01 morning: Reverted the broken commits. Initial
+  postmortem published (this file's prior contents)
+  misdiagnosing the failure.
+- 2026-06-01 afternoon: User pushed back on the misdiagnosis.
+  Investigation revealed disko correctly handles legacy
+  mountpoints. Adversarial review of a retry plan caught
+  several inherited bad assumptions. Retry plan rewritten.
+- 2026-06-01 late afternoon: Retry executed. Clean migration,
+  3 clean reboots, race structurally fixed.
