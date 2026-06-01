@@ -53,7 +53,7 @@ inputs: {
         boot.kernelPackages = pkgs.linuxPackages_6_18;
         boot.supportedFilesystems = [ "zfs" ];
         boot.zfs.devNodes = "/dev/disk/by-id";
-        boot.zfs.forceImportRoot = false;
+        boot.zfs.forceImportRoot = true;
         boot.zfs.extraPools = [ "scheelite-tank0" ];
         services.zfs.autoScrub.enable = true;
         boot.initrd.systemd.services.rollback-root = {
