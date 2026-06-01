@@ -29,7 +29,7 @@ inputs: {
         boot.loader.efi.efiSysMountPoint = "/boot";
         boot.supportedFilesystems = [ "zfs" ];
         boot.zfs.devNodes = "/dev/disk/by-id";
-        boot.zfs.forceImportRoot = false;
+        boot.zfs.forceImportRoot = true;
 
         boot.initrd.systemd.services.rollback-root = {
           description = "Rollback ZFS root to empty snapshot";
