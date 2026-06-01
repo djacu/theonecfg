@@ -30,7 +30,7 @@ in
       pkgs.fluffychat
       pkgs.signal-desktop
       pkgs.slack
-      pkgs.wasistlos
+      pkgs.karere
 
     ];
 
