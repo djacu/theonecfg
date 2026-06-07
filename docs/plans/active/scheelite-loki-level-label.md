@@ -26,14 +26,14 @@ Two deviations from the original plan, both explained inline below:
 
 Commits, in order:
 
-| Phase | Commit | Description |
-|---|---|---|
-| (plan) | `3653857` | docs/plans/active: add scheelite-loki-level-label plan |
-| 1 | `097a4fa` | nixos-modules/services/monitoring/loki: set log_level=warn |
-| 2 | `57d5881` | nixos-modules/services/monitoring/alloy: extract level label from journal lines |
-| 3 | `83ad2a8` | docs/reference/grafana-dashboards/homelab-logs: filter by level label |
-| 5 | `c7ff1be` | nixos-modules/services/monitoring/alloy: drop loki self-noise at ingestion |
-| 5 | `4f34c7e` | nixos-modules/services/monitoring/loki: restore default log_level |
+| Phase  | Commit    | Description                                                                     |
+| ------ | --------- | ------------------------------------------------------------------------------- |
+| (plan) | `3653857` | docs/plans/active: add scheelite-loki-level-label plan                          |
+| 1      | `097a4fa` | nixos-modules/services/monitoring/loki: set log_level=warn                      |
+| 2      | `57d5881` | nixos-modules/services/monitoring/alloy: extract level label from journal lines |
+| 3      | `83ad2a8` | docs/reference/grafana-dashboards/homelab-logs: filter by level label           |
+| 5      | `c7ff1be` | nixos-modules/services/monitoring/alloy: drop loki self-noise at ingestion      |
+| 5      | `4f34c7e` | nixos-modules/services/monitoring/loki: restore default log_level               |
 
 ## Goal
 
@@ -52,11 +52,11 @@ the dashboard's own `(?i)error|warn` filter, creating a self-feeding loop.
 
 Empirical measurement (1-hour window on scheelite, 2026-05-08):
 
-| Service | Journal lines |
-|---|---|
-| loki.service | 14,183 |
-| oauth2-proxy.service | 3,383 |
-| grafana.service | 1,017 |
+| Service              | Journal lines |
+| -------------------- | ------------- |
+| loki.service         | 14,183        |
+| oauth2-proxy.service | 3,383         |
+| grafana.service      | 1,017         |
 
 The fix has two parts:
 
@@ -84,11 +84,11 @@ These were resolved with the user before drafting:
 
 Sampled on scheelite 2026-05-08 across enabled services. Three families:
 
-| Family | Format | Services in this stack |
-|---|---|---|
-| A | `level=<word>` (Go logfmt) | alloy, grafana, loki, prometheus, scrutiny |
-| B | `[<word>]` (Serilog/AdGuard/celery) | adguardhome, jellyfin, paperless-celery, prowlarr, radarr, sonarr, sonarr-anime, whisparr, seerr |
-| C | none / unique | oauth2-proxy (HTTP access logs), redis-paperless, qbittorrent, recyclarr, kanidm |
+| Family | Format                              | Services in this stack                                                                           |
+| ------ | ----------------------------------- | ------------------------------------------------------------------------------------------------ |
+| A      | `level=<word>` (Go logfmt)          | alloy, grafana, loki, prometheus, scrutiny                                                       |
+| B      | `[<word>]` (Serilog/AdGuard/celery) | adguardhome, jellyfin, paperless-celery, prowlarr, radarr, sonarr, sonarr-anime, whisparr, seerr |
+| C      | none / unique                       | oauth2-proxy (HTTP access logs), redis-paperless, qbittorrent, recyclarr, kanidm                 |
 
 A single regex covers families A and B (~70% of journal volume by line count).
 Family C either has no level concept or uses unique formats; those entries

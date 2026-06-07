@@ -184,12 +184,12 @@ The following community sources all use the same pattern (`wantedBy = initrd.tar
 
 Three other machines in this repository also use ZFS with impermanence but do **not** currently define a rollback initrd service:
 
-| Machine | Pool name | Snapshot | Has rollback service? |
-|---|---|---|---|
-| scheelite | `scheelite-root` | `scheelite-root/local/root@empty` | Yes (fixed in this session) |
-| malachite | `zroot` | `zroot/local/root@empty` | No |
-| argentite | `zroot` | `zroot/local/root@empty` | No |
-| cassiterite | `zroot` | `zroot/local/root@empty` | No |
+| Machine     | Pool name        | Snapshot                          | Has rollback service?       |
+| ----------- | ---------------- | --------------------------------- | --------------------------- |
+| scheelite   | `scheelite-root` | `scheelite-root/local/root@empty` | Yes (fixed in this session) |
+| malachite   | `zroot`          | `zroot/local/root@empty`          | No                          |
+| argentite   | `zroot`          | `zroot/local/root@empty`          | No                          |
+| cassiterite | `zroot`          | `zroot/local/root@empty`          | No                          |
 
 Evidence that these machines expect rollback:
 

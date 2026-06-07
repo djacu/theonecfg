@@ -42,23 +42,23 @@ Keep the existing options + `context` block. Inside the existing `mkIf cfg.enabl
 
 1. **`programs.claude-code.lspServers`** — fifteen entries, all using absolute store paths:
 
-   | Key | Command | Args | extensionToLanguage |
-   | -------------- | ---------------------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------- |
-   | `nix` | `${pkgs.nixd}/bin/nixd` | (none) | `.nix` → `nix` |
-   | `rust` | `${pkgs.rust-analyzer}/bin/rust-analyzer` | (none) | `.rs` → `rust` |
-   | `cpp` | `${pkgs.clang-tools}/bin/clangd` | (none) | `.c`/`.h` → `c`; `.cc`/`.cpp`/`.cxx`/`.hh`/`.hpp` → `cpp` |
-   | `go` | `${pkgs.gopls}/bin/gopls` | `[ "serve" ]` | `.go` → `go` |
-   | `typescript` | `${pkgs.vtsls}/bin/vtsls` | `[ "--stdio" ]` | `.ts`/`.tsx`/`.js`/`.jsx` → `typescript`/`typescriptreact`/`javascript`/`javascriptreact` |
-   | `tailwind` | `${pkgs.tailwindcss-language-server}/bin/tailwindcss-language-server` | `[ "--stdio" ]` | `.html`/`.tsx`/`.jsx` → `html`/`typescriptreact`/`javascriptreact` (Tailwind treats class attrs context-sensitively) |
-   | `python` | `${pkgs.basedpyright}/bin/basedpyright-langserver` | `[ "--stdio" ]` | `.py`/`.pyi` → `python` |
-   | `java` | `${pkgs.jdt-language-server}/bin/jdtls` | (none) | `.java` → `java` |
-   | `bash` | `${pkgs.bash-language-server}/bin/bash-language-server` | `[ "start" ]` | `.sh`/`.bash` → `shellscript` |
-   | `yaml` | `${pkgs.yaml-language-server}/bin/yaml-language-server` | `[ "--stdio" ]` | `.yml`/`.yaml` → `yaml` |
-   | `html` | `${pkgs.vscode-langservers-extracted}/bin/vscode-html-language-server` | `[ "--stdio" ]` | `.html`/`.htm` → `html` |
-   | `css` | `${pkgs.vscode-langservers-extracted}/bin/vscode-css-language-server` | `[ "--stdio" ]` | `.css`/`.scss`/`.less` → `css`/`scss`/`less` |
-   | `json` | `${pkgs.vscode-langservers-extracted}/bin/vscode-json-language-server` | `[ "--stdio" ]` | `.json`/`.jsonc` → `json`/`jsonc` |
-   | `toml` | `${pkgs.taplo}/bin/taplo` | `[ "lsp" "stdio" ]`| `.toml` → `toml` |
-   | `markdown` | `${pkgs.marksman}/bin/marksman` | `[ "server" ]` | `.md`/`.markdown` → `markdown` |
+   | Key          | Command                                                                | Args                | extensionToLanguage                                                                                                  |
+   | ------------ | ---------------------------------------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------- |
+   | `nix`        | `${pkgs.nixd}/bin/nixd`                                                | (none)              | `.nix` → `nix`                                                                                                       |
+   | `rust`       | `${pkgs.rust-analyzer}/bin/rust-analyzer`                              | (none)              | `.rs` → `rust`                                                                                                       |
+   | `cpp`        | `${pkgs.clang-tools}/bin/clangd`                                       | (none)              | `.c`/`.h` → `c`; `.cc`/`.cpp`/`.cxx`/`.hh`/`.hpp` → `cpp`                                                            |
+   | `go`         | `${pkgs.gopls}/bin/gopls`                                              | `[ "serve" ]`       | `.go` → `go`                                                                                                         |
+   | `typescript` | `${pkgs.vtsls}/bin/vtsls`                                              | `[ "--stdio" ]`     | `.ts`/`.tsx`/`.js`/`.jsx` → `typescript`/`typescriptreact`/`javascript`/`javascriptreact`                            |
+   | `tailwind`   | `${pkgs.tailwindcss-language-server}/bin/tailwindcss-language-server`  | `[ "--stdio" ]`     | `.html`/`.tsx`/`.jsx` → `html`/`typescriptreact`/`javascriptreact` (Tailwind treats class attrs context-sensitively) |
+   | `python`     | `${pkgs.basedpyright}/bin/basedpyright-langserver`                     | `[ "--stdio" ]`     | `.py`/`.pyi` → `python`                                                                                              |
+   | `java`       | `${pkgs.jdt-language-server}/bin/jdtls`                                | (none)              | `.java` → `java`                                                                                                     |
+   | `bash`       | `${pkgs.bash-language-server}/bin/bash-language-server`                | `[ "start" ]`       | `.sh`/`.bash` → `shellscript`                                                                                        |
+   | `yaml`       | `${pkgs.yaml-language-server}/bin/yaml-language-server`                | `[ "--stdio" ]`     | `.yml`/`.yaml` → `yaml`                                                                                              |
+   | `html`       | `${pkgs.vscode-langservers-extracted}/bin/vscode-html-language-server` | `[ "--stdio" ]`     | `.html`/`.htm` → `html`                                                                                              |
+   | `css`        | `${pkgs.vscode-langservers-extracted}/bin/vscode-css-language-server`  | `[ "--stdio" ]`     | `.css`/`.scss`/`.less` → `css`/`scss`/`less`                                                                         |
+   | `json`       | `${pkgs.vscode-langservers-extracted}/bin/vscode-json-language-server` | `[ "--stdio" ]`     | `.json`/`.jsonc` → `json`/`jsonc`                                                                                    |
+   | `toml`       | `${pkgs.taplo}/bin/taplo`                                              | `[ "lsp" "stdio" ]` | `.toml` → `toml`                                                                                                     |
+   | `markdown`   | `${pkgs.marksman}/bin/marksman`                                        | `[ "server" ]`      | `.md`/`.markdown` → `markdown`                                                                                       |
 
    (15 entries — `vscode-langservers-extracted` surfaces three LSPs from one package. `tailwind` and `html` overlap on `.html`; that's fine — Claude Code can run multiple LSPs against the same file.)
 

@@ -89,15 +89,15 @@ isolated credential directory at startup.
 Helper library at `library/declarative-arr.nix` exposes the building blocks
 (re-exported via `theonecfg.library.declarative pkgs` in service modules):
 
-| Helper | Purpose |
-|---|---|
-| `mkSecureCurl` | Wraps `curl` with `X-Api-Key` from a sops file. Returns a derivation; binary at `$out/bin/curl-<name>`. |
-| `waitForApiScript` | Bash snippet — wait for `GET <url>` to respond 200, with timeout. Used in systemd `script` and `preStart`. |
-| `mkArrApiPushService` | Generic \*arr endpoint reconciler. Args: `{ name, after, baseUrl, apiKeyFile, endpoint, items, comparator, finalize }`. Emits a systemd one-shot that GETs current state, diffs against `items` (Nix-declared), POST/PUT/DELETEs to reconcile. |
-| `mkJellyfinBootstrap` | Runs the `/Startup/{Configuration,User,RemoteAccess,Complete}` sequence. Idempotent — checks if `/Startup/Configuration` returns 401 (= wizard already done). |
-| `mkJellyfinLibrarySync` | POST/DELETE on `/Library/VirtualFolders` to reconcile libraries. Authenticates as admin via `/Users/AuthenticateByName`. |
-| `mkQbtPushService` | Cookie-auth (or localhost bypass) + `/api/v2/app/setPreferences` + categories. |
-| `qbtPasswordHashScript` | Bash one-shot that computes PBKDF2-SHA512-100k of a sops plaintext and sed-injects into `qBittorrent.conf`. Used as an extra `ExecStartPre` after upstream's config install. |
+| Helper                  | Purpose                                                                                                                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mkSecureCurl`          | Wraps `curl` with `X-Api-Key` from a sops file. Returns a derivation; binary at `$out/bin/curl-<name>`.                                                                                                                                        |
+| `waitForApiScript`      | Bash snippet — wait for `GET <url>` to respond 200, with timeout. Used in systemd `script` and `preStart`.                                                                                                                                     |
+| `mkArrApiPushService`   | Generic \*arr endpoint reconciler. Args: `{ name, after, baseUrl, apiKeyFile, endpoint, items, comparator, finalize }`. Emits a systemd one-shot that GETs current state, diffs against `items` (Nix-declared), POST/PUT/DELETEs to reconcile. |
+| `mkJellyfinBootstrap`   | Runs the `/Startup/{Configuration,User,RemoteAccess,Complete}` sequence. Idempotent — checks if `/Startup/Configuration` returns 401 (= wizard already done).                                                                                  |
+| `mkJellyfinLibrarySync` | POST/DELETE on `/Library/VirtualFolders` to reconcile libraries. Authenticates as admin via `/Users/AuthenticateByName`.                                                                                                                       |
+| `mkQbtPushService`      | Cookie-auth (or localhost bypass) + `/api/v2/app/setPreferences` + categories.                                                                                                                                                                 |
+| `qbtPasswordHashScript` | Bash one-shot that computes PBKDF2-SHA512-100k of a sops plaintext and sed-injects into `qBittorrent.conf`. Used as an extra `ExecStartPre` after upstream's config install.                                                                   |
 
 Shared option types in `library/arr-types.nix` (re-exported as
 `theonecfg.library.arrTypes`):
@@ -110,17 +110,17 @@ Shared option types in `library/arr-types.nix` (re-exported as
 
 ## Per-service mapping
 
-| Service | Layer 2 (env vars) | Layer 3 (Recyclarr) | Layer 4 (one-shots) |
-|---|---|---|---|
-| sonarr | `SONARR__AUTH__APIKEY`, `SONARR__POSTGRES__*` | `web-2160p-v4` | `sonarr-{rootfolders,downloadclients,delayprofiles}` |
-| sonarr-anime | same prefix `SONARR__`; separate env file | `anime-sonarr-v4` | `sonarr-anime-{rootfolders,downloadclients}` |
-| radarr | `RADARR__*` | `sqp/sqp-1-web-2160p` | `radarr-{rootfolders,downloadclients}` |
-| whisparr | `WHISPARR__*` | (Recyclarr unsupported) | `whisparr-{rootfolders,downloadclients}` |
-| prowlarr | `PROWLARR__*` | n/a | `prowlarr-{indexers,downloadclients,indexerproxies,applications}`. The applications one-shot auto-derives from enabled \*arr modules and injects each *arr's API key from sops at runtime. |
-| jellyfin | minimal (no early API surface) | n/a | `jellyfin-bootstrap` (run-once via /Startup/*), `jellyfin-libraries` (auto-derived from enabled \*arr/pinchflat) |
-| qbittorrent | `qBittorrent.conf` via `serverConfig`; PBKDF2 password via preStart | n/a | `qbittorrent-config` (preferences + categories per \*arr) |
-| pinchflat | minimal | n/a | n/a — small enough to live entirely in NixOS module options |
-| jellyseerr (services.seerr) | TBD — see deferred section | n/a | TBD — bootstrap deferred (see below) |
+| Service                     | Layer 2 (env vars)                                                  | Layer 3 (Recyclarr)     | Layer 4 (one-shots)                                                                                                                                                                         |
+| --------------------------- | ------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| sonarr                      | `SONARR__AUTH__APIKEY`, `SONARR__POSTGRES__*`                       | `web-2160p-v4`          | `sonarr-{rootfolders,downloadclients,delayprofiles}`                                                                                                                                        |
+| sonarr-anime                | same prefix `SONARR__`; separate env file                           | `anime-sonarr-v4`       | `sonarr-anime-{rootfolders,downloadclients}`                                                                                                                                                |
+| radarr                      | `RADARR__*`                                                         | `sqp/sqp-1-web-2160p`   | `radarr-{rootfolders,downloadclients}`                                                                                                                                                      |
+| whisparr                    | `WHISPARR__*`                                                       | (Recyclarr unsupported) | `whisparr-{rootfolders,downloadclients}`                                                                                                                                                    |
+| prowlarr                    | `PROWLARR__*`                                                       | n/a                     | `prowlarr-{indexers,downloadclients,indexerproxies,applications}`. The applications one-shot auto-derives from enabled \*arr modules and injects each \*arr's API key from sops at runtime. |
+| jellyfin                    | minimal (no early API surface)                                      | n/a                     | `jellyfin-bootstrap` (run-once via /Startup/\*), `jellyfin-libraries` (auto-derived from enabled \*arr/pinchflat)                                                                           |
+| qbittorrent                 | `qBittorrent.conf` via `serverConfig`; PBKDF2 password via preStart | n/a                     | `qbittorrent-config` (preferences + categories per \*arr)                                                                                                                                   |
+| pinchflat                   | minimal                                                             | n/a                     | n/a — small enough to live entirely in NixOS module options                                                                                                                                 |
+| jellyseerr (services.seerr) | TBD — see deferred section                                          | n/a                     | TBD — bootstrap deferred (see below)                                                                                                                                                        |
 
 ## Auto-derivation between modules
 

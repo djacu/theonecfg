@@ -33,14 +33,14 @@ Keep `local_certs`. Extract Caddy's local-CA root cert from
 `/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt`,
 commit it to the repo, install on each device.
 
-| Device | Trust install | Reality |
-|---|---|---|
-| argentite (NixOS) | `security.pki.certificateFiles = [ ./root.pem ];` | Trivial. Firefox needs `policies.ImportEnterpriseRoots = true` to see system trust. |
-| Other NixOS hosts | Same as argentite | Trivial. |
-| Android phone | Settings → Security → Encryption & credentials → Install from storage | Manual, persistent "your network may be monitored" warning, many apps with cert-pinning ignore user-added CAs. |
-| iOS phone | AirDrop the .crt → Install Profile → Settings → General → About → Certificate Trust Settings → enable | Two-step manual install per phone. |
-| Smart TVs | Usually no system UI for custom CAs | Often impossible; some Android TV yes, most no. |
-| Guests | Install your CA on their device | Bad UX *and* a security ask — guest is now blindly trusting you to MITM their traffic until they remove it. |
+| Device            | Trust install                                                                                         | Reality                                                                                                        |
+| ----------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| argentite (NixOS) | `security.pki.certificateFiles = [ ./root.pem ];`                                                     | Trivial. Firefox needs `policies.ImportEnterpriseRoots = true` to see system trust.                            |
+| Other NixOS hosts | Same as argentite                                                                                     | Trivial.                                                                                                       |
+| Android phone     | Settings → Security → Encryption & credentials → Install from storage                                 | Manual, persistent "your network may be monitored" warning, many apps with cert-pinning ignore user-added CAs. |
+| iOS phone         | AirDrop the .crt → Install Profile → Settings → General → About → Certificate Trust Settings → enable | Two-step manual install per phone.                                                                             |
+| Smart TVs         | Usually no system UI for custom CAs                                                                   | Often impossible; some Android TV yes, most no.                                                                |
+| Guests            | Install your CA on their device                                                                       | Bad UX *and* a security ask — guest is now blindly trusting you to MITM their traffic until they remove it.    |
 
 **Cost:** $0. **Privacy:** fully private (no public DNS, no public certs).
 **Caveat:** if Caddy regenerates its CA (e.g., wiping `/var/lib/caddy`),
@@ -195,15 +195,15 @@ work on these TLDs without bypass flags.
 The user has Porkbun as registrar (and existing Squarespace domains
 they could transfer to Porkbun). Candidates discussed:
 
-| Candidate | TLD | Cost | WHOIS privacy | Notes |
-|---|---|---|---|---|
-| `fiscontinuo.us` (transfer from Squarespace) | `.us` | ~free (transfer extends a year) | No (`.us` policy) | Existing domain. Distinctive name (Italian musical term — basso continuo). 5-7 day transfer window. WHOIS already public via Squarespace. |
-| `scheelite.us` | `.us` | ~$5–15/yr | No (`.us` policy) | Cohesive with host name. Available immediately. |
-| `scheelite.xyz` | `.xyz` | ~$1 first year / ~$12/yr renewal | Yes | Cheapest first year. `.xyz` has a mild email-deliverability stigma (some spam filters score `.xyz` senders higher) — irrelevant unless we add SMTP relay later. |
-| `wolframite.{com,net,org}` | gTLD | ~$10–12/yr | Yes | Tungsten ore, fits theme; future hosts could be other tungsten ores (`huebnerite`, `ferberite`). |
-| `pegmatite.{com,net,org}` | gTLD | ~$10–12/yr | Yes | Coarse-grained crystal-bearing rock; less specific to tungsten. |
-| `feldspar.{com,net,org}` | gTLD | ~$10–12/yr | Yes | Common rock-forming mineral. |
-| `schist.{com,net,org}` | gTLD | ~$10–12/yr | Yes | 6-letter metamorphic rock; mild homophone-humor. |
+| Candidate                                    | TLD    | Cost                             | WHOIS privacy     | Notes                                                                                                                                                           |
+| -------------------------------------------- | ------ | -------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fiscontinuo.us` (transfer from Squarespace) | `.us`  | ~free (transfer extends a year)  | No (`.us` policy) | Existing domain. Distinctive name (Italian musical term — basso continuo). 5-7 day transfer window. WHOIS already public via Squarespace.                       |
+| `scheelite.us`                               | `.us`  | ~$5–15/yr                        | No (`.us` policy) | Cohesive with host name. Available immediately.                                                                                                                 |
+| `scheelite.xyz`                              | `.xyz` | ~$1 first year / ~$12/yr renewal | Yes               | Cheapest first year. `.xyz` has a mild email-deliverability stigma (some spam filters score `.xyz` senders higher) — irrelevant unless we add SMTP relay later. |
+| `wolframite.{com,net,org}`                   | gTLD   | ~$10–12/yr                       | Yes               | Tungsten ore, fits theme; future hosts could be other tungsten ores (`huebnerite`, `ferberite`).                                                                |
+| `pegmatite.{com,net,org}`                    | gTLD   | ~$10–12/yr                       | Yes               | Coarse-grained crystal-bearing rock; less specific to tungsten.                                                                                                 |
+| `feldspar.{com,net,org}`                     | gTLD   | ~$10–12/yr                       | Yes               | Common rock-forming mineral.                                                                                                                                    |
+| `schist.{com,net,org}`                       | gTLD   | ~$10–12/yr                       | Yes               | 6-letter metamorphic rock; mild homophone-humor.                                                                                                                |
 
 `scheelite.{com,net,org}` are all unavailable; thus the mineral-themed
 alternates above.

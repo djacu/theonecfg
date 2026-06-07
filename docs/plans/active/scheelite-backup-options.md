@@ -248,13 +248,13 @@ add a `pg_dump` pre-hook on its restic job at that time.
 
 ## Comparison summary
 
-| | Tool(s) | Off-site | Cost / month | Restore speed (local) | Restore speed (off-site) | Setup |
-|---|---|---|---|---|---|---|
-| **None** | n/a | no | $0 | n/a | n/a | n/a |
-| **Tier 1 only — sanoid** | sanoid | no | $0 | seconds | n/a | minimal |
-| **Tier 2 only — restic+B2** | restic | yes | ~$6/TB | n/a (restic restore) | hours | medium |
-| **syncoid to remote ZFS** | sanoid+syncoid | yes (if remote is off-site) | depends on remote | seconds | minutes-hours | medium-high (need remote ZFS host) |
-| **Hybrid — sanoid + restic+B2** | sanoid+restic | yes | ~$6/TB | seconds | hours | medium |
+|                                 | Tool(s)        | Off-site                    | Cost / month      | Restore speed (local) | Restore speed (off-site) | Setup                              |
+| ------------------------------- | -------------- | --------------------------- | ----------------- | --------------------- | ------------------------ | ---------------------------------- |
+| **None**                        | n/a            | no                          | $0                | n/a                   | n/a                      | n/a                                |
+| **Tier 1 only — sanoid**        | sanoid         | no                          | $0                | seconds               | n/a                      | minimal                            |
+| **Tier 2 only — restic+B2**     | restic         | yes                         | ~$6/TB            | n/a (restic restore)  | hours                    | medium                             |
+| **syncoid to remote ZFS**       | sanoid+syncoid | yes (if remote is off-site) | depends on remote | seconds               | minutes-hours            | medium-high (need remote ZFS host) |
+| **Hybrid — sanoid + restic+B2** | sanoid+restic  | yes                         | ~$6/TB            | seconds               | hours                    | medium                             |
 
 ## My recommendation
 
