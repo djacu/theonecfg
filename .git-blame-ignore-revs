@@ -26,3 +26,6 @@
 
 # nixos-configurations.scheelite.hardware: formatting
 95a9d4d2abbc2e92c916568b00d243efe2e39c3c
+
+# treewide: nix fmt
+92094e13d434f478b398c6d419d626ba713cb078
