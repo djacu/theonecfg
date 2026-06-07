@@ -26,7 +26,7 @@ has `users: []` and is therefore unauthenticated; Phase 2 below fixes this).
 What's missing is a **landing page** that aggregates the sprawl into one
 URL. After comparing Heimdall (no nixpkgs package), Homarr (no nixpkgs
 package and web-UI configured — fights our zero-clicks goal), Homer
-(no live data widgets), Glance (no native widgets for the *arr / Jellyfin
+(no live data widgets), Glance (no native widgets for the \*arr / Jellyfin
 ecosystem — would force us to hand-write Go templates per service), and
 Homepage (`gethomepage/homepage`, packaged as `homepage-dashboard` 1.12.1
 in nixpkgs), Homepage is the only candidate with a mature NixOS module
@@ -156,7 +156,7 @@ No state. No sops. No impermanence entry.
 Auto-derives the service tile / widget list from the existing
 `theonecfg.services.<svc>` modules — same pattern as
 `nixos-modules/services/jellyseerr/module.nix:42-77` builds its
-`arrInstances` list from enabled *arr modules.
+`arrInstances` list from enabled \*arr modules.
 
 ```nix
 { config, lib, pkgs, ... }:
@@ -691,18 +691,16 @@ problem and rolls back, AdGuard stays secured.
 Bundles three changes that compose into a single working dashboard:
 
 1. Jellyseerr API-key extraction follow-up (so the Jellyseerr widget has a key to use).
-2. Grafana local-admin user (so the Grafana widget can authenticate).
-3. Homepage module itself + scheelite wiring.
+1. Grafana local-admin user (so the Grafana widget can authenticate).
+1. Homepage module itself + scheelite wiring.
 
 **Files:**
 
 - Modify `nixos-modules/services/jellyseerr/module.nix`:
-  - Add a new oneshot `jellyseerr-api-key.service` ordered `after = [
-    "jellyseerr-bootstrap.service" ]` and `requires`. Reads
+  - Add a new oneshot `jellyseerr-api-key.service` ordered `after = [ "jellyseerr-bootstrap.service" ]` and `requires`. Reads
     `/var/lib/private/seerr/settings.json` (Seerr's DynamicUser
     private state), `jq -r '.main.apiKey'` from it, writes to
-    `/var/lib/seerr/api-key.txt` mode 0440 root:root via `install
-    -m`. Idempotent: re-runs are no-ops if the file is up to date.
+    `/var/lib/seerr/api-key.txt` mode 0440 root:root via `install -m`. Idempotent: re-runs are no-ops if the file is up to date.
 - Modify `nixos-modules/services/monitoring/grafana/module.nix`:
   - In the `mkIf cfg.enable` block, add `services.grafana.settings.security.admin_user = "admin";`
     and `admin_password = "$__file{${config.sops.secrets."grafana/admin-password".path}}";`
@@ -734,8 +732,7 @@ Bundles three changes that compose into a single working dashboard:
   the resources widget (upstream homepage module relaxes ProcSubset
   when CPU stats are needed).
 - `sudo cat /var/lib/seerr/api-key.txt` — non-empty 32-char-ish
-  string, matches `jq -r .main.apiKey
-  /var/lib/private/seerr/settings.json`.
+  string, matches `jq -r .main.apiKey /var/lib/private/seerr/settings.json`.
 - `curl -fsS -H "Host: home.scheelite.dev" http://127.0.0.1:8082/`
   — 200 with HTML containing "scheelite" (title) and group names.
 - `curl -fsSI https://home.scheelite.dev/` — 302 to Kanidm.
@@ -757,8 +754,7 @@ Bundles three changes that compose into a single working dashboard:
   unsubstituted `{{HOMEPAGE_*_*}}` or wrong creds. Check
   `journalctl -u homepage-dashboard | rg <widget-type>` — homepage
   logs the upstream HTTP status on widget fetches.
-- Jellyseerr widget shows nothing: `cat
-  /var/lib/seerr/api-key.txt` should be readable by root (the env
+- Jellyseerr widget shows nothing: `cat /var/lib/seerr/api-key.txt` should be readable by root (the env
   file is read by systemd as PID 1 before DynamicUser drop). If
   empty, `jellyseerr-api-key` likely ran before Seerr finished
   generating its settings.

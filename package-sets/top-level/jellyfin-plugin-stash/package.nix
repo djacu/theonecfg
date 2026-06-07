@@ -7,22 +7,24 @@
 
 let
   pluginVersion = "1.2.0.3";
-  metaJson = builtins.toFile "meta.json" (builtins.toJSON {
-    category = "Metadata";
-    name = "Stash";
-    owner = "DirtyRacer";
-    description = "";
-    overview = "";
-    guid = "57b8ef5d-8835-436d-9514-a709ee25faf2";
-    version = pluginVersion;
-    targetAbi = "10.11.0.0";
-    changelog = "Added Support Jellyfin 10.11; Added Support Emby 4.9; Minor Changes";
-    timestamp = "2025-10-22T20:33:52Z";
-    autoUpdate = false;
-    imagePath = "";
-    status = "Active";
-    assemblies = [ "Jellyfin.Plugin.Stash.dll" ];
-  });
+  metaJson = builtins.toFile "meta.json" (
+    builtins.toJSON {
+      category = "Metadata";
+      name = "Stash";
+      owner = "DirtyRacer";
+      description = "";
+      overview = "";
+      guid = "57b8ef5d-8835-436d-9514-a709ee25faf2";
+      version = pluginVersion;
+      targetAbi = "10.11.0.0";
+      changelog = "Added Support Jellyfin 10.11; Added Support Emby 4.9; Minor Changes";
+      timestamp = "2025-10-22T20:33:52Z";
+      autoUpdate = false;
+      imagePath = "";
+      status = "Active";
+      assemblies = [ "Jellyfin.Plugin.Stash.dll" ];
+    }
+  );
 in
 
 buildDotnetModule (finalAttrs: {

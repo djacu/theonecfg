@@ -124,14 +124,14 @@ end
 1. **Scheelite-only**: impermanence bind-stacking interacts with the
    tmpfiles walk; the EUNATCH is a side-effect of the stacked
    mount's propagation state. Likely cosmetic, no fix.
-2. **All hosts**: it's stock NixOS + systemd behavior. File upstream
+1. **All hosts**: it's stock NixOS + systemd behavior. File upstream
    issue (or find existing one), document as known cosmetic.
-3. **Specific path actionable**: e.g., `/nix/var/nix/builds`'s 7d
+1. **Specific path actionable**: e.g., `/nix/var/nix/builds`'s 7d
    age is removing in-flight sandbox build dirs and the EUNATCH is
    the kernel rejecting the operation on a locked dentry. Reduce
    tmpfiles' walk by overriding the upstream entry with `0` age (no
    clean) for that path.
-4. **Volume justifies suppression**: drop the warning class at the
+1. **Volume justifies suppression**: drop the warning class at the
    shipper. Repo uses alloy
    (`nixos-configurations/scheelite/default.nix:370`); the right
    place is a `stage.drop` in

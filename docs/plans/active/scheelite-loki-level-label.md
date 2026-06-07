@@ -18,8 +18,7 @@ Two deviations from the original plan, both explained inline below:
   was about to be inaccurate after the JSON change, so fixing both
   in one commit was natural.
 - **Phase 5** added an Alloy `stage.match` block that drops two known
-  Loki self-noise patterns (`failed mapping AST`, `could not determine
-  query overlaps`). This wasn't in the original plan — it surfaced
+  Loki self-noise patterns (`failed mapping AST`, `could not determine query overlaps`). This wasn't in the original plan — it surfaced
   during Phase 4 UI verification when the user noticed Loki was still
   emitting warn-level lines on every dashboard interaction. With those
   dropped at ingestion, reverting Phase 1's `log_level = "warn"` no
@@ -60,8 +59,9 @@ Empirical measurement (1-hour window on scheelite, 2026-05-08):
 | grafana.service | 1,017 |
 
 The fix has two parts:
+
 1. Short-term insurance — silence Loki's own info chatter at the producer.
-2. Structural — extract a real `level` label in Alloy and switch the
+1. Structural — extract a real `level` label in Alloy and switch the
    dashboard to label-based filtering.
 
 ## Decisions
@@ -111,7 +111,7 @@ Cardinality cost: 6 string values for one new label. Combined with `unit`
 (~50) and `host` (1), total label cardinality stays well within Loki's
 default streams-per-tenant limits.
 
----
+______________________________________________________________________
 
 ## Phase 1 — Loki `log_level=warn` (insurance) — done in `097a4fa`, reverted in Phase 5 (`4f34c7e`)
 
@@ -120,6 +120,7 @@ isn't drowning in self-feedback noise during phases 2–4. Trivially revertable
 once option 3 lands.
 
 **Files**:
+
 - `nixos-modules/services/monitoring/loki/module.nix`
 
 **Change**: add inside `services.loki.configuration` block:
@@ -135,6 +136,7 @@ server = {
 **Deploy**: user runs `nixos-rebuild switch --target-host scheelite ...`.
 
 **Verify**:
+
 - `ssh scheelite 'systemctl show loki.service -p MainPID --value'` — note PID.
 - `ssh scheelite 'journalctl -u loki.service --since "5 min ago" --no-pager | wc -l'`
   — should drop sharply (was ~14k/hour pre-change).
@@ -146,11 +148,12 @@ isn't tuning Loki. Revert is a single-line removal.
 
 **Commit message** (suggested): `nixos-modules/services/monitoring/loki: set log_level=warn`
 
----
+______________________________________________________________________
 
 ## Phase 2 — Add `level` extraction in Alloy — done in `57d5881`
 
 **Files**:
+
 - `nixos-modules/services/monitoring/alloy/module.nix`
 
 **Change**: insert a `loki.process "level"` block between the journal source
@@ -213,6 +216,7 @@ loki.process "level" {
 **Deploy**: user runs `nixos-rebuild switch --target-host scheelite ...`.
 
 **Verify**:
+
 - `ssh scheelite 'curl -sG http://127.0.0.1:3100/loki/api/v1/labels'` — should
   list `level` alongside the existing labels.
 - `ssh scheelite 'curl -sG --data-urlencode label=level http://127.0.0.1:3100/loki/api/v1/label/level/values'`
@@ -226,6 +230,7 @@ loki.process "level" {
   should return entries (HTTP access logs have no level).
 
 **Risk**:
+
 - **Regex over-matches**: e.g. a log line containing `[Error counter]` or
   `level=trace_started` could capture an unintended substring. Mitigation:
   the regex requires the word to be terminated by a word boundary or
@@ -242,43 +247,50 @@ loki.process "level" {
 
 **Commit message** (suggested): `nixos-modules/services/monitoring/alloy: extract level label from journal lines`
 
----
+______________________________________________________________________
 
 ## Phase 3 — Update the Logs dashboard — done in `83ad2a8`
 
 **Files** (the README update was originally Phase 5; folded in here because
 the existing description would otherwise contradict the new behavior):
+
 - `docs/reference/grafana-dashboards/homelab-logs.json`
 - `docs/reference/grafana-dashboards/README.md`
 
 **Changes** (six panels + one template variable):
 
 1. **`level` template variable** (`templating.list[1]`):
+
    - Replace options array with: `critical`, `error`, `warning`, `info`, `debug`, `unlabeled`
    - Set default selection to `[critical, error, warning]`
    - Update the `query` field to match new comma-separated value list
 
-2. **Panel "Error lines (last 1h, all units)"** — `targets[0].expr`:
+1. **Panel "Error lines (last 1h, all units)"** — `targets[0].expr`:
+
    ```
    sum(count_over_time({job="systemd-journal", level=~"error|critical"} [1h]))
    ```
 
-3. **Panel "Error lines (last 24h, all units)"** — `targets[0].expr`:
+1. **Panel "Error lines (last 24h, all units)"** — `targets[0].expr`:
+
    ```
    sum(count_over_time({job="systemd-journal", level=~"error|critical"} [24h]))
    ```
 
-4. **Panel "Top 10 units by error count (1h)"** — `targets[0].expr`:
+1. **Panel "Top 10 units by error count (1h)"** — `targets[0].expr`:
+
    ```
    topk(10, sum by (unit) (count_over_time({job="systemd-journal", level=~"error|critical"} [1h])))
    ```
 
-5. **Panel "Matching log volume over time (by unit)"** — `targets[0].expr`:
+1. **Panel "Matching log volume over time (by unit)"** — `targets[0].expr`:
+
    ```
    sum by (unit) (count_over_time({job="systemd-journal", unit=~"$unit", level=~"$level"} [$__interval]))
    ```
 
-6. **Panel "Logs"** — `targets[0].expr`:
+1. **Panel "Logs"** — `targets[0].expr`:
+
    ```
    {job="systemd-journal", unit=~"$unit", level=~"$level"}
    ```
@@ -291,6 +303,7 @@ service restart, or via UI re-import. No nixos-rebuild needed if Grafana's
 provisioning watches the file (verify in `nixos-modules/services/monitoring/grafana/module.nix`).
 
 **Verify**:
+
 - Open the dashboard. Default selection should be `[critical, error, warning]`.
 - The "Logs" panel should show only those levels — no info lines should
   appear unless explicitly selected.
@@ -300,9 +313,10 @@ provisioning watches the file (verify in `nixos-modules/services/monitoring/graf
   refresh; loki.service should NOT dominate the panel (its own info-level
   query logs no longer match `level=~"error|critical|warning"`).
 - Top-10 error table: should be dominated by services that genuinely error
-  (AdGuard's DoH transients, occasional *arr exceptions), not by Loki.
+  (AdGuard's DoH transients, occasional \*arr exceptions), not by Loki.
 
 **Risk**:
+
 - **Old logs invisible after change**: pre-phase-2 lines have no `level`
   label. Per scope decision: hard cut, accepted.
 - **JSON regression**: hand-editing Grafana JSON is error-prone. After
@@ -311,7 +325,7 @@ provisioning watches the file (verify in `nixos-modules/services/monitoring/graf
 
 **Commit message** (suggested): `docs/reference/grafana-dashboards/homelab-logs: filter by level label`
 
----
+______________________________________________________________________
 
 ## Phase 4 — End-to-end verification — done
 
@@ -337,7 +351,7 @@ lines on query cancellation and on a transient schema-config quirk
 were still showing up — caused by routine dashboard interaction, not
 by anything actionable. This drove the Phase 5 deviation below.
 
----
+______________________________________________________________________
 
 ## Phase 5 — Drop Loki self-noise + revert Phase 1 — done in `c7ff1be` and `4f34c7e`
 
@@ -378,26 +392,29 @@ operational visibility (per-query latency, cache stats, ingester
 bytes) without re-polluting the dashboard.
 
 **Files**:
+
 - `nixos-modules/services/monitoring/alloy/module.nix` — added
   `stage.match` drop block (`c7ff1be`).
 - `nixos-modules/services/monitoring/loki/module.nix` — removed
   `log_level = "warn"` (`4f34c7e`).
 
 **Verified**:
+
 - Loki at info producing ~1300 info-level lines per 3 minutes,
   all correctly tagged `level=info`.
 - Loki noise patterns absent from Loki's TSDB after deploy.
 - `loki_process_dropped_lines_total{reason="loki_self_noise"}`
   counter incrementing on the Alloy `/metrics` endpoint.
 
----
+______________________________________________________________________
 
 ## Future-proofing
 
 When adding a new service to scheelite:
+
 1. After deploy, query `{unit="<new-service>.service"}` in Grafana.
-2. If lines show `level=unlabeled` despite the service emitting recognizable
+1. If lines show `level=unlabeled` despite the service emitting recognizable
    level words, extend the regex in `alloy/module.nix` to cover the new
    format. Add to the catalog table in this doc.
-3. Cardinality budget: each new bucket value adds one row to the `level`
+1. Cardinality budget: each new bucket value adds one row to the `level`
    label index. Stay under ~10 distinct values to keep query plans cheap.

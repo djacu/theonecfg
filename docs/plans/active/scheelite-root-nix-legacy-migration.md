@@ -86,8 +86,7 @@ sudo /run/current-system/bin/switch-to-configuration boot
 
 ### F5 — Rollback-root initrd service interaction
 
-`nixos-configurations/scheelite/default.nix:34-45` runs `zfs rollback
--r zroot/local/root@empty` before `sysroot.mount`. Verify the unit
+`nixos-configurations/scheelite/default.nix:34-45` runs `zfs rollback -r zroot/local/root@empty` before `sysroot.mount`. Verify the unit
 name and ordering still hold after the flip:
 
 ```fish

@@ -1,8 +1,21 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   inherit (lib.modules) mkIf mkMerge;
   inherit (lib.options) mkEnableOption mkOption;
-  inherit (lib.types) bool enum int listOf nullOr str submodule;
+  inherit (lib.types)
+    bool
+    enum
+    int
+    listOf
+    nullOr
+    str
+    submodule
+    ;
 
   cfg = config.theonecfg.services.stasharr;
   pgInstance = config.theonecfg.services.postgres.instances.stasharr;
@@ -23,7 +36,12 @@ let
   integrationType = submodule {
     options = {
       type = mkOption {
-        type = enum [ "WHISPARR" "STASH" "STASHDB" "FANSDB" ];
+        type = enum [
+          "WHISPARR"
+          "STASH"
+          "STASHDB"
+          "FANSDB"
+        ];
       };
       baseUrl = mkOption {
         type = str;
@@ -38,7 +56,11 @@ let
 
   bootstrapApp = pkgs.writeShellApplication {
     name = "stasharr-bootstrap";
-    runtimeInputs = [ pkgs.coreutils pkgs.curl pkgs.jq ];
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.curl
+      pkgs.jq
+    ];
     text = ''
       base_url="http://${cfg.host}:${toString cfg.port}"
       cookie_jar="$(mktemp)"
@@ -211,10 +233,17 @@ in
 
       systemd.services.stasharr = {
         description = "Stasharr Portal";
-        after = [ "network.target" "container@postgres-stasharr.service" ];
+        after = [
+          "network.target"
+          "container@postgres-stasharr.service"
+        ];
         requires = [ "container@postgres-stasharr.service" ];
         wantedBy = [ "multi-user.target" ];
-        path = with pkgs; [ openssl coreutils nodejs_22 ];
+        path = with pkgs; [
+          openssl
+          coreutils
+          nodejs_22
+        ];
         environment = {
           NODE_ENV = "production";
           HOST = cfg.host;

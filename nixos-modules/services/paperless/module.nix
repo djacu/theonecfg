@@ -112,7 +112,9 @@ in
 
       sops.templates."paperless.env" = {
         content = ''
-          PAPERLESS_SOCIALACCOUNT_PROVIDERS={"openid_connect":{"OAUTH_PKCE_ENABLED":true,"APPS":[{"provider_id":"kanidm","name":"Kanidm","client_id":"paperless","secret":"${config.sops.placeholder."kanidm/oauth-paperless"}","settings":{"server_url":"https://${kanidmCfg.domain}/oauth2/openid/paperless","token_auth_method":"client_secret_basic"}}]}}
+          PAPERLESS_SOCIALACCOUNT_PROVIDERS={"openid_connect":{"OAUTH_PKCE_ENABLED":true,"APPS":[{"provider_id":"kanidm","name":"Kanidm","client_id":"paperless","secret":"${
+            config.sops.placeholder."kanidm/oauth-paperless"
+          }","settings":{"server_url":"https://${kanidmCfg.domain}/oauth2/openid/paperless","token_auth_method":"client_secret_basic"}}]}}
         '';
         owner = "paperless";
       };

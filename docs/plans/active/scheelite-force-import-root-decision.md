@@ -57,17 +57,17 @@ not set `forceImportAll` anywhere, so tank0 already imports without
 ### Q2 — What's the actual failure surface of flipping to `false`?
 
 If the root pool's "in-use" flag is dirty (panic, power loss,
-OOM-killed shutdown, watchdog reset), initrd's `zpool import
-scheelite-root` returns non-zero. With `forceImportRoot=false` we do
+OOM-killed shutdown, watchdog reset), initrd's `zpool import scheelite-root` returns non-zero. With `forceImportRoot=false` we do
 NOT pass `-f`, so the import fails.
 
 **Recovery options, in increasing cost:**
+
 1. **Boot with `zfs_force=1` kernel parameter.** No rescue USB
    needed. systemd-boot's edit feature is disabled by default on
    NixOS (`boot.loader.systemd-boot.editor` defaults to `false`), so
    this requires explicit prep — either re-enable the editor or
    build a recovery-mode systemd-boot entry with the param baked in.
-2. **Rescue USB**: import + export + reboot, per the prior plan's
+1. **Rescue USB**: import + export + reboot, per the prior plan's
    F10 pattern.
 
 The prior plan's "rescue USB" framing missed (1). Worth documenting
@@ -93,8 +93,7 @@ for keeping it is stronger.
 
 `<nixpkgs>/nixos/modules/tasks/filesystems/zfs.nix:678-680` asserts
 that if `forceImportAll = true` then `forceImportRoot` must also be
-`true`. Currently we set neither (well, we set `forceImportRoot =
-true`). If anyone later considers `forceImportAll = true` for
+`true`. Currently we set neither (well, we set `forceImportRoot = true`). If anyone later considers `forceImportAll = true` for
 recovery, they'll need `forceImportRoot = true` to satisfy the
 assertion. This isn't blocking, just a coupling to note.
 
@@ -115,11 +114,11 @@ findings.
    tested. Land as a single per-host commit per
    `feedback_per_host_commits`. The other hosts get their own
    decisions.
-2. **Keep `true` explicitly on all hosts.** No warning fires (we set
+1. **Keep `true` explicitly on all hosts.** No warning fires (we set
    it explicitly). Document the rationale in the option's surrounding
    comment in each host's `default.nix`, including the May 2026
    incident as evidence.
-3. **Mixed**: `false` on scheelite (well-tested recovery path),
+1. **Mixed**: `false` on scheelite (well-tested recovery path),
    `true` on laptops (different shutdown profile).
 
 The plan does not assume outcome (1).
@@ -128,6 +127,7 @@ The plan does not assume outcome (1).
 
 If outcome is (1) or (3), the question is when. Concrete options to
 debate:
+
 - N consecutive clean reboots over M days
 - After the next NixOS minor bump (validates that we're not just
   lucky on the current kernel/zfs combo)
@@ -139,6 +139,7 @@ Pick before deploy. Don't ship vague.
 ## Definition of "monitor" after the deploy
 
 If outcome (1) or (3):
+
 - `journalctl -b 0 -u zfs-import-scheelite-root.service` — exit code
   0, no `cannot import` warnings.
 - `zpool status scheelite-root` — `state: ONLINE`, no errors, no
@@ -156,10 +157,9 @@ host won't boot:
 1. **Try `zfs_force=1` kernel parameter first.** systemd-boot menu
    → edit (if editor enabled) or pre-baked recovery entry. Boots the
    same generation with the force-import escape hatch back in.
-2. **If (1) fails or editor not available**: rescue USB, import + export,
+1. **If (1) fails or editor not available**: rescue USB, import + export,
    reboot.
-3. Once up: `git revert <commit> && nixos-rebuild switch
-   --flake .#<host>` to restore the explicit `true`.
+1. Once up: `git revert <commit> && nixos-rebuild switch --flake .#<host>` to restore the explicit `true`.
 
 ## Exit criteria
 

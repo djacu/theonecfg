@@ -67,8 +67,7 @@ The catch is what's exposed:
 - Public DNS records. *Only* the ACME challenge `_acme-challenge.<…>`
   TXT records — set transiently by Caddy via the DNS provider's API,
   then removed. We do **not** create public A records pointing at
-  scheelite. So an external attacker doing `nslookup
-  jellyfin.<domain>` from outside the LAN gets nothing — the domain
+  scheelite. So an external attacker doing `nslookup jellyfin.<domain>` from outside the LAN gets nothing — the domain
   doesn't resolve to anything reachable on the public internet.
 - WHOIS records. Domain registration carries owner contact info. Some
   TLDs allow WHOIS-privacy proxies, others don't (see TLD section
@@ -97,6 +96,7 @@ Not viable for a multi-device homelab. Documented for completeness.
 
 The address is intercepted by AdGuard Home running on scheelite.
 AdGuard:
+
 - listens on `0.0.0.0:53` (TCP+UDP), with the firewall already open
   per the AdGuard module;
 - rewrites `*.${cfg.lanDomain}` and `${cfg.lanDomain}` to scheelite's
@@ -213,6 +213,7 @@ alternates above.
 When a domain is picked and Path B is chosen, here's what changes:
 
 1. **User-side prerequisites** (out-of-Nix):
+
    - Register/transfer the chosen domain to Porkbun.
    - In Porkbun's UI: Domain Management → Details → API Access → enable.
      Then Account → API → generate API Key + Secret.
@@ -225,12 +226,12 @@ When a domain is picked and Path B is chosen, here's what changes:
          api-secret: <Porkbun secret API key>
      ```
 
-2. **`theonecfg.networking.lanDomain`** — change from `"literallyhell"`
+1. **`theonecfg.networking.lanDomain`** — change from `"literallyhell"`
    to the chosen domain in `nixos-configurations/scheelite/default.nix`.
    AdGuard rewrites and all Caddy vhost defaults
    (`<service>.${lanDomain}`) cascade automatically.
 
-3. **Caddy with the Porkbun DNS plugin** —
+1. **Caddy with the Porkbun DNS plugin** —
    `nixos-modules/services/caddy/module.nix`:
 
    ```nix
@@ -252,11 +253,10 @@ When a domain is picked and Path B is chosen, here's what changes:
    The `withPlugins` helper requires a vendor hash; standard pattern is
    `lib.fakeHash` first build → take the real hash from the error →
    substitute. `email` populates the LE account contact from the
-   user's existing `theonecfg.knownUsers` data. The `acme_dns porkbun
-   { … }` directive replaces `local_certs`; every cert Caddy provisions
+   user's existing `theonecfg.knownUsers` data. The `acme_dns porkbun { … }` directive replaces `local_certs`; every cert Caddy provisions
    from then on uses Porkbun DNS-01.
 
-4. **Sops template + EnvironmentFile** — same pattern other services use:
+1. **Sops template + EnvironmentFile** — same pattern other services use:
 
    ```nix
    sops.templates."caddy.env" = {
@@ -272,11 +272,12 @@ When a domain is picked and Path B is chosen, here's what changes:
      config.sops.templates."caddy.env".path;
    ```
 
-5. **pfSense DHCP** — Services → DHCP Server → LAN → DNS Servers →
+1. **pfSense DHCP** — Services → DHCP Server → LAN → DNS Servers →
    `10.0.10.111` (primary). Save → Apply. DHCP clients on the LAN pick
    up the new DNS on lease renewal.
 
-6. **Verification**:
+1. **Verification**:
+
    - From scheelite, `journalctl -u caddy` shows the ACME issuance
      succeeding.
    - From argentite, `nslookup jellyfin.<domain>` → `10.0.10.111`.

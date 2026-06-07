@@ -210,22 +210,25 @@ and Prowlarr's inline applications one-shot.
   flow. Doable but not yet implemented. Currently Jellyseerr is shipped
   as "click-through-once" — the only manual step in the entire stack.
   Tracked in `nixos-modules/services/jellyseerr/module.nix` as a TODO.
+
 - **Custom Jellyfin branding** (logo, custom CSS) — would use
   `/Branding/Configuration` POST. Helper not yet written.
+
 - **Jellyfin plugin install** — would use `/Plugins/...` endpoints.
   Helper not yet written.
+
 - \**Kanidm OIDC provisioning for *arr / Jellyfin** — \*arr v3 doesn't
   really support OIDC in a useful way (no per-user RBAC). Jellyfin SSO
   via plugin (`jellyfin-plugin-sso`) would need its own one-shot to push
   config. Out of scope this iteration.
+
 - **LimeTorrents → Radarr push fails Prowlarr's auto-test.** Investigated
   on 2026-05-03. Prowlarr's app-sync runs an empty-term sanity check
   before pushing an indexer to an \*arr; for LimeTorrents the response
   is parsed as 0 results in the Movies category, so Radarr never gets
   it. Sonarr (TV/anime categories) passes the same check.
 
-  Root cause is in the bundled Cardigann YAML (`Prowlarr/Indexers
-  definitions/v11/limetorrents.yml`):
+  Root cause is in the bundled Cardigann YAML (`Prowlarr/Indexers definitions/v11/limetorrents.yml`):
 
   ```yaml
   paths:
@@ -244,19 +247,21 @@ and Prowlarr's inline applications one-shot.
   auto-test is the only thing blocking Radarr registration.
 
   Fix options, not pursued this round:
+
   1. Manual Torznab add via Radarr's UI (one-time; bypasses the test;
      drifts from declarative state).
-  2. Local Cardigann YAML override at `<prowlarr-data>/Definitions/Custom/limetorrents.yml`
+  1. Local Cardigann YAML override at `<prowlarr-data>/Definitions/Custom/limetorrents.yml`
      using `/browse-torrents/<Category>/` for empty-keyword browse and
      adjusted row selectors. Most "right" fix but requires carrying a
      small local fork of one upstream YAML.
-  3. Upstream PR to `Prowlarr/Indexers`.
+  1. Upstream PR to `Prowlarr/Indexers`.
 
   Currently (4) — accept the loss. Radarr has YTS (movies-dedicated)
   and Nyaa.si (anime movies); LimeTorrents-as-movies is marginal
   overlap. Revisit when (a) we add a private movie tracker and want
   LimeTorrents as a fallback or (b) LimeTorrents becomes Radarr's only
   realistic source.
+
 - **Empornium 2FA migration path.** Prowlarr ships two Cardigann
   definitions: `empornium` (username + password) and `empornium2fa`
   (adds a TOTP secret). We currently use the non-2FA variant. If 2FA
@@ -264,12 +269,12 @@ and Prowlarr's inline applications one-shot.
 
   1. Sops: add `empornium/totp-secret` with the base32 TOTP seed (same
      string the authenticator app uses).
-  2. Nix: in `nixos-configurations/scheelite/default.nix`, change
+  1. Nix: in `nixos-configurations/scheelite/default.nix`, change
      `definitionFile = "empornium"` → `"empornium2fa"`, add a third
      `_<field>File` marker for the TOTP secret (exact field name from
      `/api/v1/indexer/schema` for the `empornium2fa` definition —
      `totpSecret` or similar).
-  3. Deploy. Prowlarr's auto-test logs in with the live TOTP code.
+  1. Deploy. Prowlarr's auto-test logs in with the live TOTP code.
 
 ## Files
 

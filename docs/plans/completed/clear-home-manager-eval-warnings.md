@@ -9,7 +9,7 @@ each home-configuration after the recent input bump:
    replacement is `programs.ssh.settings`. Only call site in this repo:
    `home-modules/users/djacu/programs/gpg/module.nix:142-156`.
 
-2. Home-manager master (26.11) and `nixpkgs-unstable` (26.05) report
+1. Home-manager master (26.11) and `nixpkgs-unstable` (26.05) report
    different release cycles. This is a transient channel-transition skew:
    the `nixos-unstable` channel hasn't rolled forward to 26.11pre yet but
    home-manager master already has. Verified — `pkgs.lib.trivial.release`

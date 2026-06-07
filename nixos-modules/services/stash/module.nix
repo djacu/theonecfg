@@ -1,14 +1,29 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   inherit (lib.modules) mkIf mkMerge;
   inherit (lib.options) mkEnableOption mkOption;
-  inherit (lib.types) bool listOf int nullOr str submodule;
+  inherit (lib.types)
+    bool
+    listOf
+    int
+    nullOr
+    str
+    submodule
+    ;
 
   cfg = config.theonecfg.services.stash;
 
   stashApikeySplice = pkgs.writeShellApplication {
     name = "stash-apikey-splice";
-    runtimeInputs = [ pkgs.coreutils pkgs.yq-go ];
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.yq-go
+    ];
     text = ''
 
       config="${cfg.dataDir}/config.yml"
@@ -46,22 +61,30 @@ let
   identifyBody = builtins.toJSON {
     query = "mutation Identify($sources: [IdentifySourceInput!]!) { metadataIdentify(input: { sources: $sources }) }";
     variables.sources = map (b: {
-      source = { stash_box_endpoint = b.endpoint; };
+      source = {
+        stash_box_endpoint = b.endpoint;
+      };
     }) cfg.stashBoxes;
   };
 
-  simpleBody = mutation: builtins.toJSON {
-    query = "mutation { ${mutation} }";
-  };
+  simpleBody =
+    mutation:
+    builtins.toJSON {
+      query = "mutation { ${mutation} }";
+    };
 
-  scanBody     = simpleBody "metadataScan(input: {})";
-  autoTagBody  = simpleBody "metadataAutoTag(input: {})";
+  scanBody = simpleBody "metadataScan(input: {})";
+  autoTagBody = simpleBody "metadataAutoTag(input: {})";
   generateBody = simpleBody "metadataGenerate(input: {})";
-  cleanBody    = simpleBody "metadataClean(input: { dryRun: false })";
+  cleanBody = simpleBody "metadataClean(input: { dryRun: false })";
 
   stashMaintenance = pkgs.writeShellApplication {
     name = "stash-maintenance";
-    runtimeInputs = [ pkgs.curl pkgs.jq pkgs.coreutils ];
+    runtimeInputs = [
+      pkgs.curl
+      pkgs.jq
+      pkgs.coreutils
+    ];
     # SC2016: the JSON bodies contain `$sources` as a GraphQL variable
     # reference, not a bash variable. Keeping them in single quotes so
     # bash passes them literally is intentional.
@@ -98,25 +121,50 @@ let
     '';
   };
 
-  stashType = submodule { options = {
-    path = mkOption { type = str; };
-    excludevideo = mkOption { type = bool; default = false; };
-    excludeimage = mkOption { type = bool; default = false; };
-  }; };
-  stashBoxType = submodule { options = {
-    name = mkOption { type = str; };
-    endpoint = mkOption { type = str; };
-    apiKeyFile = mkOption { type = str; };
-  }; };
+  stashType = submodule {
+    options = {
+      path = mkOption { type = str; };
+      excludevideo = mkOption {
+        type = bool;
+        default = false;
+      };
+      excludeimage = mkOption {
+        type = bool;
+        default = false;
+      };
+    };
+  };
+  stashBoxType = submodule {
+    options = {
+      name = mkOption { type = str; };
+      endpoint = mkOption { type = str; };
+      apiKeyFile = mkOption { type = str; };
+    };
+  };
 in
 {
   options.theonecfg.services.stash = {
     enable = mkEnableOption "Stash media organizer";
-    domain = mkOption { type = str; default = "stash.${config.theonecfg.networking.lanDomain}"; };
-    port = mkOption { type = int; default = 9999; };
-    dataDir = mkOption { type = str; default = "/var/lib/stash"; };
-    stashes = mkOption { type = listOf stashType; default = [ ]; };
-    stashBoxes = mkOption { type = listOf stashBoxType; default = [ ]; };
+    domain = mkOption {
+      type = str;
+      default = "stash.${config.theonecfg.networking.lanDomain}";
+    };
+    port = mkOption {
+      type = int;
+      default = 9999;
+    };
+    dataDir = mkOption {
+      type = str;
+      default = "/var/lib/stash";
+    };
+    stashes = mkOption {
+      type = listOf stashType;
+      default = [ ];
+    };
+    stashBoxes = mkOption {
+      type = listOf stashBoxType;
+      default = [ ];
+    };
     apiKeyFile = mkOption {
       type = nullOr str;
       default = null;
@@ -158,8 +206,8 @@ in
         # login. Caddy + kanidm forward_auth gates access instead.
         username = "admin";
         passwordFile = pkgs.writeText "stash-no-local-auth" "";
-        jwtSecretKeyFile     = config.sops.secrets."stash/jwt-secret".path;
-        sessionStoreKeyFile  = config.sops.secrets."stash/session-store-key".path;
+        jwtSecretKeyFile = config.sops.secrets."stash/jwt-secret".path;
+        sessionStoreKeyFile = config.sops.secrets."stash/session-store-key".path;
         settings = {
           host = "127.0.0.1";
           port = cfg.port;
@@ -190,8 +238,7 @@ in
         "+${stashApikeySplice}/bin/stash-apikey-splice"
       ];
 
-      systemd.services.stash.unitConfig.RequiresMountsFor =
-        map (s: s.path) cfg.stashes;
+      systemd.services.stash.unitConfig.RequiresMountsFor = map (s: s.path) cfg.stashes;
 
       sops.secrets = {
         "stash/jwt-secret".owner = "stash";

@@ -9,7 +9,7 @@ The commits on branch `treewide-impermenance-udpate` (`2a168e1`, `c30778f`, `620
 **First deploy of this change on each existing host requires hands-on recovery**, because:
 
 1. **File-level impermanence binds fail loudly.** During `nixos-rebuild switch` activation, impermanence's `mount-file` script refuses to bind-mount over a non-empty existing file (`"A file already exists at /etc/machine-id!"`). The new generation is still installed and the bootloader updated, but you must pre-seed `/persist` with the right identity files or the post-rollback boot regenerates them (machine-id flip, ssh fingerprint change).
-2. **Directory-level binds fail silently.** Impermanence happily bind-mounts an empty `/persist/var/lib/<x>` over a populated `/var/lib/<x>` during activation. The underlying data on the `/` dataset is still there, but the rollback at next boot will wipe it. Capture it via a ZFS snapshot and rsync into `/persist` before rebooting.
+1. **Directory-level binds fail silently.** Impermanence happily bind-mounts an empty `/persist/var/lib/<x>` over a populated `/var/lib/<x>` during activation. The underlying data on the `/` dataset is still there, but the rollback at next boot will wipe it. Capture it via a ZFS snapshot and rsync into `/persist` before rebooting.
 
 This runbook is the procedure that worked end-to-end on `malachite` on 2026-05-10. Run it for each remaining host (`argentite`, `cassiterite`, plus any future host going from "no rollback, accumulated state" to "rollback + impermanence").
 
@@ -104,6 +104,7 @@ sudo ls /persist/var/lib/fwupd /persist/var/lib/upower /persist/var/lib/Accounts
 ```
 
 Expected content:
+
 - `bluetooth/`: subdirs named after paired device MAC addresses (skip if no bluetooth devices were paired).
 - `NetworkManager/`: `secret_key`, `seen-bssids`, `timestamps`, `NetworkManager.state`, plus per-connection `*.lease` files.
 - `systemd/`: `backlight`, `catalog`, `coredump`, `ephemeral-trees`, `linger`, `random-seed`, `rfkill`, `timers`, `timesync`.
@@ -140,6 +141,7 @@ cat /etc/machine-id
 ```
 
 Expected:
+
 - `rollback-root` journal shows `rollback of <pool> complete`.
 - `findmnt` shows bind mounts on each path queried.
 - No failed units (or only pre-existing unrelated ones).

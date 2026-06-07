@@ -136,12 +136,12 @@ permit.**
 1. Kernel emits `add` uevent for `nvme0` → udev applies
    `ACTION=="add", SUBSYSTEM=="nvme"` rule → `setfacl` adds
    `g:smartctl-exporter-access:rw` to `/dev/nvme0`.
-2. systemd-udevd reports the device exists; systemd's cgroup BPF filter
+1. systemd-udevd reports the device exists; systemd's cgroup BPF filter
    for the unit allows `char-nvme rw` (configured at unit start).
-3. `smartctl-exporter` opens `/dev/nvme0`. DAC check: ACL matches
+1. `smartctl-exporter` opens `/dev/nvme0`. DAC check: ACL matches
    because the dynamic user is in `smartctl-exporter-access` → pass.
    Cgroup check: `char-nvme` allowed → pass.
-4. Process issues `ioctl(fd, NVME_IOCTL_ADMIN_CMD, ...)` for
+1. Process issues `ioctl(fd, NVME_IOCTL_ADMIN_CMD, ...)` for
    `Get Log Page`. Kernel checks `CAP_SYS_ADMIN` → present in ambient
    set → pass. Drive returns the SMART/health log page.
 
