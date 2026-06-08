@@ -320,6 +320,14 @@ in
 
       systemd.services.prowlarr.unitConfig.RequiresMountsFor = [ cfg.dataDir ];
 
+      # Order after the postgres container: the DB host is the container's
+      # veth address and pg_hba trusts only that /24. Without this the
+      # service can start before the container's route exists, connect via
+      # the default route (wrong source IP), and hit a fatal, non-retried
+      # pg_hba rejection. Same pattern as the stasharr service.
+      systemd.services.prowlarr.after = [ "container@postgres-prowlarr.service" ];
+      systemd.services.prowlarr.requires = [ "container@postgres-prowlarr.service" ];
+
       theonecfg.services.postgres.instances.prowlarr = {
         version = "16";
         port = cfg.dbPort;
