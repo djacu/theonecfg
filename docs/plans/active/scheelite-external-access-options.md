@@ -361,16 +361,16 @@ near-identical.
 
 ## Comparison
 
-| | Public URL | Cost / month | Home IP exposed | Open router ports | Third-party trust | Setup | Ongoing | Risk surface |
-|---|---|---|---|---|---|---|---|---|
-| Tailscale | tailnet only | $0 | no | no | Tailscale Inc. | minimal | annual re-auth | very low |
-| Headscale | tailnet only | ~$3-5 | no | no | self | medium | low | very low |
-| Tailscale Funnel | yes | $0 | no | no | Tailscale Inc. | minimal | low | low |
-| Reverse proxy + DDNS | yes | $1 (domain) | yes | yes | self | high | high | high |
-| Cloudflare Tunnel | yes | $1 (domain) | no | no | Cloudflare | medium | medium | medium |
-| Nebula + VPS | yes | ~$4-6 | no | no | self | high | medium | medium |
-| WireGuard + VPS | yes | ~$4-6 | no | no | self | high | medium | medium |
-| Defer | no | $0 | no | no | n/a | none | none | none |
+|                      | Public URL   | Cost / month | Home IP exposed | Open router ports | Third-party trust | Setup   | Ongoing        | Risk surface |
+| -------------------- | ------------ | ------------ | --------------- | ----------------- | ----------------- | ------- | -------------- | ------------ |
+| Tailscale            | tailnet only | $0           | no              | no                | Tailscale Inc.    | minimal | annual re-auth | very low     |
+| Headscale            | tailnet only | ~$3-5        | no              | no                | self              | medium  | low            | very low     |
+| Tailscale Funnel     | yes          | $0           | no              | no                | Tailscale Inc.    | minimal | low            | low          |
+| Reverse proxy + DDNS | yes          | $1 (domain)  | yes             | yes               | self              | high    | high           | high         |
+| Cloudflare Tunnel    | yes          | $1 (domain)  | no              | no                | Cloudflare        | medium  | medium         | medium       |
+| Nebula + VPS         | yes          | ~$4-6        | no              | no                | self              | high    | medium         | medium       |
+| WireGuard + VPS      | yes          | ~$4-6        | no              | no                | self              | high    | medium         | medium       |
+| Defer                | no           | $0           | no              | no                | n/a               | none    | none           | none         |
 
 ## How to think about this
 

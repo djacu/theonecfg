@@ -13,27 +13,27 @@ The scheelite chassis (Silverstone RM43-320-RS) shipped with stock 120×38mm fan
 
 Confirmed via `dmidecode`, `lspci`, `lsscsi`, and direct inspection:
 
-| Component | Model |
-|---|---|
-| Motherboard | ASUS PRIME X670E-PRO WIFI |
-| CPU | AMD Ryzen 9 7950X (16C/32T, 170W TDP) |
-| CPU cooler | Noctua NH-D12L (NF-A12x25r 120mm fan) |
-| Chassis | Silverstone RM43-320-RS (4U, 20-bay) |
-| Drives | 8× WDC Ultrastar DC HC530 14TB SAS (`WUH721414AL4204`) in raidz3 (`scheelite-tank0`) |
-| HBA | LSI SAS9340-8i / IBM ServeRAID M1215 (Broadcom SAS3008 [1000:0097], `mpt3sas` IT-mode, FW 16.00.12.00) |
-| SAS expander | Adaptec AEC-82885T 36-port SAS-3 12Gbps |
-| Boot | 2× Samsung 990 PRO 2TB NVMe (mirrored swap, ZFS root with impermanence) |
-| Super-I/O | Nuvoton NCT6799D-R (chip ID `0xd802`) |
+| Component    | Model                                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------------------------ |
+| Motherboard  | ASUS PRIME X670E-PRO WIFI                                                                              |
+| CPU          | AMD Ryzen 9 7950X (16C/32T, 170W TDP)                                                                  |
+| CPU cooler   | Noctua NH-D12L (NF-A12x25r 120mm fan)                                                                  |
+| Chassis      | Silverstone RM43-320-RS (4U, 20-bay)                                                                   |
+| Drives       | 8× WDC Ultrastar DC HC530 14TB SAS (`WUH721414AL4204`) in raidz3 (`scheelite-tank0`)                   |
+| HBA          | LSI SAS9340-8i / IBM ServeRAID M1215 (Broadcom SAS3008 [1000:0097], `mpt3sas` IT-mode, FW 16.00.12.00) |
+| SAS expander | Adaptec AEC-82885T 36-port SAS-3 12Gbps                                                                |
+| Boot         | 2× Samsung 990 PRO 2TB NVMe (mirrored swap, ZFS root with impermanence)                                |
+| Super-I/O    | Nuvoton NCT6799D-R (chip ID `0xd802`)                                                                  |
 
 ## Cooling layout
 
-| Position | Fan | Connection | Control |
-|---|---|---|---|
-| CPU cooler | 1× Noctua NF-A12x25r | CPU_FAN | BIOS Q-Fan |
-| Rear exhaust | 2× Noctua NF-A8 PWM (chained) | CHA_FAN2 | BIOS Q-Fan |
+| Position                      | Fan                                                                                  | Connection                  | Control                             |
+| ----------------------------- | ------------------------------------------------------------------------------------ | --------------------------- | ----------------------------------- |
+| CPU cooler                    | 1× Noctua NF-A12x25r                                                                 | CPU_FAN                     | BIOS Q-Fan                          |
+| Rear exhaust                  | 2× Noctua NF-A8 PWM (chained)                                                        | CHA_FAN2                    | BIOS Q-Fan                          |
 | Middle wall (drive cage push) | **3× Noctua NF-F12 industrialPPC-3000 PWM** (replaced stock CC12038H12D — see below) | Drive backplane PWM headers | **Backplane autonomous controller** |
-| HBA heatsink | *not yet installed* | (planned: CHA_FAN1) | (planned: BIOS Q-Fan / fancontrol) |
-| Expander heatsink | *unknown* (factory may or may not include one) | TBD | TBD |
+| HBA heatsink                  | *not yet installed*                                                                  | (planned: CHA_FAN1)         | (planned: BIOS Q-Fan / fancontrol)  |
+| Expander heatsink             | *unknown* (factory may or may not include one)                                       | TBD                         | TBD                                 |
 
 ## Key findings
 
@@ -67,15 +67,15 @@ Per `sg_ses --join` against the enclosure at `/sys/class/enclosure/0:0:8:0`:
 
 The stock middle-wall fans are OEM'd from CoolCox by Silverstone. From the [CoolCox CC12038 family datasheet](https://www.coolcox.com/products/pdf/CC12038_B.pdf):
 
-| Spec | Value |
-|---|---|
-| Size | 120 × 120 × 38 mm |
-| Speed | 4000 ±10% RPM |
-| Airflow | 193.5 CFM |
-| Static pressure | 17.0 mmH₂O |
-| Noise | 59.0 dBA |
-| Power | 20.4 W (1.70 A @ 12 V) |
-| Bearing | Dual ball |
+| Spec            | Value                  |
+| --------------- | ---------------------- |
+| Size            | 120 × 120 × 38 mm      |
+| Speed           | 4000 ±10% RPM          |
+| Airflow         | 193.5 CFM              |
+| Static pressure | 17.0 mmH₂O             |
+| Noise           | 59.0 dBA               |
+| Power           | 20.4 W (1.70 A @ 12 V) |
+| Bearing         | Dual ball              |
 
 The CC12038 family also has L (3000 RPM, 140 CFM, 10 mmH₂O, 50 dBA) and M (3500 RPM, 152 CFM, 13.7 mmH₂O, 55 dBA) speed bins; Silverstone shipped the H (high-speed) bin. These are designed for datacenter ambient and sustained max-load operation.
 
@@ -83,15 +83,15 @@ The CC12038 family also has L (3000 RPM, 140 CFM, 10 mmH₂O, 50 dBA) and M (350
 
 Installed: **3× Noctua NF-F12 industrialPPC-3000 PWM**.
 
-| Spec | NF-F12 iPPC-3000 PWM | vs. stock |
-|---|---|---|
-| Size | 120 × 120 × 25 mm | -13 mm thickness |
-| Speed | 3000 RPM | -25% |
-| Airflow | 109 CFM | -44% |
-| Static pressure | 7.63 mmH₂O | -55% |
-| Noise | ~43.5 dBA | -16 dBA |
-| Power | 3.6 W (0.30 A) | -83% per fan |
-| Bearing | SSO2 magnetic-FDB (150,000 h MTTF) | longer life than ball |
+| Spec            | NF-F12 iPPC-3000 PWM               | vs. stock             |
+| --------------- | ---------------------------------- | --------------------- |
+| Size            | 120 × 120 × 25 mm                  | -13 mm thickness      |
+| Speed           | 3000 RPM                           | -25%                  |
+| Airflow         | 109 CFM                            | -44%                  |
+| Static pressure | 7.63 mmH₂O                         | -55%                  |
+| Noise           | ~43.5 dBA                          | -16 dBA               |
+| Power           | 3.6 W (0.30 A)                     | -83% per fan          |
+| Bearing         | SSO2 magnetic-FDB (150,000 h MTTF) | longer life than ball |
 
 Why this fan over alternatives:
 
@@ -108,18 +108,18 @@ The stock CC12038H12D set was retained as spares, labeled "RM43 spares — for h
 
 Methodology: 1 hour idle settle at 26.5°C ambient (AC-conditioned home), then `sensors` and `smartctl -A` on each drive. Comparison vs. equivalent measurements with stock fans the day before swap.
 
-| Sensor | Stock fans | NF-F12 iPPC-3000 | Δ | Limit |
-|---|---|---|---|---|
-| Drive average | 30.5°C | 39.6°C | +9.1 | 60°C op / 85°C trip |
-| Drive range | 30–31°C | 38–41°C | — | — |
-| NVMe-0 composite | 33.9°C | 44.9°C | +11 | 81.8°C alarm / 84.8°C crit |
-| NVMe-0 sensor 2 | 35.9°C | 50.9°C | +15 | — |
-| DIMMs (×4) | 31°C | 38–40°C | +7–9 | 55°C high / 85°C crit |
-| VRM | 41°C | 48°C | +7 | ~110°C |
-| CPU Tctl | 39.5°C | 42.8°C | +3 | 95°C |
-| Motherboard | 29°C | 33°C | +4 | — |
-| CPU_FAN RPM | 660 | 779 | +119 | — |
-| CHA_FAN2 RPM | 662 | 785 | +123 | — |
+| Sensor           | Stock fans | NF-F12 iPPC-3000 | Δ    | Limit                      |
+| ---------------- | ---------- | ---------------- | ---- | -------------------------- |
+| Drive average    | 30.5°C     | 39.6°C           | +9.1 | 60°C op / 85°C trip        |
+| Drive range      | 30–31°C    | 38–41°C          | —    | —                          |
+| NVMe-0 composite | 33.9°C     | 44.9°C           | +11  | 81.8°C alarm / 84.8°C crit |
+| NVMe-0 sensor 2  | 35.9°C     | 50.9°C           | +15  | —                          |
+| DIMMs (×4)       | 31°C       | 38–40°C          | +7–9 | 55°C high / 85°C crit      |
+| VRM              | 41°C       | 48°C             | +7   | ~110°C                     |
+| CPU Tctl         | 39.5°C     | 42.8°C           | +3   | 95°C                       |
+| Motherboard      | 29°C       | 33°C             | +4   | —                          |
+| CPU_FAN RPM      | 660        | 779              | +119 | —                          |
+| CHA_FAN2 RPM     | 662        | 785              | +123 | —                          |
 
 All sensors well within safe limits. Drive temps in the 38–41°C range are squarely in the failure-rate "flat zone" documented by Backblaze and Google's drive-failure studies (25–50°C → no measurable lifespan impact).
 

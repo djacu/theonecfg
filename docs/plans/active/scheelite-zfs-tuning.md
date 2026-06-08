@@ -8,15 +8,15 @@ this doc captures the *why*.
 
 ## TL;DR
 
-| Question | Conclusion |
-|---|---|
-| Is `compression=zstd` worth it over `lz4`? | **Yes.** zstd has built-in LZ4-first early-abort — incompressible data costs ~LZ4, compressible data gets zstd ratio. Strict upgrade. |
-| Best `recordsize` for postgres datasets? | **`16K`.** vadosware bench shows ~24 % TPS over aligned 8K. Larger windows for compression without read-amp. |
-| Should we override postgres `withBlocksize=16`? | **No (this round).** Locks the on-disk format; recordsize alone gets the bulk of the win; revisit only if benchmarks demand it. |
-| Should we enable ZFS dedup on `local/nix`? | **No.** `nix.settings.auto-optimise-store` already file-level hardlinks /nix/store. ZFS block dedup adds DDT RAM cost for marginal gain. |
-| Should we enable ZFS dedup elsewhere? | **No (default).** Run `zdb -S <pool>` to simulate first. Media/downloads/postgres pages dedup ratio ≈ 1.00. |
-| Best `checksum`? | **`fletcher4`** (default). Cryptographic checksums (sha256, blake3) only matter for dedup/nopwrite/encryption-verify. The 7950X has AVX-512 → blake3 is fast, but unused without dedup. |
-| Use `chksum_bench` to pick a compression algo? | **No — it benchmarks checksums, not compression.** No equivalent compression bench exists in OpenZFS. |
+| Question                                        | Conclusion                                                                                                                                                                              |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Is `compression=zstd` worth it over `lz4`?      | **Yes.** zstd has built-in LZ4-first early-abort — incompressible data costs ~LZ4, compressible data gets zstd ratio. Strict upgrade.                                                   |
+| Best `recordsize` for postgres datasets?        | **`16K`.** vadosware bench shows ~24 % TPS over aligned 8K. Larger windows for compression without read-amp.                                                                            |
+| Should we override postgres `withBlocksize=16`? | **No (this round).** Locks the on-disk format; recordsize alone gets the bulk of the win; revisit only if benchmarks demand it.                                                         |
+| Should we enable ZFS dedup on `local/nix`?      | **No.** `nix.settings.auto-optimise-store` already file-level hardlinks /nix/store. ZFS block dedup adds DDT RAM cost for marginal gain.                                                |
+| Should we enable ZFS dedup elsewhere?           | **No (default).** Run `zdb -S <pool>` to simulate first. Media/downloads/postgres pages dedup ratio ≈ 1.00.                                                                             |
+| Best `checksum`?                                | **`fletcher4`** (default). Cryptographic checksums (sha256, blake3) only matter for dedup/nopwrite/encryption-verify. The 7950X has AVX-512 → blake3 is fast, but unused without dedup. |
+| Use `chksum_bench` to pick a compression algo?  | **No — it benchmarks checksums, not compression.** No equivalent compression bench exists in OpenZFS.                                                                                   |
 
 ## Topic 1 — compression: zstd vs lz4
 
@@ -60,11 +60,11 @@ real workload, write a representative dataset under each setting and read
 Per [vadosware "Optimizing Postgres on ZFS on Linux"](https://vadosware.io/post/everything-ive-seen-on-optimizing-postgres-on-zfs-on-linux/#increasing-postgres-blocksize)
 benchmark on default-block (8K) postgres against varying ZFS recordsize:
 
-| recordsize | TPS | Δ vs 8K |
-|------------|--------|--------:|
-| 8K | 1366 | — |
-| 16K | 1689 | +24 % |
-| 32K | 1568 | +15 % |
+| recordsize | TPS  | Δ vs 8K |
+| ---------- | ---- | ------: |
+| 8K         | 1366 |       — |
+| 16K        | 1689 |   +24 % |
+| 32K        | 1568 |   +15 % |
 
 OpenZFS [Workload Tuning](https://openzfs.github.io/openzfs-docs/Performance%20and%20Tuning/Workload%20Tuning.html)
 also recommends 16K, 32K, 64K, or 128K for postgres — not 8K, despite
@@ -114,11 +114,11 @@ services.postgresql.package = pkgs.postgresql_16.override {
 These are added to **every** `services.postgresql.settings` block in
 `nixos-modules/services/postgres/module.nix`:
 
-| Setting | Default | We use | Reason |
-|------------------------|--------:|-------:|--------|
-| `full_page_writes` | `on` | `off` | ZFS COW makes torn pages impossible; FPW becomes pure write amplification (~50 % of WAL volume). |
-| `wal_init_zero` | `on` | `off` | Pre-zeroing WAL segments is a no-op on COW (the zeros land in new blocks anyway). |
-| `wal_recycle` | `on` | `off` | Recycling WAL segments assumes in-place overwrite is cheap; on COW each "overwrite" is a new block. |
+| Setting            | Default | We use | Reason                                                                                              |
+| ------------------ | ------: | -----: | --------------------------------------------------------------------------------------------------- |
+| `full_page_writes` |    `on` |  `off` | ZFS COW makes torn pages impossible; FPW becomes pure write amplification (~50 % of WAL volume).    |
+| `wal_init_zero`    |    `on` |  `off` | Pre-zeroing WAL segments is a no-op on COW (the zeros land in new blocks anyway).                   |
+| `wal_recycle`      |    `on` |  `off` | Recycling WAL segments assumes in-place overwrite is cheap; on COW each "overwrite" is a new block. |
 
 References:
 
@@ -231,11 +231,11 @@ benchmark.
 Per the source's representative numbers (tested on i3-1005G1, but
 relative ordering on Zen 4 is similar):
 
-| algo / impl | 16k MiB/s | 256k MiB/s |
-|-------------------|----------:|-----------:|
-| edonr-generic | 1769 | 1783 |
-| sha256-shani | 1212 | 1233 |
-| blake3-avx512 | 5269 | 5872 |
+| algo / impl   | 16k MiB/s | 256k MiB/s |
+| ------------- | --------: | ---------: |
+| edonr-generic |      1769 |       1783 |
+| sha256-shani  |      1212 |       1233 |
+| blake3-avx512 |      5269 |       5872 |
 
 `blake3-avx512` is the clear winner at most block sizes, beating
 `sha256-shani` ~5×. **However**, default `checksum=fletcher4` is

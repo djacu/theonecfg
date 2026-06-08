@@ -375,46 +375,45 @@ lib.fix (self: {
       categories = [ ];
     }
     // {
-      fields =
-        [
-          {
-            name = "host";
-            value = "127.0.0.1";
-          }
-          {
-            name = "port";
-            value = port;
-          }
-          {
-            name = "useSsl";
-            value = false;
-          }
-          {
-            name = "urlBase";
-            value = "";
-          }
-          {
-            name = "username";
-            value = "";
-          }
-          {
-            name = "password";
-            value = "";
-          }
-          {
-            name = fieldNames.cat;
-            value = category;
-          }
-        ]
-        ++ map (n: {
-          name = n;
+      fields = [
+        {
+          name = "host";
+          value = "127.0.0.1";
+        }
+        {
+          name = "port";
+          value = port;
+        }
+        {
+          name = "useSsl";
+          value = false;
+        }
+        {
+          name = "urlBase";
+          value = "";
+        }
+        {
+          name = "username";
+          value = "";
+        }
+        {
+          name = "password";
+          value = "";
+        }
+        {
+          name = fieldNames.cat;
+          value = category;
+        }
+      ]
+      ++ map (n: {
+        name = n;
+        value = 0;
+      }) fieldNames.priorityFields
+      ++ [
+        {
+          name = "initialState";
           value = 0;
-        }) fieldNames.priorityFields
-        ++ [
-          {
-            name = "initialState";
-            value = 0;
-          }
+        }
         {
           name = "sequentialOrder";
           value = false;
@@ -482,18 +481,17 @@ lib.fix (self: {
       implementationName = "Cardigann";
       configContract = "CardigannSettings";
       protocol = "torrent";
-      fields =
-        [
-          {
-            name = "definitionFile";
-            value = definitionFile;
-          }
-        ]
-        ++ lib.optional (seederThreshold != null) {
-          name = "torrentBaseSettings.appMinimumSeeders";
-          value = seederThreshold;
+      fields = [
+        {
+          name = "definitionFile";
+          value = definitionFile;
         }
-        ++ extraFields;
+      ]
+      ++ lib.optional (seederThreshold != null) {
+        name = "torrentBaseSettings.appMinimumSeeders";
+        value = seederThreshold;
+      }
+      ++ extraFields;
     };
 
   /**

@@ -39,16 +39,16 @@ two accounts are not linked.
    sops -d secrets/scheelite.yaml | grep -A1 '^paperless:' | grep admin-password
    ```
 
-2. Open `https://paperless.scheelite.dev/accounts/login/` in an
+1. Open `https://paperless.scheelite.dev/accounts/login/` in an
    incognito window (so the existing OIDC session doesn't auto-redirect).
 
-3. Log in with username `admin` and the password from step 1.
+1. Log in with username `admin` and the password from step 1.
 
-4. Navigate to **Settings → Users & Groups** (or `/admin/` for the
+1. Navigate to **Settings → Users & Groups** (or `/admin/` for the
    Django admin UI). Click the OIDC-created user (e.g. `djacu`),
    check both **Staff status** and **Superuser status**, save.
 
-5. Close incognito. In your normal browser, log out + sign back in
+1. Close incognito. In your normal browser, log out + sign back in
    via Kanidm. The 403 on `/api/ui_settings/` is gone; full UI loads.
 
 This is a one-time fix per user. The promotion persists in Paperless's

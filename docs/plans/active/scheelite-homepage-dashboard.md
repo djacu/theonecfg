@@ -26,7 +26,7 @@ has `users: []` and is therefore unauthenticated; Phase 2 below fixes this).
 What's missing is a **landing page** that aggregates the sprawl into one
 URL. After comparing Heimdall (no nixpkgs package), Homarr (no nixpkgs
 package and web-UI configured — fights our zero-clicks goal), Homer
-(no live data widgets), Glance (no native widgets for the *arr / Jellyfin
+(no live data widgets), Glance (no native widgets for the \*arr / Jellyfin
 ecosystem — would force us to hand-write Go templates per service), and
 Homepage (`gethomepage/homepage`, packaged as `homepage-dashboard` 1.12.1
 in nixpkgs), Homepage is the only candidate with a mature NixOS module
@@ -39,24 +39,24 @@ host-stats UI on `glances.scheelite.dev`.
 
 ## Locked decisions
 
-| Topic | Decision |
-|---|---|
-| Dashboard package | `homepage-dashboard` (gethomepage), upstream `services.homepage-dashboard` |
-| Stats backend | `glances -w` running headless, exposed both to Homepage's `glances` widget on loopback and as its own UI vhost |
-| Module path | `nixos-modules/services/homepage/module.nix` + `nixos-modules/services/glances/module.nix` |
-| Domain | Homepage: `home.scheelite.dev` · Glances: `glances.scheelite.dev` |
-| Auth | Both vhosts behind `forward_auth_kanidm` — same pattern as every other non-OIDC service |
-| Bind | Homepage: all interfaces on port 8082 (firewall closed; Caddy proxies on loopback) · Glances: `127.0.0.1:61208` |
-| `HOMEPAGE_ALLOWED_HOSTS` | Set to `home.scheelite.dev` — upstream defaults to `localhost:8082,127.0.0.1:8082` and rejects vhost-proxied traffic with 403 unless overridden |
-| Secrets | Single `sops.templates."homepage.env"` with `HOMEPAGE_VAR_<SVC>_*=…` lines; mounted via `services.homepage-dashboard.environmentFiles`. No new sops secrets needed in v1 — all values are placeholders for existing keys |
-| Substitution | `{{HOMEPAGE_VAR_X}}` (env-var inline). Verified in `src/utils/config/config.js:64-80` of upstream homepage |
-| Layout | Auto-derived from each enabled `theonecfg.services.<svc>` module. Groups: Identity / Media / Documents / Networking / Monitoring |
-| Top-level widgets | `resources` (CPU/memory + disk for `/`, `/tank0`, `/persist`) + `glances` (URL → loopback Glances) |
-| Bookmarks | None this iteration |
-| Impermanence | None added. Homepage runs `DynamicUser=true` with a `StateDirectory` that holds nothing in our declarative-only setup; CacheDirectory wiped each preStart by upstream module. Glances has no persistent state. Config lives in `/etc/homepage-dashboard/*.yaml` from the Nix store on every boot |
-| Override mechanism | `theonecfg.services.homepage.{extraServices,extraWidgets}` — additive. Suppression of an auto-derived tile is out of scope (use `services.<svc>.enable = false` if you don't want a tile) |
-| Widget gaps | Jellyfin only — link-only tile, needs a Jellyfin bootstrap extension (Phase 4, deferred). AdGuard / Jellyseerr / Grafana widgets ship in this plan: AdGuard via Phase 2 (new admin user + sops password), Jellyseerr + Grafana via Phase 3 (extraction unit + local-admin user respectively) |
-| qBittorrent widget creds | Real `admin` + `qbittorrent/password` from sops. The `AuthSubnetWhitelist=127.0.0.1/32` we already set means homepage's loopback request never triggers login, but passing real creds removes a footgun if the bypass is ever tightened |
+| Topic                    | Decision                                                                                                                                                                                                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Dashboard package        | `homepage-dashboard` (gethomepage), upstream `services.homepage-dashboard`                                                                                                                                                                                                                       |
+| Stats backend            | `glances -w` running headless, exposed both to Homepage's `glances` widget on loopback and as its own UI vhost                                                                                                                                                                                   |
+| Module path              | `nixos-modules/services/homepage/module.nix` + `nixos-modules/services/glances/module.nix`                                                                                                                                                                                                       |
+| Domain                   | Homepage: `home.scheelite.dev` · Glances: `glances.scheelite.dev`                                                                                                                                                                                                                                |
+| Auth                     | Both vhosts behind `forward_auth_kanidm` — same pattern as every other non-OIDC service                                                                                                                                                                                                          |
+| Bind                     | Homepage: all interfaces on port 8082 (firewall closed; Caddy proxies on loopback) · Glances: `127.0.0.1:61208`                                                                                                                                                                                  |
+| `HOMEPAGE_ALLOWED_HOSTS` | Set to `home.scheelite.dev` — upstream defaults to `localhost:8082,127.0.0.1:8082` and rejects vhost-proxied traffic with 403 unless overridden                                                                                                                                                  |
+| Secrets                  | Single `sops.templates."homepage.env"` with `HOMEPAGE_VAR_<SVC>_*=…` lines; mounted via `services.homepage-dashboard.environmentFiles`. No new sops secrets needed in v1 — all values are placeholders for existing keys                                                                         |
+| Substitution             | `{{HOMEPAGE_VAR_X}}` (env-var inline). Verified in `src/utils/config/config.js:64-80` of upstream homepage                                                                                                                                                                                       |
+| Layout                   | Auto-derived from each enabled `theonecfg.services.<svc>` module. Groups: Identity / Media / Documents / Networking / Monitoring                                                                                                                                                                 |
+| Top-level widgets        | `resources` (CPU/memory + disk for `/`, `/tank0`, `/persist`) + `glances` (URL → loopback Glances)                                                                                                                                                                                               |
+| Bookmarks                | None this iteration                                                                                                                                                                                                                                                                              |
+| Impermanence             | None added. Homepage runs `DynamicUser=true` with a `StateDirectory` that holds nothing in our declarative-only setup; CacheDirectory wiped each preStart by upstream module. Glances has no persistent state. Config lives in `/etc/homepage-dashboard/*.yaml` from the Nix store on every boot |
+| Override mechanism       | `theonecfg.services.homepage.{extraServices,extraWidgets}` — additive. Suppression of an auto-derived tile is out of scope (use `services.<svc>.enable = false` if you don't want a tile)                                                                                                        |
+| Widget gaps              | Jellyfin only — link-only tile, needs a Jellyfin bootstrap extension (Phase 4, deferred). AdGuard / Jellyseerr / Grafana widgets ship in this plan: AdGuard via Phase 2 (new admin user + sops password), Jellyseerr + Grafana via Phase 3 (extraction unit + local-admin user respectively)     |
+| qBittorrent widget creds | Real `admin` + `qbittorrent/password` from sops. The `AuthSubnetWhitelist=127.0.0.1/32` we already set means homepage's loopback request never triggers login, but passing real creds removes a footgun if the bypass is ever tightened                                                          |
 
 ## Module layout
 
@@ -75,23 +75,23 @@ Single source of truth for what's a widgeted tile vs link-only in v1.
 "Auth" describes what the upstream homepage widget requires; "v1 status"
 records what we ship now.
 
-| Service module | `theonecfg.services.<svc>` | Widget type | Auth required by widget | v1 status | Gap (if link-only) |
-|---|---|---|---|---|---|
-| Sonarr | `sonarr` | `sonarr` | API key | widget | — |
-| Sonarr-Anime | `sonarr-anime` | `sonarr` | API key | widget | — |
-| Radarr | `radarr` | `radarr` | API key | widget | — |
-| Whisparr | `whisparr` | (none upstream) | — | link-only | Homepage has no Whisparr widget |
-| Prowlarr | `prowlarr` | `prowlarr` | API key | widget | — |
-| qBittorrent | `qbittorrent` | `qbittorrent` | username/password (loopback bypass means it's not exercised) | widget | — |
-| Jellyfin | `jellyfin` | `jellyfin` | API key | link-only | sops has `jellyfin/admin-password` but not an API key — needs bootstrap extension (Phase 4, deferred) |
-| Jellyseerr | `jellyseerr` | `jellyseerr` (alias for `seerr`) | API key | widget (Phase 3) | Phase 3 adds a follow-up unit that `jq`-extracts `main.apiKey` from `/var/lib/private/seerr/settings.json` after bootstrap, writes it to a root-readable file, referenced via `HOMEPAGE_FILE_JELLYSEERR_KEY` |
-| Pinchflat | `pinchflat` | (none upstream) | — | link-only | Homepage has no Pinchflat widget |
-| Paperless-ngx | `paperless` | `paperlessngx` | username + password (token also accepted) | widget | — |
-| AdGuard Home | `adguard` | `adguard` | username/password | widget (Phase 2) | Phase 2 adds `users:` to AdGuard settings + new sops `adguard/admin-password` + ExecStartPre that bcrypts the plaintext into the mutable config. Closes the pre-existing security gap |
-| Kanidm | `kanidm` | (none upstream) | — | link-only | Homepage has no Kanidm widget |
-| Grafana | `monitoring.grafana` | `grafana` | basic auth (no OIDC support) | widget (Phase 3) | Phase 3 adds a local-admin user to `services.grafana.settings.security` alongside the existing OIDC; password from new sops `grafana/admin-password`. Humans still log in via Kanidm OIDC; only the Homepage widget uses the local creds |
-| Prometheus | `monitoring.prometheus` | `prometheus` | none | widget | — |
-| Scrutiny | `monitoring.scrutiny` | `scrutiny` | none | widget | — |
+| Service module | `theonecfg.services.<svc>` | Widget type                      | Auth required by widget                                      | v1 status        | Gap (if link-only)                                                                                                                                                                                                                       |
+| -------------- | -------------------------- | -------------------------------- | ------------------------------------------------------------ | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sonarr         | `sonarr`                   | `sonarr`                         | API key                                                      | widget           | —                                                                                                                                                                                                                                        |
+| Sonarr-Anime   | `sonarr-anime`             | `sonarr`                         | API key                                                      | widget           | —                                                                                                                                                                                                                                        |
+| Radarr         | `radarr`                   | `radarr`                         | API key                                                      | widget           | —                                                                                                                                                                                                                                        |
+| Whisparr       | `whisparr`                 | (none upstream)                  | —                                                            | link-only        | Homepage has no Whisparr widget                                                                                                                                                                                                          |
+| Prowlarr       | `prowlarr`                 | `prowlarr`                       | API key                                                      | widget           | —                                                                                                                                                                                                                                        |
+| qBittorrent    | `qbittorrent`              | `qbittorrent`                    | username/password (loopback bypass means it's not exercised) | widget           | —                                                                                                                                                                                                                                        |
+| Jellyfin       | `jellyfin`                 | `jellyfin`                       | API key                                                      | link-only        | sops has `jellyfin/admin-password` but not an API key — needs bootstrap extension (Phase 4, deferred)                                                                                                                                    |
+| Jellyseerr     | `jellyseerr`               | `jellyseerr` (alias for `seerr`) | API key                                                      | widget (Phase 3) | Phase 3 adds a follow-up unit that `jq`-extracts `main.apiKey` from `/var/lib/private/seerr/settings.json` after bootstrap, writes it to a root-readable file, referenced via `HOMEPAGE_FILE_JELLYSEERR_KEY`                             |
+| Pinchflat      | `pinchflat`                | (none upstream)                  | —                                                            | link-only        | Homepage has no Pinchflat widget                                                                                                                                                                                                         |
+| Paperless-ngx  | `paperless`                | `paperlessngx`                   | username + password (token also accepted)                    | widget           | —                                                                                                                                                                                                                                        |
+| AdGuard Home   | `adguard`                  | `adguard`                        | username/password                                            | widget (Phase 2) | Phase 2 adds `users:` to AdGuard settings + new sops `adguard/admin-password` + ExecStartPre that bcrypts the plaintext into the mutable config. Closes the pre-existing security gap                                                    |
+| Kanidm         | `kanidm`                   | (none upstream)                  | —                                                            | link-only        | Homepage has no Kanidm widget                                                                                                                                                                                                            |
+| Grafana        | `monitoring.grafana`       | `grafana`                        | basic auth (no OIDC support)                                 | widget (Phase 3) | Phase 3 adds a local-admin user to `services.grafana.settings.security` alongside the existing OIDC; password from new sops `grafana/admin-password`. Humans still log in via Kanidm OIDC; only the Homepage widget uses the local creds |
+| Prometheus     | `monitoring.prometheus`    | `prometheus`                     | none                                                         | widget           | —                                                                                                                                                                                                                                        |
+| Scrutiny       | `monitoring.scrutiny`      | `scrutiny`                       | none                                                         | widget           | —                                                                                                                                                                                                                                        |
 
 Verified against `/tmp/investigate/homepage/src/widgets/` (upstream
 `gethomepage/homepage` `main`). Whisparr / Pinchflat / Kanidm have no
@@ -156,7 +156,7 @@ No state. No sops. No impermanence entry.
 Auto-derives the service tile / widget list from the existing
 `theonecfg.services.<svc>` modules — same pattern as
 `nixos-modules/services/jellyseerr/module.nix:42-77` builds its
-`arrInstances` list from enabled *arr modules.
+`arrInstances` list from enabled \*arr modules.
 
 ```nix
 { config, lib, pkgs, ... }:
@@ -691,18 +691,16 @@ problem and rolls back, AdGuard stays secured.
 Bundles three changes that compose into a single working dashboard:
 
 1. Jellyseerr API-key extraction follow-up (so the Jellyseerr widget has a key to use).
-2. Grafana local-admin user (so the Grafana widget can authenticate).
-3. Homepage module itself + scheelite wiring.
+1. Grafana local-admin user (so the Grafana widget can authenticate).
+1. Homepage module itself + scheelite wiring.
 
 **Files:**
 
 - Modify `nixos-modules/services/jellyseerr/module.nix`:
-  - Add a new oneshot `jellyseerr-api-key.service` ordered `after = [
-    "jellyseerr-bootstrap.service" ]` and `requires`. Reads
+  - Add a new oneshot `jellyseerr-api-key.service` ordered `after = [ "jellyseerr-bootstrap.service" ]` and `requires`. Reads
     `/var/lib/private/seerr/settings.json` (Seerr's DynamicUser
     private state), `jq -r '.main.apiKey'` from it, writes to
-    `/var/lib/seerr/api-key.txt` mode 0440 root:root via `install
-    -m`. Idempotent: re-runs are no-ops if the file is up to date.
+    `/var/lib/seerr/api-key.txt` mode 0440 root:root via `install -m`. Idempotent: re-runs are no-ops if the file is up to date.
 - Modify `nixos-modules/services/monitoring/grafana/module.nix`:
   - In the `mkIf cfg.enable` block, add `services.grafana.settings.security.admin_user = "admin";`
     and `admin_password = "$__file{${config.sops.secrets."grafana/admin-password".path}}";`
@@ -734,8 +732,7 @@ Bundles three changes that compose into a single working dashboard:
   the resources widget (upstream homepage module relaxes ProcSubset
   when CPU stats are needed).
 - `sudo cat /var/lib/seerr/api-key.txt` — non-empty 32-char-ish
-  string, matches `jq -r .main.apiKey
-  /var/lib/private/seerr/settings.json`.
+  string, matches `jq -r .main.apiKey /var/lib/private/seerr/settings.json`.
 - `curl -fsS -H "Host: home.scheelite.dev" http://127.0.0.1:8082/`
   — 200 with HTML containing "scheelite" (title) and group names.
 - `curl -fsSI https://home.scheelite.dev/` — 302 to Kanidm.
@@ -757,8 +754,7 @@ Bundles three changes that compose into a single working dashboard:
   unsubstituted `{{HOMEPAGE_*_*}}` or wrong creds. Check
   `journalctl -u homepage-dashboard | rg <widget-type>` — homepage
   logs the upstream HTTP status on widget fetches.
-- Jellyseerr widget shows nothing: `cat
-  /var/lib/seerr/api-key.txt` should be readable by root (the env
+- Jellyseerr widget shows nothing: `cat /var/lib/seerr/api-key.txt` should be readable by root (the env
   file is read by systemd as PID 1 before DynamicUser drop). If
   empty, `jellyseerr-api-key` likely ran before Seerr finished
   generating its settings.

@@ -136,7 +136,16 @@ in
       # Hardening mirrors upstream's services.sonarr.
       systemd.services.sonarr-anime = {
         description = "Sonarr (anime)";
-        after = [ "network.target" ];
+        # Order after the postgres container: the DB host is the container's
+        # veth address and pg_hba trusts only that /24. Without this the
+        # service can start before the container's route exists, connect via
+        # the default route (wrong source IP), and hit a fatal, non-retried
+        # pg_hba rejection. Same pattern as the stasharr service.
+        after = [
+          "network.target"
+          "container@postgres-sonarr-anime.service"
+        ];
+        requires = [ "container@postgres-sonarr-anime.service" ];
         wantedBy = [ "multi-user.target" ];
         environment = mkSettingsEnvVars "SONARR" settings;
         serviceConfig = {

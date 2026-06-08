@@ -87,6 +87,7 @@ theonecfg.services.stash = {
 **Wiring inside `config = mkIf cfg.enable (mkMerge [...])`:**
 
 1. **Upstream service:**
+
    ```nix
    services.stash = {
      enable = true;
@@ -113,16 +114,18 @@ theonecfg.services.stash = {
    };
    ```
 
-2. **API-key splice via ExecStartPre** (matches whisparr-config-sync at
+1. **API-key splice via ExecStartPre** (matches whisparr-config-sync at
    `whisparr/module.nix:49-80`): a `writeShellApplication` that reads each
    `stashBoxes[*].apiKeyFile` and replaces the matching `@APIKEY_<name>@`
    placeholder in `${cfg.dataDir}/config.yml`. Wired with
    `lib.mkAfter`:
+
    ```nix
    systemd.services.stash.serviceConfig.ExecStartPre = lib.mkAfter [
      "+${stashApikeySplice}/bin/stash-apikey-splice"
    ];
    ```
+
    The `+` prefix makes it run as root (the upstream ExecStartPre creates
    `${dataDir}/config.yml` owned by `stash:media` mode 0644-ish; root can
    edit either way). With `mutableSettings = true`, the upstream
@@ -133,7 +136,8 @@ theonecfg.services.stash = {
    **Idempotency:** the splice greps for `@APIKEY_*@` markers; if absent
    (Stash UI has rotated the apikey, say), it does nothing.
 
-3. **Filesystem & user:**
+1. **Filesystem & user:**
+
    ```nix
    users.users.stash.extraGroups = [ "media" ];
 
@@ -146,7 +150,8 @@ theonecfg.services.stash = {
    # writes inheriting group=media is enough for cross-service read access.
    ```
 
-4. **Caddy (only if `theonecfg.services.caddy.enable`):**
+1. **Caddy (only if `theonecfg.services.caddy.enable`):**
+
    ```nix
    services.caddy.virtualHosts.${cfg.domain}.extraConfig = ''
      import acme_resolvers
@@ -155,7 +160,8 @@ theonecfg.services.stash = {
    '';
    ```
 
-5. **Sops:**
+1. **Sops:**
+
    ```nix
    sops.secrets = {
      "stash/jwt-secret".owner = "stash";
@@ -166,17 +172,16 @@ theonecfg.services.stash = {
    # which boxes exist on this host).
    ```
 
-6. **No Postgres** — Stash uses SQLite, written under `dataDir`.
+1. **No Postgres** — Stash uses SQLite, written under `dataDir`.
 
-7. **Caveat — upstream `BindReadOnlyPaths`:** the nixpkgs module sets
+1. **Caveat — upstream `BindReadOnlyPaths`:** the nixpkgs module sets
    `BindReadOnlyPaths = map (s: s.path) cfg.settings.stash`. Stash's view
    of library paths is read-only inside its mount namespace. That's
    correct semantics (Stash doesn't write to library files; only reads
    for hashing/scanning) but worth noting if you ever want Stash to
    rename files on disk via Tasks → Migrate — that operation needs
    filesystem write access. If/when that becomes a workflow, drop the
-   read-only bind via `systemd.services.stash.serviceConfig.BindReadOnlyPaths
-   = lib.mkForce [ ];` and add the paths under `BindPaths` (read-write)
+   read-only bind via `systemd.services.stash.serviceConfig.BindReadOnlyPaths = lib.mkForce [ ];` and add the paths under `BindPaths` (read-write)
    instead. Out of scope for v1.
 
 **Scheelite wiring** (`nixos-configurations/scheelite/default.nix`):
@@ -417,6 +422,7 @@ theonecfg.services.stasharr = {
    Stash/Whisparr via HTTP, not the filesystem; verified by reading
    `apps/sp-api/src/providers/{stash,whisparr,stashdb}/*.adapter.ts` —
    all interactions go through `fetch()` against configured `baseUrl`):
+
    ```nix
    users.users.stasharr = {
      isSystemUser = true;
@@ -426,7 +432,8 @@ theonecfg.services.stasharr = {
    users.groups.stasharr = { };
    ```
 
-2. **Postgres** via existing helper:
+1. **Postgres** via existing helper:
+
    ```nix
    theonecfg.services.postgres.instances.stasharr = {
      version = "16";
@@ -436,7 +443,7 @@ theonecfg.services.stasharr = {
    };
    ```
 
-3. **systemd unit** — uses upstream `start-app.sh` as `ExecStart`. The
+1. **systemd unit** — uses upstream `start-app.sh` as `ExecStart`. The
    script is the same code path the Dockerfile entrypoints to and
    handles, in order: session-secret persistence at
    `${APP_DATA_DIR}/session-secret`, `DATABASE_URL` derivation from
@@ -483,7 +490,8 @@ theonecfg.services.stasharr = {
    };
    ```
 
-4. **Sops:**
+1. **Sops:**
+
    ```nix
    sops.secrets."stasharr/postgres-password".owner = "stasharr";
    sops.templates."stasharr.env" = {
@@ -494,7 +502,8 @@ theonecfg.services.stasharr = {
    };
    ```
 
-5. **Caddy:**
+1. **Caddy:**
+
    ```nix
    services.caddy.virtualHosts.${cfg.domain}.extraConfig = ''
      import acme_resolvers
@@ -502,6 +511,7 @@ theonecfg.services.stasharr = {
      reverse_proxy 127.0.0.1:${toString cfg.port}
    '';
    ```
+
    **UX note:** Stasharr has its own local-admin login (single-tenant;
    not OIDC-aware — confirmed in
    `apps/sp-api/src/auth/auth.service.ts` + `prisma/schema.prisma:17-27`
@@ -563,8 +573,7 @@ sops.secrets."stasharr/postgres-password".owner = "stasharr";
   - StashDB (catalog provider): `URL = https://stashdb.org/graphql`,
     API key from your StashDB account profile.
 - Browse a StashDB scene → click Request → confirm Whisparr received the
-  entry (check Whisparr UI, or `curl -H 'X-Api-Key: ...'
-  http://127.0.0.1:6969/api/v3/movie`).
+  entry (check Whisparr UI, or `curl -H 'X-Api-Key: ...' http://127.0.0.1:6969/api/v3/movie`).
 - Local-availability badge correctly reflects scenes already in Stash.
 - If the journal shows a Prisma protocol-mismatch error during
   `migrate deploy`, capture the exact message and fall back to the OCI
@@ -599,7 +608,7 @@ in Phase 3 only applies to server-side fetches).
 
 **To reference (read-only patterns to mirror):**
 
-- `nixos-modules/services/whisparr/module.nix:1-230` — *arr module
+- `nixos-modules/services/whisparr/module.nix:1-230` — \*arr module
   skeleton (sops, Caddy, RequiresMountsFor, ExecStartPre config-sync via
   `lib.mkAfter`)
 - `nixos-modules/services/postgres/module.nix` — per-service postgres
@@ -638,16 +647,16 @@ in Phase 3 only applies to server-side fetches).
 ## End-to-end verification
 
 1. `nix flake check` passes.
-2. `nix build .#nixosConfigurations.scheelite.config.system.build.toplevel` succeeds.
-3. Deploy via `nixos-rebuild --target-host scheelite --sudo --ask-sudo-password switch`.
-4. **Stash:** UI reachable at `https://stash.scheelite.dev`; StashDB
+1. `nix build .#nixosConfigurations.scheelite.config.system.build.toplevel` succeeds.
+1. Deploy via `nixos-rebuild --target-host scheelite --sudo --ask-sudo-password switch`.
+1. **Stash:** UI reachable at `https://stash.scheelite.dev`; StashDB
    connection populated (placeholder splice replaced); `/tank0/media/adult`
    scanned; Identify-from-StashDB workflow resolves scenes from the test
    mega-pack via PHash matching that filename parsing alone could not.
-5. **Stasharr Portal:** UI bootstraps cleanly; postgres migration runs;
+1. **Stasharr Portal:** UI bootstraps cleanly; postgres migration runs;
    Whisparr + Stash integrations connect (loopback URLs); sample
    scene-request from a StashDB browse view reaches Whisparr.
-6. Both `https://stash.scheelite.dev` and `https://stasharr.scheelite.dev`
+1. Both `https://stash.scheelite.dev` and `https://stasharr.scheelite.dev`
    served behind Caddy + kanidm forward_auth with valid Let's Encrypt
    certs.
 
@@ -1117,12 +1126,15 @@ candidates and fixes:
 - `argon2.node not found at runtime` → `pnpm rebuild argon2` produced
   output in a non-default path; check `node_modules/argon2/build/Release/`
   for the `.node` file.
+
 - `prisma generate` fails with DATABASE_URL related error → ensure the
   placeholder `DATABASE_URL=postgresql://placeholder:...` is set in
   the same shell line as the prisma command.
+
 - `pnpm install --frozen-lockfile` fails with ERR_PNPM_OUTDATED_LOCKFILE
   or a lockfile-version error → pnpm 10.29.2 vs 10.32.0 incompatibility;
   fall back to OCI per the Decision space deferred section.
+
 - Angular build complains about telemetry → confirm
   `env.NG_CLI_ANALYTICS = "ci";` is set.
 
@@ -1367,8 +1379,10 @@ expected per the design).
 Settings → Integrations → Whisparr:
 
 - URL: `http://127.0.0.1:6969`
+
 - API key: from `secrets/scheelite.yaml` `whisparr/api-key`
   (read with `sops --decrypt secrets/scheelite.yaml | grep -A1 whisparr`)
+
 - Click Test → expect green/CONFIGURED.
 
 - [ ] **Step 3: Configure Stash integration**
@@ -1378,7 +1392,9 @@ In Stash UI → Settings → Security → API Key, generate a new key and copy.
 In Stasharr UI → Settings → Integrations → Stash:
 
 - URL: `http://127.0.0.1:9999`
+
 - API key: paste the value from Stash.
+
 - Click Test → expect green/CONFIGURED.
 
 - [ ] **Step 4: Configure StashDB catalog provider**

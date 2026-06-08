@@ -22,9 +22,9 @@ thresholds, no alerts, no recording rules.
 In Grafana:
 
 1. Sidebar → **Dashboards** → **New** → **Import**.
-2. Click **Upload JSON file** and pick one of the `homelab-*.json` files
+1. Click **Upload JSON file** and pick one of the `homelab-*.json` files
    above (or paste the JSON into the textarea).
-3. On the Import screen: leave the title as-is, leave the UID as-is.
+1. On the Import screen: leave the title as-is, leave the UID as-is.
    Grafana will pre-fill the `Prometheus` and `Loki` datasources because
    the JSON references them by name; confirm and click **Import**.
 

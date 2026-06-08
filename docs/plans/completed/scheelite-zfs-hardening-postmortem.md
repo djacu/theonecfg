@@ -51,6 +51,7 @@ host shows the older condition behavior on May 3 and May 6 boots
 race-and-fail behavior under 26.05.
 
 The race itself is between:
+
 - `zfs-mount.service` (After=zfs-import.target, Before=local-fs.target):
   runs `zfs mount -a` which mounts all non-legacy datasets via
   `zfs mount`.
@@ -72,6 +73,7 @@ mounts in practice.
 ## The fix: `mountpoint=legacy`
 
 Setting `mountpoint=legacy` on a dataset:
+
 - Tells `zfs mount -a` to skip it (legacy = user-managed).
 - Tells disko to omit `zfsutil` from the corresponding
   `fileSystems.<path>.options` (verified at
@@ -91,19 +93,19 @@ several risk-amplifying changes in one deploy:
    default. The actual effect was to remove the
    force-import-past-an-unclean-pool recovery path.
 
-2. **The activation cascade during `nixos-rebuild switch` itself
+1. **The activation cascade during `nixos-rebuild switch` itself
    tripped emergency mode** before the live property migration ran.
    The race was active during the unit-reload cascade. The host had
    to be recovered via Ctrl-D, then live migration completed in a
    limp-along state, then the reboot was attempted from an unclean
    pool.
 
-3. **The unclean pool state, combined with `forceImportRoot=false`,
+1. **The unclean pool state, combined with `forceImportRoot=false`,
    prevented the new generation from importing.** The error
    manifested as "Failed to mount /sysroot" but the underlying
    issue was the pool refusing to import without `-f`.
 
-4. **The operator fell back to a previous generation** whose disko
+1. **The operator fell back to a previous generation** whose disko
    config still had path mountpoints. That generation's fstab had
    `zfsutil` for every dataset. Live pool had been flipped to
    legacy. mount.zfs zfsutil-mode + legacy = mount refused. The
@@ -111,7 +113,7 @@ several risk-amplifying changes in one deploy:
    the zfsutil/legacy incompatibility — but only because the
    operator was running an *older* config than the live pool state.
 
-5. **Rescue USB rollback** worked: reverted the live pool back to
+1. **Rescue USB rollback** worked: reverted the live pool back to
    path mountpoints, brought the host back up.
 
 The initial postmortem misread step 4's manual reproduction
@@ -164,8 +166,7 @@ incident, three consecutive reboots came up clean.
   bake.
 - **The "directory not empty" warning** still appears in
   `tank0.mount`'s journal:
-  `tank0.mount: Directory /tank0 to mount over is not empty,
-  mounting anyway.`
+  `tank0.mount: Directory /tank0 to mount over is not empty, mounting anyway.`
   The mount succeeds. The cause is that child mountpoint
   directories get created (probably by tmpfiles or by the act of
   generating the .mount units' directories) before `tank0.mount`
@@ -177,21 +178,21 @@ incident, three consecutive reboots came up clean.
    forceImport flag changes.** A failed migration with
    `forceImportRoot=false` and no editor-enabled bootloader is
    genuinely unrecoverable without external media.
-2. **Don't fall back to older generations after a live pool
+1. **Don't fall back to older generations after a live pool
    property migration.** Older generations have a different
    fstab and will fail the boot with a misleading-looking error.
-3. **Verify rendered config before deploying.** `nix eval` on
+1. **Verify rendered config before deploying.** `nix eval` on
    `fileSystems.<path>.options` is cheap, easy, and would have
    surfaced any disko-behavior surprises before they could brick
    the host.
-4. **`nixos-rebuild boot` is safer than `switch` when the deploy
+1. **`nixos-rebuild boot` is safer than `switch` when the deploy
    involves live state changes** that need to happen between
    config and activation. Defer activation to the next boot;
    give yourself time to put the live state right first.
-5. **`zfs set -u` is a first-class tool for paths that can't be
+1. **`zfs set -u` is a first-class tool for paths that can't be
    unmounted live**, not a workaround. Use it when impermanence
    bind-mounts or active sessions hold paths open.
-6. **An adversarial review of a "retry" plan saves real
+1. **An adversarial review of a "retry" plan saves real
    downtime.** The first draft of the retry plan inherited
    several quiet assumptions from the original failed attempt
    (band-aids unnecessary, /and /nix could be flipped, etc.) —

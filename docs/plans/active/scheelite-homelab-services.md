@@ -45,26 +45,26 @@ Initial in-scope services:
 
 ## Locked decisions
 
-| Topic | Decision |
-|---|---|
-| Service isolation | Native systemd services on scheelite; postgres backings run in NixOS containers (per-service instance) |
-| Per-service postgres | One `containers.postgres-<svc>` per service that needs a DB; bind-mounted to a dedicated ZFS dataset at `/persist/postgres/<svc>` (recordsize=8K) |
-| Local routing | Subdomain-based on `*.scheelite.lan`, served by Caddy |
-| Local DNS | AdGuard Home with wildcard rewrite `*.scheelite.lan → <scheelite IP>`; router DHCP advertises (scheelite, 1.1.1.1) so reboots fall back |
-| Identity | Kanidm as IdP. OIDC-aware services integrate natively. Non-OIDC services sit behind oauth2-proxy as forward-auth, validating Kanidm tokens |
-| Secrets | sops-nix. Encrypted to scheelite's persisted host SSH key + user's age key for editing |
-| Storage layout | Hierarchical via disko: boot pool emits root + per-instance postgres datasets; tank0 emits `/tank0/media/{tv,anime,movies,adult,music,audiobooks,books,photos,youtube}`, `/tank0/downloads`, `/tank0/services/<svc>`. See `nixos-configurations/scheelite/disko.nix`. |
-| Disko import | `disko.nix` in repo but not yet imported in `scheelite/default.nix` (conflicts with existing `hardware.nix` filesystem entries). Import after a clean nixos-anywhere reinstall. |
-| Declarative \*arr/Jellyfin config | Four layers: upstream `services.<svc>` + env-var injection from sops + Recyclarr + custom REST one-shots. **Goal: zero web-UI clicks after deploy.** See `scheelite-declarative-arr.md`. |
-| Recyclarr quality default | 4K (UHD): `web-2160p-v4` for Sonarr, `anime-sonarr-v4` for sonarr-anime, `sqp/sqp-1-web-2160p` for Radarr |
-| qBittorrent password (B-lite) | Localhost auth bypass for the loopback path (Caddy + our one-shots); PBKDF2 password seeded into `qBittorrent.conf` at preStart from sops plaintext, as defense in depth against accidental LAN-binding |
-| Log shipping | Grafana Alloy (replaces deprecated promtail; `services.alloy` config in `/etc/alloy/config.alloy`) |
-| External access | **POSTPONED** — captured in `scheelite-external-access-options.md` |
-| Backups | **DEFERRED** — captured in `scheelite-backup-options.md` |
-| Vaultwarden | **DEFERRED** — depends on backup design landing first |
-| Reverse proxy | Caddy (over nginx) for simpler config and automatic ACME |
-| VPN namespace for downloads | Out of scope this iteration |
-| Usenet (SABnzbd, NZBGet) | Out of scope — torrents only |
+| Topic                             | Decision                                                                                                                                                                                                                                                              |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Service isolation                 | Native systemd services on scheelite; postgres backings run in NixOS containers (per-service instance)                                                                                                                                                                |
+| Per-service postgres              | One `containers.postgres-<svc>` per service that needs a DB; bind-mounted to a dedicated ZFS dataset at `/persist/postgres/<svc>` (recordsize=8K)                                                                                                                     |
+| Local routing                     | Subdomain-based on `*.scheelite.lan`, served by Caddy                                                                                                                                                                                                                 |
+| Local DNS                         | AdGuard Home with wildcard rewrite `*.scheelite.lan → <scheelite IP>`; router DHCP advertises (scheelite, 1.1.1.1) so reboots fall back                                                                                                                               |
+| Identity                          | Kanidm as IdP. OIDC-aware services integrate natively. Non-OIDC services sit behind oauth2-proxy as forward-auth, validating Kanidm tokens                                                                                                                            |
+| Secrets                           | sops-nix. Encrypted to scheelite's persisted host SSH key + user's age key for editing                                                                                                                                                                                |
+| Storage layout                    | Hierarchical via disko: boot pool emits root + per-instance postgres datasets; tank0 emits `/tank0/media/{tv,anime,movies,adult,music,audiobooks,books,photos,youtube}`, `/tank0/downloads`, `/tank0/services/<svc>`. See `nixos-configurations/scheelite/disko.nix`. |
+| Disko import                      | `disko.nix` in repo but not yet imported in `scheelite/default.nix` (conflicts with existing `hardware.nix` filesystem entries). Import after a clean nixos-anywhere reinstall.                                                                                       |
+| Declarative \*arr/Jellyfin config | Four layers: upstream `services.<svc>` + env-var injection from sops + Recyclarr + custom REST one-shots. **Goal: zero web-UI clicks after deploy.** See `scheelite-declarative-arr.md`.                                                                              |
+| Recyclarr quality default         | 4K (UHD): `web-2160p-v4` for Sonarr, `anime-sonarr-v4` for sonarr-anime, `sqp/sqp-1-web-2160p` for Radarr                                                                                                                                                             |
+| qBittorrent password (B-lite)     | Localhost auth bypass for the loopback path (Caddy + our one-shots); PBKDF2 password seeded into `qBittorrent.conf` at preStart from sops plaintext, as defense in depth against accidental LAN-binding                                                               |
+| Log shipping                      | Grafana Alloy (replaces deprecated promtail; `services.alloy` config in `/etc/alloy/config.alloy`)                                                                                                                                                                    |
+| External access                   | **POSTPONED** — captured in `scheelite-external-access-options.md`                                                                                                                                                                                                    |
+| Backups                           | **DEFERRED** — captured in `scheelite-backup-options.md`                                                                                                                                                                                                              |
+| Vaultwarden                       | **DEFERRED** — depends on backup design landing first                                                                                                                                                                                                                 |
+| Reverse proxy                     | Caddy (over nginx) for simpler config and automatic ACME                                                                                                                                                                                                              |
+| VPN namespace for downloads       | Out of scope this iteration                                                                                                                                                                                                                                           |
+| Usenet (SABnzbd, NZBGet)          | Out of scope — torrents only                                                                                                                                                                                                                                          |
 
 ## Module layout
 
@@ -348,15 +348,15 @@ templates daily for Sonarr/Radarr quality profiles + custom formats.
 **Layer 4 — Custom REST one-shots.** Helper library
 `library/declarative-arr.nix` exports:
 
-| Helper | Purpose |
-|---|---|
-| `mkSecureCurl` | curl wrapped with X-Api-Key from a sops file |
-| `waitForApiScript` | bash snippet to wait for an HTTP endpoint |
-| `mkArrApiPushService` | generic \*arr endpoint reconciler (GET → diff → POST/PUT/DELETE) |
-| `mkJellyfinBootstrap` | runs `/Startup/{Configuration,User,RemoteAccess,Complete}` |
-| `mkJellyfinLibrarySync` | reconciles `/Library/VirtualFolders` |
-| `mkQbtPushService` | qBittorrent preferences + categories via REST |
-| `qbtPasswordHashScript` | PBKDF2-hashes a sops plaintext into qBittorrent.conf |
+| Helper                  | Purpose                                                          |
+| ----------------------- | ---------------------------------------------------------------- |
+| `mkSecureCurl`          | curl wrapped with X-Api-Key from a sops file                     |
+| `waitForApiScript`      | bash snippet to wait for an HTTP endpoint                        |
+| `mkArrApiPushService`   | generic \*arr endpoint reconciler (GET → diff → POST/PUT/DELETE) |
+| `mkJellyfinBootstrap`   | runs `/Startup/{Configuration,User,RemoteAccess,Complete}`       |
+| `mkJellyfinLibrarySync` | reconciles `/Library/VirtualFolders`                             |
+| `mkQbtPushService`      | qBittorrent preferences + categories via REST                    |
+| `qbtPasswordHashScript` | PBKDF2-hashes a sops plaintext into qBittorrent.conf             |
 
 Shared option types in `library/arr-types.nix` (`rootFolderType`, `indexerType`,
 `applicationType`, `downloadClientType`, `delayProfileType`,
@@ -374,21 +374,21 @@ Shared option types in `library/arr-types.nix` (`rootFolderType`, `indexerType`,
 
 ## Per-service module notes
 
-| Service | Upstream | OIDC | Public-vhost candidate |
-|---|---|---|---|
-| Jellyfin | `services.jellyfin` | via SSO plugin (third-party but mature) | yes (later) |
-| qBittorrent | `services.qbittorrent` | no — forward-auth + localhost bypass | no |
-| Sonarr | `services.sonarr` | no — forward-auth | no |
-| Sonarr-anime | manual systemd unit (services.sonarr is singleton) | no — forward-auth | no |
-| Radarr | `services.radarr` | no — forward-auth | no |
-| Whisparr | `services.whisparr` | no — forward-auth | no |
-| Prowlarr | `services.prowlarr` | no — forward-auth | no |
-| Pinchflat | `services.pinchflat` | no — forward-auth | no |
-| Recyclarr | `services.recyclarr` | n/a (background sync) | no |
-| Jellyseerr | `services.seerr` (renamed from jellyseerr in 26.05) | via Jellyfin OAuth | yes (later) |
-| Nextcloud | `services.nextcloud` (with `user_oidc` app) | native | yes (later) |
-| Immich | `services.immich` (24.11+) | native | yes (later) |
-| Paperless-ngx | `services.paperless` (django-allauth OIDC) | native | yes (later) |
+| Service       | Upstream                                            | OIDC                                    | Public-vhost candidate |
+| ------------- | --------------------------------------------------- | --------------------------------------- | ---------------------- |
+| Jellyfin      | `services.jellyfin`                                 | via SSO plugin (third-party but mature) | yes (later)            |
+| qBittorrent   | `services.qbittorrent`                              | no — forward-auth + localhost bypass    | no                     |
+| Sonarr        | `services.sonarr`                                   | no — forward-auth                       | no                     |
+| Sonarr-anime  | manual systemd unit (services.sonarr is singleton)  | no — forward-auth                       | no                     |
+| Radarr        | `services.radarr`                                   | no — forward-auth                       | no                     |
+| Whisparr      | `services.whisparr`                                 | no — forward-auth                       | no                     |
+| Prowlarr      | `services.prowlarr`                                 | no — forward-auth                       | no                     |
+| Pinchflat     | `services.pinchflat`                                | no — forward-auth                       | no                     |
+| Recyclarr     | `services.recyclarr`                                | n/a (background sync)                   | no                     |
+| Jellyseerr    | `services.seerr` (renamed from jellyseerr in 26.05) | via Jellyfin OAuth                      | yes (later)            |
+| Nextcloud     | `services.nextcloud` (with `user_oidc` app)         | native                                  | yes (later)            |
+| Immich        | `services.immich` (24.11+)                          | native                                  | yes (later)            |
+| Paperless-ngx | `services.paperless` (django-allauth OIDC)          | native                                  | yes (later)            |
 
 State paths (canonical):
 
@@ -404,19 +404,19 @@ State paths (canonical):
 
 Audited per-module to avoid duplicating what upstream NixOS modules already do:
 
-| Module | Upstream creates dataDir? | Upstream `RequiresMountsFor`? | Our tmpfiles | Our `RequiresMountsFor` |
-|---|---|---|---|---|
-| jellyfin | yes (dataDir, configDir, logDir, cacheDir) | yes — but only configDir/logDir/cacheDir, not dataDir | none | dataDir + each library's path |
-| sonarr | only when default; not when overridden | yes (cfg.dataDir) | dataDir | each rootFolder's path |
-| sonarr-anime | n/a (we own the systemd unit) | n/a | dataDir | dataDir + each rootFolder's path |
-| radarr | yes | yes | none | each rootFolder's path |
-| whisparr | yes | no | none | dataDir + each rootFolder's path |
-| qbittorrent | partial (creates qBittorrent subdirs only) | no | profileDir + downloadsDir + each category | profileDir + downloadsDir |
-| pinchflat | only `/var/lib/pinchflat` (StateDirectory) | no | mediaDir | mediaDir |
-| immich | yes (mediaLocation via tmpfiles) | no | none | mediaLocation (on `immich-server` AND `immich-machine-learning` — both run in parallel) |
-| paperless | yes | yes (`= ReadWritePaths` on the leader) | none | none |
-| nextcloud | yes (auto-creates dataDir parent via subdirs) | no | none | dataDir on `nextcloud-setup` (the leader) |
-| loki | no | no | dataDir | dataDir |
+| Module       | Upstream creates dataDir?                     | Upstream `RequiresMountsFor`?                         | Our tmpfiles                              | Our `RequiresMountsFor`                                                                 |
+| ------------ | --------------------------------------------- | ----------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------- |
+| jellyfin     | yes (dataDir, configDir, logDir, cacheDir)    | yes — but only configDir/logDir/cacheDir, not dataDir | none                                      | dataDir + each library's path                                                           |
+| sonarr       | only when default; not when overridden        | yes (cfg.dataDir)                                     | dataDir                                   | each rootFolder's path                                                                  |
+| sonarr-anime | n/a (we own the systemd unit)                 | n/a                                                   | dataDir                                   | dataDir + each rootFolder's path                                                        |
+| radarr       | yes                                           | yes                                                   | none                                      | each rootFolder's path                                                                  |
+| whisparr     | yes                                           | no                                                    | none                                      | dataDir + each rootFolder's path                                                        |
+| qbittorrent  | partial (creates qBittorrent subdirs only)    | no                                                    | profileDir + downloadsDir + each category | profileDir + downloadsDir                                                               |
+| pinchflat    | only `/var/lib/pinchflat` (StateDirectory)    | no                                                    | mediaDir                                  | mediaDir                                                                                |
+| immich       | yes (mediaLocation via tmpfiles)              | no                                                    | none                                      | mediaLocation (on `immich-server` AND `immich-machine-learning` — both run in parallel) |
+| paperless    | yes                                           | yes (`= ReadWritePaths` on the leader)                | none                                      | none                                                                                    |
+| nextcloud    | yes (auto-creates dataDir parent via subdirs) | no                                                    | none                                      | dataDir on `nextcloud-setup` (the leader)                                               |
+| loki         | no                                            | no                                                    | dataDir                                   | dataDir                                                                                 |
 
 ## Monitoring stack — sketches
 

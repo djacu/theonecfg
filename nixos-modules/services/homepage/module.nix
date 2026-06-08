@@ -250,36 +250,34 @@ let
   # (homepage's services.yaml schema).
   servicesYaml = map (groupName: {
     ${groupName} = map (tile: {
-      ${tile.name} =
-        {
-          inherit (tile) href icon description;
-        }
-        // lib.optionalAttrs (tile.widget != null) { inherit (tile) widget; };
+      ${tile.name} = {
+        inherit (tile) href icon description;
+      }
+      // lib.optionalAttrs (tile.widget != null) { inherit (tile) widget; };
     }) (lib.filter (t: t.group == groupName) enabledTiles);
   }) (lib.filter (g: lib.any (t: t.group == g) enabledTiles) groupOrder);
 
   # Top-level "info" widgets — independent of the services list.
-  infoWidgets =
-    [
-      {
-        resources = {
-          cpu = true;
-          memory = true;
-          disk = [
-            "/"
-            "/tank0"
-            "/persist"
-          ];
-        };
-      }
-    ]
-    ++ lib.optional svc.glances.enable {
-      glances = {
-        url = "http://127.0.0.1:${toString svc.glances.port}";
-        version = 4;
-        chart = false;
+  infoWidgets = [
+    {
+      resources = {
+        cpu = true;
+        memory = true;
+        disk = [
+          "/"
+          "/tank0"
+          "/persist"
+        ];
       };
+    }
+  ]
+  ++ lib.optional svc.glances.enable {
+    glances = {
+      url = "http://127.0.0.1:${toString svc.glances.port}";
+      version = 4;
+      chart = false;
     };
+  };
 
 in
 {

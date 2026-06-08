@@ -168,7 +168,8 @@ let
         name = "baseUrl";
         value = "http://127.0.0.1:${toString arrCfg.port}";
       }
-    ] ++ defaultProwlarrSyncFields.${name};
+    ]
+    ++ defaultProwlarrSyncFields.${name};
     _apiKeyFile = config.sops.secrets."${name}/api-key".path;
   }) enabledArrs;
 
@@ -178,8 +179,7 @@ let
   # The `prowlarr-tags.service` one-shot creates these; the indexer/
   # application push services then resolve label→id at runtime.
   allTagLabels = lib.unique (
-    lib.concatMap (i: i.tags or [ ]) cfg.indexers
-    ++ lib.concatMap (a: a.tags or [ ]) applications
+    lib.concatMap (i: i.tags or [ ]) cfg.indexers ++ lib.concatMap (a: a.tags or [ ]) applications
   );
 
   tagItems = map (label: { inherit label; }) allTagLabels;
@@ -320,6 +320,14 @@ in
 
       systemd.services.prowlarr.unitConfig.RequiresMountsFor = [ cfg.dataDir ];
 
+      # Order after the postgres container: the DB host is the container's
+      # veth address and pg_hba trusts only that /24. Without this the
+      # service can start before the container's route exists, connect via
+      # the default route (wrong source IP), and hit a fatal, non-retried
+      # pg_hba rejection. Same pattern as the stasharr service.
+      systemd.services.prowlarr.after = [ "container@postgres-prowlarr.service" ];
+      systemd.services.prowlarr.requires = [ "container@postgres-prowlarr.service" ];
+
       theonecfg.services.postgres.instances.prowlarr = {
         version = "16";
         port = cfg.dbPort;
@@ -333,43 +341,51 @@ in
 
     # Tag reconciliation runs first; indexers + applications wait for it
     # so their label→id resolution finds the labels we declared.
-    (mkIf (tagItems != [ ]) (declarative.mkArrApiPushService {
-      name = "prowlarr-tags";
-      after = [ "prowlarr.service" ];
-      inherit baseUrl;
-      apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
-      endpoint = "/api/v1/tag";
-      items = tagItems;
-      comparator = "label";
-      noUpdate = true; # tag has no fields beyond the label itself
-    }))
+    (mkIf (tagItems != [ ]) (
+      declarative.mkArrApiPushService {
+        name = "prowlarr-tags";
+        after = [ "prowlarr.service" ];
+        inherit baseUrl;
+        apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
+        endpoint = "/api/v1/tag";
+        items = tagItems;
+        comparator = "label";
+        noUpdate = true; # tag has no fields beyond the label itself
+      }
+    ))
 
-    (mkIf (cfg.indexers != [ ]) (declarative.mkArrApiPushService {
-      name = "prowlarr-indexers";
-      after = [ "prowlarr.service" ] ++ tagsAfter;
-      inherit baseUrl tagsSourceUrl;
-      apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
-      endpoint = "/api/v1/indexer";
-      items = cfg.indexers;
-    }))
+    (mkIf (cfg.indexers != [ ]) (
+      declarative.mkArrApiPushService {
+        name = "prowlarr-indexers";
+        after = [ "prowlarr.service" ] ++ tagsAfter;
+        inherit baseUrl tagsSourceUrl;
+        apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
+        endpoint = "/api/v1/indexer";
+        items = cfg.indexers;
+      }
+    ))
 
-    (mkIf (cfg.indexerProxies != [ ]) (declarative.mkArrApiPushService {
-      name = "prowlarr-indexerproxies";
-      after = [ "prowlarr.service" ];
-      inherit baseUrl;
-      apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
-      endpoint = "/api/v1/indexerproxy";
-      items = cfg.indexerProxies;
-    }))
+    (mkIf (cfg.indexerProxies != [ ]) (
+      declarative.mkArrApiPushService {
+        name = "prowlarr-indexerproxies";
+        after = [ "prowlarr.service" ];
+        inherit baseUrl;
+        apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
+        endpoint = "/api/v1/indexerproxy";
+        items = cfg.indexerProxies;
+      }
+    ))
 
-    (mkIf (cfg.downloadClients != [ ]) (declarative.mkArrApiPushService {
-      name = "prowlarr-downloadclients";
-      after = [ "prowlarr.service" ];
-      inherit baseUrl;
-      apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
-      endpoint = "/api/v1/downloadclient";
-      items = cfg.downloadClients;
-    }))
+    (mkIf (cfg.downloadClients != [ ]) (
+      declarative.mkArrApiPushService {
+        name = "prowlarr-downloadclients";
+        after = [ "prowlarr.service" ];
+        inherit baseUrl;
+        apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
+        endpoint = "/api/v1/downloadclient";
+        items = cfg.downloadClients;
+      }
+    ))
 
     # Applications carry a per-*arr `_apiKeyFile` marker (sops path) and a
     # `tags` array of label strings; mkArrApiPushService's secret injection
@@ -382,21 +398,24 @@ in
     # systemd.after ordering isn't sufficient (it waits for unit start,
     # not for the HTTP server to bind). Wait on each *arr's
     # /api/v3/system/status before any PUT.
-    (mkIf (applications != [ ]) (declarative.mkArrApiPushService {
-      name = "prowlarr-applications";
-      after =
-        [ "prowlarr.service" ]
+    (mkIf (applications != [ ]) (
+      declarative.mkArrApiPushService {
+        name = "prowlarr-applications";
+        after = [
+          "prowlarr.service"
+        ]
         ++ tagsAfter
         ++ lib.mapAttrsToList (name: _: "${name}.service") enabledArrs;
-      inherit baseUrl tagsSourceUrl;
-      apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
-      endpoint = "/api/v1/applications";
-      items = applications;
-      extraApiWaits = lib.mapAttrsToList (name: arrCfg: {
-        url = "http://127.0.0.1:${toString arrCfg.port}/api/v3/system/status";
-        apiKeyFile = config.sops.secrets."${name}/api-key".path;
-      }) enabledArrs;
-    }))
+        inherit baseUrl tagsSourceUrl;
+        apiKeyFile = config.sops.secrets."prowlarr/api-key".path;
+        endpoint = "/api/v1/applications";
+        items = applications;
+        extraApiWaits = lib.mapAttrsToList (name: arrCfg: {
+          url = "http://127.0.0.1:${toString arrCfg.port}/api/v3/system/status";
+          apiKeyFile = config.sops.secrets."${name}/api-key".path;
+        }) enabledArrs;
+      }
+    ))
 
     (mkIf config.theonecfg.services.caddy.enable {
       services.caddy.virtualHosts.${cfg.domain}.extraConfig = ''

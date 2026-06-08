@@ -179,6 +179,14 @@ in
 
       systemd.services.whisparr.unitConfig.RequiresMountsFor = map (r: r.path) cfg.rootFolders;
 
+      # Order after the postgres container: the DB host is the container's
+      # veth address and pg_hba trusts only that /24. Without this the
+      # service can start before the container's route exists, connect via
+      # the default route (wrong source IP), and hit a fatal, non-retried
+      # pg_hba rejection. Same pattern as the stasharr service.
+      systemd.services.whisparr.after = [ "container@postgres-whisparr.service" ];
+      systemd.services.whisparr.requires = [ "container@postgres-whisparr.service" ];
+
       # Each rootFolder is sgid 2775 owned by whisparr:media so *arr/qbittorrent/jellyfin
       # cross-access works (see media-storage).
       systemd.tmpfiles.rules = map (r: "d ${r.path} 2775 whisparr media - -") cfg.rootFolders;

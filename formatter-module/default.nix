@@ -23,7 +23,10 @@ mapAttrs (const (
         enableDefaultExcludes = true;
         projectRootFile = "flake.nix";
         programs = {
-          mdformat.enable = true;
+          mdformat = {
+            enable = true;
+            plugins = ps: [ ps.mdformat-gfm ];
+          };
           mdsh.enable = true;
           nixfmt.enable = true;
           shellcheck.enable = true;
@@ -31,7 +34,6 @@ mapAttrs (const (
         settings.global.excludes = [
           "*.gitignore"
           ".git-blame-ignore-revs"
-          "notes/ores.md"
         ];
       };
     }

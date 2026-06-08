@@ -88,8 +88,7 @@ in
 
     # Porkbun creds are runtime-only — the global directive references
     # them as `{env.PORKBUN_API_KEY}` etc., resolved at startup.
-    systemd.services.caddy.serviceConfig.EnvironmentFile =
-      config.sops.templates."caddy-acme.env".path;
+    systemd.services.caddy.serviceConfig.EnvironmentFile = config.sops.templates."caddy-acme.env".path;
 
     sops.secrets = {
       "porkbun/api-key" = { };

@@ -38,24 +38,28 @@ Defaults: disabled (opt-in per repo convention). Schedule: 03:00 daily.
 ## Components (additions to `nixos-modules/services/stash/module.nix`)
 
 1. **Maintenance request bodies** in the `let` block, computed at module-eval time via `builtins.toJSON`:
+
    - `identifyBody` — uses GraphQL variables for `sources`, populated from `cfg.stashBoxes`. Cleaner than concatenating sub-documents into the query string.
    - `simpleBody mutation` — helper for the four no-arg mutations.
    - `scanBody`, `autoTagBody`, `generateBody`, `cleanBody` — derived from `simpleBody`.
 
-2. **`stashMaintenance` script** (`pkgs.writeShellApplication`):
+1. **`stashMaintenance` script** (`pkgs.writeShellApplication`):
+
    - Reads `cfg.apiKeyFile` at runtime (sops-managed path).
    - `post` helper: `curl -fsS --max-time 30 -X POST` to `http://127.0.0.1:${cfg.port}/graphql` with `Content-Type: application/json` and `ApiKey: <key>` headers. Checks response body for `.errors` via `jq -e`; logs the returned job ID on success.
    - Issues 5 mutations in declared sequence: scan, identify, autotag, generate, clean.
    - `writeShellApplication` provides `errexit/nounset/pipefail` automatically — no `set` line needed.
 
-3. **Assertion**: `scheduledMaintenance.enable` requires `cfg.apiKeyFile != null`. Without the API key, Stash's GraphQL refuses mutations and the script would also fail on its own `[ -r null ]` test. An eval-time assertion gives a clear error message at `nix build` rather than a confusing runtime failure.
+1. **Assertion**: `scheduledMaintenance.enable` requires `cfg.apiKeyFile != null`. Without the API key, Stash's GraphQL refuses mutations and the script would also fail on its own `[ -r null ]` test. An eval-time assertion gives a clear error message at `nix build` rather than a confusing runtime failure.
 
-4. **`systemd.timers.stash-maintenance`** (gated by `mkIf cfg.scheduledMaintenance.enable`):
+1. **`systemd.timers.stash-maintenance`** (gated by `mkIf cfg.scheduledMaintenance.enable`):
+
    - `OnCalendar = cfg.scheduledMaintenance.schedule`
    - `Persistent = true` — fires on next boot if scheelite was off at the scheduled time.
    - `wantedBy = [ "timers.target" ]`
 
-5. **`systemd.services.stash-maintenance`** (gated by `mkIf cfg.scheduledMaintenance.enable`):
+1. **`systemd.services.stash-maintenance`** (gated by `mkIf cfg.scheduledMaintenance.enable`):
+
    - `Type = "oneshot"`
    - `after = requires = [ "stash.service" ]` — wait for Stash; fail visibly if Stash isn't up. Rather than silently skip.
    - Runs as root (no `User=`). Matches the convention used by `mkArrApiPushService` and similar oneshots already in the repo.
@@ -129,7 +133,7 @@ Then in Stash UI → Settings → Tasks (Advanced Mode): confirm 5 queued jobs a
 ## Commit shape
 
 1. `nixosModules.theonecfg.services.stash: add scheduled maintenance task`
-2. `nixosConfigurations.scheelite: enable Stash scheduled maintenance`
+1. `nixosConfigurations.scheelite: enable Stash scheduled maintenance`
 
 ## Decisions deferred
 
@@ -139,7 +143,7 @@ Then in Stash UI → Settings → Tasks (Advanced Mode): confirm 5 queued jobs a
 - **Per-stashbox source override**: currently uses all configured `stashBoxes` as Identify sources. If a user ever wants Identify to use only a subset, add an option to scope. YAGNI for now.
 - **Polling for job completion**: the script fires-and-forgets. Could be extended to poll Stash's `findJobs` query and wait until the queue drains, exposing real per-task timing. More complex; not needed.
 
----
+______________________________________________________________________
 
 # Implementation Plan
 
@@ -246,7 +250,9 @@ stashMaintenance = pkgs.writeShellApplication {
 ```
 
 Notes:
+
 - `toString cfg.apiKeyFile` forces the path-or-null option through `toString`. If `apiKeyFile` is `null`, eval would otherwise produce `null` interpolated as the empty string, which makes the runtime check confusing. The assertion in Step 3 ensures we never hit this path, but `toString` makes the eval-time interpolation safe regardless.
+
 - `writeShellApplication` already sets `errexit/nounset/pipefail`; no `set` line needed.
 
 - [ ] **Step 3: Add assertion + systemd units in the `mkMerge` branch**
@@ -383,6 +389,7 @@ All maintenance tasks queued. Stash executes them serially via its internal task
 ```
 
 If any mutation returns a GraphQL error: the corresponding line will show `GraphQL error: <response body>`. Most likely causes are:
+
 - API key wrong / missing — re-check `cfg.apiKeyFile` and that Stash's `config.yml` contains the same key.
 - Stash version's GraphQL schema differs — the mutation arg names may have changed; update the request bodies in the script.
 
@@ -410,10 +417,10 @@ Expected: `Last triggered: ...` shows today's 03:00 firing. Journal shows the sa
 ## End-to-end verification
 
 1. `nix build .#nixosConfigurations.scheelite.config.system.build.toplevel` succeeds.
-2. Deploy succeeds; `systemctl list-timers stash-maintenance` shows next 03:00 fire time.
-3. `sudo systemctl start stash-maintenance` queues 5 jobs in Stash with no GraphQL errors.
-4. Stash UI → Settings → Tasks shows the queued jobs running sequentially.
-5. After a real overnight fire, a spot-checked recently-imported scene has Title / Performers / Studio / Date populated in Stash, indicating Identify ran successfully.
+1. Deploy succeeds; `systemctl list-timers stash-maintenance` shows next 03:00 fire time.
+1. `sudo systemctl start stash-maintenance` queues 5 jobs in Stash with no GraphQL errors.
+1. Stash UI → Settings → Tasks shows the queued jobs running sequentially.
+1. After a real overnight fire, a spot-checked recently-imported scene has Title / Performers / Studio / Date populated in Stash, indicating Identify ran successfully.
 
 ## Execution
 

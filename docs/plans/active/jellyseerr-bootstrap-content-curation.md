@@ -6,9 +6,9 @@
 `jellyseerr-bootstrap.service` on first deploy that:
 
 1. Logs into Seerr via Jellyfin auth (creating the Seerr admin user).
-2. Registers each enabled *arr (Sonarr, Sonarr-anime, Radarr) via
+1. Registers each enabled \*arr (Sonarr, Sonarr-anime, Radarr) via
    `/api/v1/settings/{sonarr,radarr}`.
-3. POSTs `/api/v1/settings/initialize` to mark setup complete.
+1. POSTs `/api/v1/settings/initialize` to mark setup complete.
 
 The bootstrap is idempotent: it short-circuits if
 `/api/v1/settings/public.initialized` is already `true`, so
@@ -29,9 +29,9 @@ them.
 **Symptom**: Seerr requests stay `Requested` indefinitely; Radarr
 either doesn't pick them up or rejects every release silently.
 
-**Cause**: bootstrap reads `/api/v3/qualityprofile` from each *arr
+**Cause**: bootstrap reads `/api/v3/qualityprofile` from each \*arr
 and picks index `[0]` (`activeProfileId`, `activeProfileName`).
-At first-deploy time, only the *arr's stock defaults exist
+At first-deploy time, only the \*arr's stock defaults exist
 (`Any`, `HD-1080p`, etc.). Recyclarr runs *later* (it's daily
 timer-driven), creates the curated profile (`SQP-1 WEB (2160p)`,
 `WEB-2160p`, `[Anime] Remux-1080p`), and may remove the stock
@@ -75,6 +75,7 @@ There's no library-enable step at all.
 ### Option A: Add curation steps to bootstrap
 
 Make the bootstrap fully populate post-registration:
+
 - After Jellyfin login, fetch library list via Seerr API and POST
   to `/api/v1/settings/jellyfin/library` with all libraries enabled.
 - Look up quality profile by *name* (configurable per-instance,
@@ -85,6 +86,7 @@ Make the bootstrap fully populate post-registration:
 state.
 
 **Cons**:
+
 - Couples the jellyseerr module to recyclarr's profile naming.
   If `recyclarr.radarrQuality` is changed (e.g. 4K → 1080p,
   swapping the template's profile name) the jellyseerr fallback
@@ -100,6 +102,7 @@ state.
 ### Option B: Drop content curation, document the manual step
 
 Trim the bootstrap to *only* the connection / auth steps:
+
 - Skip `qualityprofile` query
 - Drop `activeProfileId` / `activeProfileName` / `activeDirectory`
   from the registration payload
@@ -107,12 +110,14 @@ Trim the bootstrap to *only* the connection / auth steps:
 
 Document the one-time admin steps in the module's comment block:
 "After first deploy, in the Seerr UI:
-- Settings → Services → [each *arr] → pick Default Quality Profile
-  + Default Root Folder, save.
+
+- Settings → Services → [each \*arr] → pick Default Quality Profile
+  - Default Root Folder, save.
 - Settings → Services → Jellyfin → check the libraries you want
   Seerr to track."
 
 **Pros**:
+
 - Honest about the actual division of labor: Nix configures
   *infrastructure*; Seerr UI handles *editorial choices*.
 - Survives Recyclarr profile-name churn and Seerr API drift.
@@ -121,6 +126,7 @@ Document the one-time admin steps in the module's comment block:
   choices once via the wizard).
 
 **Cons**:
+
 - First deploy isn't self-completing. New host needs a manual
   UI session.
 - Easy to forget the manual step and wonder why requests stall

@@ -24,10 +24,10 @@ from a probe session on the live scheelite system on 2026-05-02.
 
 ### NVMe boot mirror
 
-| Slot | PCI BDF | Device | by-id | Serial |
-|---|---|---|---|---|
+| Slot               | PCI BDF        | Device    | by-id                                          | Serial   |
+| ------------------ | -------------- | --------- | ---------------------------------------------- | -------- |
 | M.2_1 (CPU-direct) | `0000:01:00.0` | `nvme1n1` | `nvme-Samsung_SSD_990_PRO_2TB_S7KHNJ0X208893V` | …208893V |
-| M.2_2 (chipset) | `0000:10:00.0` | `nvme0n1` | `nvme-Samsung_SSD_990_PRO_2TB_S7KHNJ0X208806D` | …208806D |
+| M.2_2 (chipset)    | `0000:10:00.0` | `nvme0n1` | `nvme-Samsung_SSD_990_PRO_2TB_S7KHNJ0X208806D` | …208806D |
 
 Two NVMes on different PCIe complexes. by-path is stable; by-id is
 canonical.
@@ -42,16 +42,16 @@ canonical.
   has `Array Device 00 ` … `Array Device 23 `) but the chassis only has
   20 physical bays — slots 16–23 are firmware padding.
 
-| SES bay | sd\* | WWN | expander phy | port (phy/4) |
-|---|---|---|---|---|
-| 8 | sda | `wwn-0x5000cca2902be164` | 8 | 2 |
-| 9 | sdb | `wwn-0x5000cca2902c3b14` | 9 | 2 |
-| 10 | sde | `wwn-0x5000cca2902c39f4` | 10 | 2 |
-| 11 | sdd | `wwn-0x5000cca2902c71c8` | 11 | 2 |
-| 12 | sdc | `wwn-0x5000cca2902c3a78` | 12 | 3 |
-| 13 | sdf | `wwn-0x5000cca2902bcf64` | 13 | 3 |
-| 14 | sdg | `wwn-0x5000cca2902c6ed0` | 14 | 3 |
-| 15 | sdh | `wwn-0x5000cca2902b7288` | 15 | 3 |
+| SES bay | sd\* | WWN                      | expander phy | port (phy/4) |
+| ------- | ---- | ------------------------ | ------------ | ------------ |
+| 8       | sda  | `wwn-0x5000cca2902be164` | 8            | 2            |
+| 9       | sdb  | `wwn-0x5000cca2902c3b14` | 9            | 2            |
+| 10      | sde  | `wwn-0x5000cca2902c39f4` | 10           | 2            |
+| 11      | sdd  | `wwn-0x5000cca2902c71c8` | 11           | 2            |
+| 12      | sdc  | `wwn-0x5000cca2902c3a78` | 12           | 3            |
+| 13      | sdf  | `wwn-0x5000cca2902bcf64` | 13           | 3            |
+| 14      | sdg  | `wwn-0x5000cca2902c6ed0` | 14           | 3            |
+| 15      | sdh  | `wwn-0x5000cca2902b7288` | 15           | 3            |
 
 Phys 8–11 → port 2 (one SFF-8643 cable, 4 disks).
 Phys 12–15 → port 3 (other SFF-8643 cable, 4 disks).
@@ -74,16 +74,16 @@ SES `bay_identifier` matches expander phy number 1:1.
 
 ## Path comparison
 
-| | by-id | by-path | by-vdev (sas_switch) | by-vdev (alias) |
-|---|---|---|---|---|
-| Source of names | disk serial / WWN | bus topology | computed from sysfs phy + SES bay | hardcoded in `vdev_id.conf` |
-| Stable when disk replaced in same bay? | **No** (new WWN) | Yes | Yes | Yes |
-| Stable when HBA moves PCIe slot? | Yes | No | Yes (port-anchored) | No (BDF in alias) |
-| Stable when BIOS renumbers BDF? | Yes | No | Yes (port-anchored) | No |
-| Friendly names in `zpool status`? | No (long WWN) | No (long path) | Yes (`A8`–`B15`) | Yes (whatever you choose) |
-| Works on scheelite hardware? | Yes (verified) | Yes (verified) | **No** (script port-walk mismatch) | Likely yes (not yet tested) |
-| Lines of config | None | None | ~7 lines | 8 lines (one per disk) |
-| `disko.nix` edit on disk replacement? | **Yes** | No | No | No |
+|                                        | by-id             | by-path        | by-vdev (sas_switch)               | by-vdev (alias)             |
+| -------------------------------------- | ----------------- | -------------- | ---------------------------------- | --------------------------- |
+| Source of names                        | disk serial / WWN | bus topology   | computed from sysfs phy + SES bay  | hardcoded in `vdev_id.conf` |
+| Stable when disk replaced in same bay? | **No** (new WWN)  | Yes            | Yes                                | Yes                         |
+| Stable when HBA moves PCIe slot?       | Yes               | No             | Yes (port-anchored)                | No (BDF in alias)           |
+| Stable when BIOS renumbers BDF?        | Yes               | No             | Yes (port-anchored)                | No                          |
+| Friendly names in `zpool status`?      | No (long WWN)     | No (long path) | Yes (`A8`–`B15`)                   | Yes (whatever you choose)   |
+| Works on scheelite hardware?           | Yes (verified)    | Yes (verified) | **No** (script port-walk mismatch) | Likely yes (not yet tested) |
+| Lines of config                        | None              | None           | ~7 lines                           | 8 lines (one per disk)      |
+| `disko.nix` edit on disk replacement?  | **Yes**           | No             | No                                 | No                          |
 
 ## Why sas_switch didn't work on this hardware
 

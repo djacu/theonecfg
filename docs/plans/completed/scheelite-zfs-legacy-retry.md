@@ -8,8 +8,7 @@ diagnosis was wrong — disko gates `zfsutil` on
 `config.options.mountpoint != "legacy"`
 (`disko/lib/types/zfs_fs.nix:177`), so legacy datasets correctly
 get fstab entries without `zfsutil`. The actual failure root cause
-is **unresolved**: the rescue-USB-time reproduction `mount -t zfs
--o zfsutil ... legacy` was a known-bad combination, but the
+is **unresolved**: the rescue-USB-time reproduction `mount -t zfs -o zfsutil ... legacy` was a known-bad combination, but the
 explanation for why both new and previous generations failed at
 boot has not been pinned conclusively.
 
@@ -36,8 +35,7 @@ nix eval --json '.#nixosConfigurations.scheelite.config.fileSystems."/persist/po
 `zfsutil`). Every non-flipped dataset (`/`, `/nix`) shows
 `options = ["zfsutil"]`.
 
-If a flipped dataset still has `zfsutil` after `options.mountpoint
-= "legacy"` in disko — **stop**. That contradicts disko's documented
+If a flipped dataset still has `zfsutil` after `options.mountpoint = "legacy"` in disko — **stop**. That contradicts disko's documented
 behavior; investigate the option merge / mkDefault interaction
 before doing anything else. Yesterday's failure most likely was
 this, and proceeding without confirmation would replay it.
@@ -85,9 +83,9 @@ maintenance window (Phase 2 in the prior plan; still deferred).
 ### F4 — Disko config change
 
 Modify `nixos-configurations/scheelite/disko.nix`:
+
 - For all 28 `scheelite-tank0` child datasets, change
-  `options.mountpoint = "/tank0/<path>"` → `options.mountpoint =
-  "legacy"`.
+  `options.mountpoint = "/tank0/<path>"` → `options.mountpoint = "legacy"`.
 - For the 12 `scheelite-root` datasets listed above, do the same.
 - Leave `local/root`, `local/nix` unchanged (path mountpoints).
 - Leave the `canmount=off` parents `local`, `safe` untouched (they
@@ -98,18 +96,16 @@ yesterday's revert work; no change.
 
 ### F5 — Activation chaos — use `boot`, not `switch`
 
-Yesterday's first emergency mode happened during `nixos-rebuild
-switch` itself, as the activation cascade reloaded mount units
+Yesterday's first emergency mode happened during `nixos-rebuild switch` itself, as the activation cascade reloaded mount units
 against datasets that were in flux. To avoid replay:
 
-1. Deploy the new config via `sudo nixos-rebuild boot --flake
-   .#scheelite`. This writes the new system but does **not**
+1. Deploy the new config via `sudo nixos-rebuild boot --flake .#scheelite`. This writes the new system but does **not**
    activate it; the running system stays on the current generation,
    no service restarts, no mount-unit reloads.
-2. Do the live pool migration (next section) while the system
+1. Do the live pool migration (next section) while the system
    continues to run on the old generation with its existing fstab
    intact.
-3. Reboot. The new generation activates from scratch — no
+1. Reboot. The new generation activates from scratch — no
    reload-cascade race.
 
 ### F6 — Live migration: band-aids are *not* avoidable, they are correct
@@ -195,6 +191,7 @@ sudo systemctl reboot
 ```
 
 On reboot the new generation activates from scratch:
+
 - Initrd imports both pools (`forceImportRoot=true` provides the
   safety net for the root pool; tank0 has no analog but the
   current shutdown will export it cleanly).
@@ -228,8 +225,7 @@ without unnecessary pauses.
 
 **Not a mitigation:** no rescue USB path is provided here for
 tank0 dirtiness because `zpool import -f` from the running system
-works to fix it. If it happens, the recovery is `sudo zpool
-import -f scheelite-tank0 && systemctl restart …`.
+works to fix it. If it happens, the recovery is `sudo zpool import -f scheelite-tank0 && systemctl restart …`.
 
 ### F9 — Forward-only migration / old generations become unbootable
 
@@ -250,7 +246,7 @@ previous-generation fallback. Before deploying:
    current running one (which we're about to replace via
    `boot`).
 
-2. Pin the *current* (pre-migration) generation as a labeled
+1. Pin the *current* (pre-migration) generation as a labeled
    recovery option:
 
    ```fish
@@ -313,6 +309,7 @@ existing
 `docs/plans/completed/scheelite-zfs-hardening-postmortem.md`
 needs to be replaced — not patched. Multiple sections are built
 on the wrong premise:
+
 - TL;DR
 - "The trap" (entire section)
 - "Root causes" (#1 specifically)
@@ -350,22 +347,21 @@ remove or rewrite based on outcome.
    `fileSystems."/persist".options == []` and other flipped paths
    the same, verify non-flipped paths still have `zfsutil`. If any
    mismatch — stop, investigate, do not deploy.
-2. **Inspect `zfs-mount-generator` state.** If active for any
+1. **Inspect `zfs-mount-generator` state.** If active for any
    affected path — stop, investigate.
-3. **Garbage-collect old generations.** Reduce the surface area
+1. **Garbage-collect old generations.** Reduce the surface area
    of "wrong generation to boot if migration fails."
-4. **Make the disko config change** (single commit).
-5. **Push the branch.**
-6. **`sudo nixos-rebuild boot --flake .#scheelite`** on scheelite
-   (NOT switch). Verify with `nix-store -qR
-   /run/booted-system` vs `/run/next-boot-system` that next-boot
+1. **Make the disko config change** (single commit).
+1. **Push the branch.**
+1. **`sudo nixos-rebuild boot --flake .#scheelite`** on scheelite
+   (NOT switch). Verify with `nix-store -qR /run/booted-system` vs `/run/next-boot-system` that next-boot
    points at the new generation.
-7. **Live migration** per script above.
-8. **`sudo systemctl reboot`.**
-9. **Watch the console** for clean boot.
-10. If clean: SSH in, verify per below.
-11. If broken: rescue USB, revert per F10.
-12. **Postmortem rewrite** as a separate follow-up commit.
+1. **Live migration** per script above.
+1. **`sudo systemctl reboot`.**
+1. **Watch the console** for clean boot.
+1. If clean: SSH in, verify per below.
+1. If broken: rescue USB, revert per F10.
+1. **Postmortem rewrite** as a separate follow-up commit.
 
 ## Verification (post-reboot, if clean)
 
@@ -379,6 +375,7 @@ journalctl -b -u zfs-mount.service
 ```
 
 Expected:
+
 - `--failed`: empty or just known-flaky reconcilers.
 - All mountpoints active.
 - All flipped datasets show `legacy`; `/`, `/nix` show paths;
@@ -404,6 +401,7 @@ this-time-lucky. Verify post each reboot.
 ## Stop conditions
 
 If any of these occur during execution, **halt and reassess**:
+
 - `nix eval` shows `zfsutil` in a flipped dataset's options.
 - `zfs-mount-generator` is active for any affected path.
 - The post-reboot `tank0.mount` journal shows any

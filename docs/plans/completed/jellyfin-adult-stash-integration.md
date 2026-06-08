@@ -14,7 +14,7 @@ The bug observed by the user: scenes inside `/tank0/media/adult/<Studio>/` show 
 
 Stash is already deployed on scheelite (per the now-completed `investigate-stash-stasharr-portal-and-delegated-beacon.md` plan, Phase 1). Stash uses PHash to identify scenes against StashDB independently of filename. So renaming files on disk does not break Stash's identification — but Stash's path index does need to be re-scanned after rename so the Jellyfin plugin's filename lookups still resolve.
 
-`DirtyRacer1337/Jellyfin.Plugin.Stash` is third-party, GPL-3.0, last release `1.2.0.3` (2025-10-22), targets `Jellyfin.Controller 10.11.6`. Standard `.NET 9.0` project, single-project solution, three deps: `Newtonsoft.Json 13.0.4`, `Jellyfin.Controller 10.11.6` (SDK), `ILRepack.Lib.MSBuild.Task` (build-time only — merges deps into a single dll). Risk: ILRepack runs as an MSBuild target; under `dotnet build` on Linux it has historically had edge cases. Fallback if it doesn't merge cleanly: drop ILRepack from build, install all bin/Release/net9.0/*.dll.
+`DirtyRacer1337/Jellyfin.Plugin.Stash` is third-party, GPL-3.0, last release `1.2.0.3` (2025-10-22), targets `Jellyfin.Controller 10.11.6`. Standard `.NET 9.0` project, single-project solution, three deps: `Newtonsoft.Json 13.0.4`, `Jellyfin.Controller 10.11.6` (SDK), `ILRepack.Lib.MSBuild.Task` (build-time only — merges deps into a single dll). Risk: ILRepack runs as an MSBuild target; under `dotnet build` on Linux it has historically had edge cases. Fallback if it doesn't merge cleanly: drop ILRepack from build, install all bin/Release/net9.0/\*.dll.
 
 ## Critical files
 
@@ -42,7 +42,7 @@ Stash is already deployed on scheelite (per the now-completed `investigate-stash
 - The user runs every `nixos-rebuild --target-host` deploy themselves (interactive sudo password). Pre-deploy build verification is done from the workstation (per memory `feedback_nixos_rebuild_target_host.md`).
 - Stash must be running on scheelite (it is, per the completed prior plan). Verify with `ssh scheelite "systemctl is-active stash"`.
 
----
+______________________________________________________________________
 
 ## Phase 0 — Empirical verification
 
@@ -104,7 +104,7 @@ Example (substitute real values):
 
 Confirm with the user that the target shape matches expectations. **Do not proceed to Phase 1 without this confirmation.**
 
----
+______________________________________________________________________
 
 ## Phase 1 — Whisparr Standard Episode Format change (UI)
 
@@ -169,7 +169,7 @@ Click `Save Changes` at the top of the page.
 
 If you have any pending scene to grab, let it complete. Verify that the imported file lands on disk with the new format. If you don't have one in flight, skip this — Phase 2 will exercise the template against existing files.
 
----
+______________________________________________________________________
 
 ## Phase 2 — Bulk-rename existing files (Whisparr UI)
 
@@ -285,7 +285,7 @@ Options for each:
 
 This is an open-ended cleanup task; the plan doesn't enumerate every fix. Document in the user's notes what you decided per file.
 
----
+______________________________________________________________________
 
 ## Phase 3 — Package and install Jellyfin.Plugin.Stash
 
@@ -460,7 +460,9 @@ If ILRepack fails (errors about MSBuild target not found, or about merging on Li
 If the build still fails after the fallback, the **hard fallback** is to fetch the upstream release zip:
 
 - Replace the body of `package.nix` with a `stdenv.mkDerivation` using `fetchurl` + `unzip` against `https://github.com/DirtyRacer1337/Jellyfin.Plugin.Stash/releases/download/1.2.0.3/Jellyfin.Plugin.Stash.zip` (sha256 from `manifest.json`: `89ea20b5e77f7cb1991567e33a4bca05` is an MD5; the sha256 needs to be captured at fetch time via `lib.fakeHash`).
+
 - Drop the `deps.json`; not needed.
+
 - Document this fallback in the resulting commit message so the choice is recoverable.
 
 - [ ] **Step 4: Commit**
@@ -551,9 +553,13 @@ systemd.services.jellyfin-plugins-install = mkIf (cfg.plugins != [ ]) {
 Notes:
 
 - **The path is `${cfg.dataDir}/plugins`, NOT `${cfg.dataDir}/config/plugins`.** Jellyfin computes `PluginsPath = Path.Combine(ProgramDataPath, "plugins")` where `ProgramDataPath` is the value of `--datadir`, not `--configdir`. Verified in `BaseApplicationPaths.cs:58` of the Jellyfin source.
+
 - **Copy, not symlink.** Jellyfin's `PluginManager.CreatePluginInstance` writes back to `meta.json` on every successful plugin load (to normalize version/status fields). Symlinks pointing into `/nix/store` are read-only, so the write fails with `UnauthorizedAccessException` and the plugin is marked Malfunctioned — and the failure cascades into Jellyfin not starting at all. Copying into a writable dir avoids this. Negligible disk cost.
+
 - Mode `0700` matches what Jellyfin produces when it creates the plugins dir itself (`UMask = "0077"` is set on the upstream systemd unit).
+
 - The script body changes (different `${plugin}` store paths) whenever any plugin's version or content changes, so systemd considers the unit changed and re-runs it on each `nixos-rebuild`. Plugin updates take effect automatically.
+
 - `before` + `requiredBy` on `jellyfin.service`: the install runs before jellyfin starts; jellyfin requires it to succeed before starting. Note: this only fires when `jellyfin.service` is restarted — if a deploy doesn't trigger a restart (e.g. only this install service changed), manually run `sudo systemctl restart jellyfin` to trigger the cascade.
 
 - [ ] **Step 4: Run flake check**
@@ -657,14 +663,16 @@ Expected: a log line indicating the Stash plugin loaded (exact wording varies by
 If no matching log line: plugin path may be wrong, or ABI mismatch. Check `journalctl -u jellyfin -e` for errors. Common failures:
 
 - "Plugin assembly not found" → symlink target is wrong; verify `$out/share/jellyfin-plugin-stash/` actually contains the dll.
+
 - "Could not load … Jellyfin.Controller, Version=10.11.6.0" → ABI mismatch. Check Jellyfin's actual version (Phase 0.1) and confirm targetAbi compatibility.
+
 - "Could not load … Newtonsoft.Json" → ILRepack didn't merge in deps. Apply the Task 3.3 contingency.
 
 - [ ] **Step 5: Verify in the UI**
 
 Open `https://jellyfin.scheelite.dev` → Dashboard → Plugins. `Stash` should appear in the list, with version `1.2.0.3`, status `Active`.
 
----
+______________________________________________________________________
 
 ## Phase 4 — Configure plugin and verify metadata
 
@@ -685,6 +693,7 @@ Stash UI → Settings (cog icon) → scroll the left sidebar to the very bottom 
 Settings → Tasks tab → scroll to find **Identify** → click it.
 
 In the dialog:
+
 - Source: **StashDB**.
 - Options / Field Strategy: leave defaults (typically "Merge" or "Overwrite").
 - Click **Start**.
@@ -718,6 +727,7 @@ Jellyfin UI → Dashboard → Plugins → Stash → `Configure` (or click the pl
 - [ ] **Step 2: Set Stash server URL and API key**
 
 - Server URL: `http://127.0.0.1:9999` (loopback to scheelite-local Stash).
+
 - API Key: paste from Task 4.2.
 
 If the plugin's UI has additional toggles (search-by-PHash, force matching, etc.), default values are fine.
@@ -759,6 +769,7 @@ The same NFO disable applies to TV / movie libraries unless the media-tree permi
 From the library page (or Dashboard → Libraries), open the **Adult** library → top-right `⋮` / three-dot → **Refresh Metadata**.
 
 In the dialog:
+
 - Refresh mode: **Replace all metadata** (radio).
 - **Check** "Replace existing images" — old TMDb placeholder posters get replaced with Stash-sourced ones.
 - **Leave unchecked** "Replace existing trickplay images" — expensive to regenerate; unrelated to metadata.
@@ -834,19 +845,19 @@ This verifies the metadata propagates through Jellyfin's streaming pipeline to c
 
 If metadata is missing at the cast device but present in the Jellyfin web UI: the client probably caches metadata; let it refresh or restart the client app.
 
----
+______________________________________________________________________
 
 ## End-to-end verification
 
 1. `nix flake check` passes.
-2. `nix build .#nixosConfigurations.scheelite.config.system.build.toplevel` succeeds.
-3. Whisparr's Standard Episode Format is `{Release-Date} - {Site Title} - {Episode CleanTitle} [{Quality Full}]`.
-4. Spot-check on disk: `ssh scheelite "ls /tank0/media/adult/<some-studio>/"` shows date-prefixed filenames.
-5. Stash UI → Scenes → file paths reflect the new names; spot-checked scenes have populated Title / Performers / Studio / Date (i.e., Identify ran).
-6. Jellyfin UI → Adult library → scenes show as individual items (no stacking dots / "alternate version" UI), with Stash-sourced titles, posters, performers, studio chips.
-7. Jellyfin UI → Dashboard → Plugins → `Stash` listed as Active.
-8. Studio / Genre / Cast chips on a scene detail page resolve (not 404) after a Library Scan task.
-9. Casting from a TV / Roku / Chromecast displays scene title and poster correctly.
+1. `nix build .#nixosConfigurations.scheelite.config.system.build.toplevel` succeeds.
+1. Whisparr's Standard Episode Format is `{Release-Date} - {Site Title} - {Episode CleanTitle} [{Quality Full}]`.
+1. Spot-check on disk: `ssh scheelite "ls /tank0/media/adult/<some-studio>/"` shows date-prefixed filenames.
+1. Stash UI → Scenes → file paths reflect the new names; spot-checked scenes have populated Title / Performers / Studio / Date (i.e., Identify ran).
+1. Jellyfin UI → Adult library → scenes show as individual items (no stacking dots / "alternate version" UI), with Stash-sourced titles, posters, performers, studio chips.
+1. Jellyfin UI → Dashboard → Plugins → `Stash` listed as Active.
+1. Studio / Genre / Cast chips on a scene detail page resolve (not 404) after a Library Scan task.
+1. Casting from a TV / Roku / Chromecast displays scene title and poster correctly.
 
 ## Decisions deferred
 

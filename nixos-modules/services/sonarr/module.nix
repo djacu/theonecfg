@@ -161,6 +161,14 @@ in
       # cfg.dataDir; we extend with the configured root folders).
       systemd.services.sonarr.unitConfig.RequiresMountsFor = map (r: r.path) cfg.rootFolders;
 
+      # Order after the postgres container: the DB host is the container's
+      # veth address and pg_hba trusts only that /24. Without this the
+      # service can start before the container's route exists, connect via
+      # the default route (wrong source IP), and hit a fatal, non-retried
+      # pg_hba rejection. Same pattern as the stasharr service.
+      systemd.services.sonarr.after = [ "container@postgres-sonarr.service" ];
+      systemd.services.sonarr.requires = [ "container@postgres-sonarr.service" ];
+
       # Per-service postgres instance — main + log databases, owner sonarr.
       theonecfg.services.postgres.instances.sonarr = {
         version = "16";
