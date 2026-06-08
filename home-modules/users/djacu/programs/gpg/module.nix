@@ -23,8 +23,13 @@ let
     ;
 
   inherit (lib.modules)
+    mkForce
     mkIf
     mkMerge
+    ;
+
+  inherit (lib.lists)
+    optional
     ;
 
   inherit (lib.trivial)
@@ -124,6 +129,21 @@ in
           "7A2DE28AD784EA6161966F20069BC975AADF2C36"
         ];
       };
+
+      # Workaround for nix-community/home-manager#9432; remove once upstream fixes.
+      systemd.user.services."set-SSH_AUTH_SOCK".Unit.Before = mkForce [ ];
+
+      warnings =
+        optional
+          ((theonecfg.release.home-manager.rev or "unknown") != "b2b7db486e06e098711dc291bb25db82850e1d16")
+          ''
+            home-manager-unstable is no longer pinned to b2b7db48 — the rev that
+            nix-community/home-manager#9432 was reported against. Check whether the
+            issue is fixed upstream:
+              - Fixed:    drop the set-SSH_AUTH_SOCK.service override and this warning
+                          from home-modules/users/djacu/programs/gpg/module.nix.
+              - Not yet:  bump the pinned rev in the warning condition.
+          '';
 
       home.sessionVariables = {
         XDG_RUNTIME_DIR = "/run/user/$UID";
