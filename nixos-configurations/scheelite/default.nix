@@ -56,6 +56,12 @@ inputs: {
         boot.zfs.forceImportRoot = true;
         boot.zfs.extraPools = [ "scheelite-tank0" ];
         services.zfs.autoScrub.enable = true;
+
+        # Load the AMD memory-controller EDAC driver so rasdaemon/EDAC can
+        # enumerate DIMM topology (ras-mc-ctl --layout) and attribute the
+        # recurring UMC (bank 31) errors to a physical channel/slot. Without
+        # it, `ras-mc-ctl --layout` reports "No memories found via edac".
+        hardware.rasdaemon.extraModules = [ "amd64_edac" ];
         boot.initrd.systemd.services.rollback-root = {
           description = "Rollback ZFS root to empty snapshot";
           wantedBy = [ "initrd.target" ];
