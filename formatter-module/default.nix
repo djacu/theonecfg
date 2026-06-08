@@ -34,7 +34,6 @@ mapAttrs (const (
         settings.global.excludes = [
           "*.gitignore"
           ".git-blame-ignore-revs"
-          "notes/ores.md"
         ];
       };
     }
