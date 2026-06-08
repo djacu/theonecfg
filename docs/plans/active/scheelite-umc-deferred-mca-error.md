@@ -1,6 +1,6 @@
 # scheelite — recurring UMC deferred MCA error
 
-Status: open / investigating
+Status: open / watching — first reboot clean, no recurrence yet
 Owner: dan
 Last updated: 2026-06-07
 
@@ -100,6 +100,31 @@ that the decode corrected).
 1. **Trend via rasdaemon** — periodically `ras-mc-ctl --errors`; watch
    whether distinct events accrue (active degradation) or it stays one
    latched entry (marginal-but-stable).
+
+## Reboot test — result (2026-06-07, boot at 22:12)
+
+Rebooted scheelite and watched the new boot for ~14 min.
+
+- **The error did not recur.** Zero `[Hardware Error]` lines this boot;
+  rasdaemon recorded no MCE events. Contrast: on the bad boot the error
+  was present from the first second (19:40:49) and had logged ~3 times by
+  the 14-min mark.
+- So the reboot cleared the latched bank and nothing re-latched on this
+  boot's memory training.
+
+**Inconclusive but encouraging.** One clean boot can't distinguish (a) a
+one-time transient that latched once and is now gone, from (b) marginal
+memory that simply trained cleanly this time and will recur on some
+future cold boot. DDR5 training is nondeterministic across cold boots, so
+the verdict needs *several* boots/days:
+
+- Stays clean across the next week + a few reboots → treat as a one-time
+  training artifact, benign; can close.
+- Recurs on a later boot → reproducible marginality; pursue the EXPO-off /
+  memtest86+ pass.
+
+rasdaemon stays enabled and will catch any recurrence; check
+`ras-mc-ctl --errors` periodically.
 
 ## DIMM labels: not achievable on this hardware
 
