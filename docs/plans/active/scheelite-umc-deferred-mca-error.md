@@ -55,16 +55,26 @@ ipid=8234c5c7b783be99, microcode=a60120a
   rasdaemon recorded a single distinct event). Rate of *new* corruption
   looks like ~0, not a storm.
 
+## Memory in this host
+
+G.Skill Flare X5 32GB (2×16GB) DDR5-6000 CL36, kit
+`F5-6000J3636F16GX2-FX5` — **non-ECC** consumer DDR5 running its
+**EXPO** profile (DDR5-6000 is an overclock relative to JEDEC; 6000 CL36
+is the AM5 2-DIMM sweet-spot speed, so not aggressive).
+
 ## Assessment
 
 A corrected-class UMC ECC error that appears on some cold boots but not
 others is the classic signature of **marginal DDR5 memory** — most often
-**EXPO/XMP overclock instability** (memory training is nondeterministic
-across cold boots), sometimes an **early-degrading DIMM**. Not urgent
-(deferred, "no action required", system stable), but a genuine
-memory-subsystem signal that can progress — not a phantom and not
-"benign uncore quirk" (an earlier pre-decode guess that the decode
-corrected).
+**EXPO overclock instability** (memory training is nondeterministic
+across cold boots), sometimes an **early-degrading DIMM**. The confirmed
+EXPO DDR5-6000 kit supports that hypothesis directly. Because 6000 CL36
+is the sweet-spot speed (not an aggressive OC), suspicion leans toward a
+slightly-weak kit, SoC/VDDG/VDDP voltage, or an AGESA revision rather
+than a reckless overclock. Not urgent (deferred, "no action required",
+system stable), but a genuine memory-subsystem signal that can progress —
+not a phantom and not "benign uncore quirk" (an earlier pre-decode guess
+that the decode corrected).
 
 ## Diagnosis plan
 
@@ -80,27 +90,31 @@ corrected).
    whether distinct events accrue (active degradation) or it stays one
    latched entry (marginal-but-stable).
 
-## DIMM labels (in progress)
+## DIMM labels: not achievable on this hardware
 
-Goal: have rasdaemon name the physical slot (e.g. `DIMM_A2`) instead of
-"bank 31 / UMC". Prerequisites:
+Goal was to have rasdaemon name the physical slot (e.g. `DIMM_A2`)
+instead of "bank 31 / UMC". **Not possible here**, conclusively:
 
-- `amd64_edac` must be loaded so EDAC enumerates the memory controllers —
-  added via `hardware.rasdaemon.extraModules = [ "amd64_edac" ]` on
-  scheelite (was not loaded; `ras-mc-ctl --layout` reported "No memories
-  found via edac").
-- After deploy, read `ras-mc-ctl --layout` + `sudo dmidecode -t memory`
-  to map EDAC mc/channel → physical slot + part number, then populate
-  `hardware.rasdaemon.labels` with headers matching the DMI strings
-  (`ASUSTeK COMPUTER INC.` / `PRIME X670E-PRO WIFI`).
-- Caveat: `amd64_edac` DIMM enumeration on Zen4 (Family 19h) is not
-  guaranteed; if EDAC still finds no memories after loading the module,
-  per-slot labels via EDAC won't be possible and we note the limitation.
+- Per-slot labels need `amd64_edac` to enumerate the memory controllers
+  into EDAC. On scheelite `sudo modprobe amd64_edac` fails with
+  **`No such device` (ENODEV)** — the driver finds no ECC-capable memory
+  controller to bind to.
+- That's expected: the RAM is **non-ECC** (G.Skill Flare X5). EDAC is
+  built around ECC reporting, so with non-ECC DIMMs there is no topology
+  for it to expose and `ras-mc-ctl --layout` stays "No memories found via
+  edac". There is no BIOS ECC toggle to flip (non-ECC modules).
+- The `extraModules = [ "amd64_edac" ]` line that was briefly added to
+  scheelite was reverted — a module that can't bind is just a failed
+  `modprobe` at every boot.
+
+Attribution therefore stops at the MCA decode rasdaemon already gives
+(`Unified Memory Controller V2`, bank 31). Narrowing to a specific
+DIMM is done physically instead: memtest86+ per-DIMM, or pull/swap one
+stick at a time (the diagnosis plan above).
 
 ## References
 
 - `nixos-modules/services/rasdaemon/module.nix` — the wrapper (enable +
   record).
-- `nixos-configurations/scheelite/default.nix` — `rasdaemon.enable` and
-  `hardware.rasdaemon.extraModules`.
+- `nixos-configurations/scheelite/default.nix` — `rasdaemon.enable`.
 - `docs/plans/active/scheelite-cooling-and-thermals.md` — board/CPU/cooling context.
