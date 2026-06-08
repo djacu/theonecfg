@@ -17,7 +17,10 @@ inputs: {
 
       boot.loader.grub.devices = [ "/dev/sda" ];
       fileSystems = {
-        "/".device = "/dev/hda1";
+        "/" = {
+          device = "/dev/hda1";
+          fsType = "ext4";
+        };
       };
 
       theonecfg.profiles.simple-vm.enable = true;
