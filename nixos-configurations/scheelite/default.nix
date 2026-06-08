@@ -128,6 +128,12 @@ inputs: {
         # Homelab services (see docs/plans/active/scheelite-homelab-services.md).
         # All disabled until prerequisites are in place. Enable phase-by-phase.
         theonecfg.services = {
+          # Host RAS monitoring: decode and record MCA/MCE hardware-error
+          # events so `ras-mc-ctl` can identify the failing IP block and
+          # track whether counts grow. Host-level, not a homelab service,
+          # but lives here with the other theonecfg.services toggles.
+          rasdaemon.enable = true;
+
           # --- Phase 1: foundation ---
           # Prerequisites: secrets/scheelite.yaml exists with the keys named in each
           # module's sops.secrets.* entries; ZFS datasets created on tank0; router
