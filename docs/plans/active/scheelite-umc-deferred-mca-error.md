@@ -51,9 +51,20 @@ ipid=8234c5c7b783be99, microcode=a60120a
   reboot itself** → the BIOS re-trained the memory, and this boot landed
   in a state where a UMC channel logs a deferred ECC error.
 - The 99 journal lines are **one latched event re-read** by the kernel's
-  ~5-min MCE poller (identical `status`/`misc` each time, `Over` bit set;
-  rasdaemon recorded a single distinct event). Rate of *new* corruption
-  looks like ~0, not a storm.
+  ~5-min MCE poller (`Over` bit set). Rate of *new* corruption looks like
+  ~0, not a storm.
+
+### Trend (rasdaemon, confirms "latched, not accumulating")
+
+rasdaemon recorded 8 MCE events over ~38 min (21:24:37 → 22:02:50), one
+per ~5½-min poll cycle. **Every field is byte-identical across all 8**,
+crucially including the syndrome/address `misc=0x5c184e92a34a3dc2`
+(alongside `status=0xca0158a452cc2420`, bank 31). A genuinely recurring
+fault would vary the `misc`/syndrome between events; an unchanging one is
+the same latched entry being re-polled. So over 38 minutes there is **one
+latched error, zero new distinct events** — the reassuring end of the
+range (latched at this boot's training, not actively degrading), pending
+the reboot test below.
 
 ## Memory in this host
 
