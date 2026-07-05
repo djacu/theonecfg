@@ -148,7 +148,16 @@ lib.fix (self: {
       extraApiWaits ? [ ],
     }:
     let
-      itemsFile = pkgs.writeText "${name}-items.json" (builtins.toJSON items);
+      # Items may carry a `_waitForUrl` marker (see mkQbtDownloadClient):
+      # an HTTP endpoint the target app will connection-test when the item
+      # is pushed, so it must be answering before the reconcile runs.
+      # Collected into the wait loop here and stripped from the JSON —
+      # unlike the `_*File` markers, this one never reaches the API.
+      itemWaits = map (url: { inherit url; }) (
+        lib.unique (map (i: i._waitForUrl) (lib.filter (i: i ? _waitForUrl) items))
+      );
+      cleanedItems = map (i: removeAttrs i [ "_waitForUrl" ]) items;
+      itemsFile = pkgs.writeText "${name}-items.json" (builtins.toJSON cleanedItems);
       curlPkg = self.mkSecureCurl {
         inherit name apiKeyFile;
       };
@@ -185,7 +194,7 @@ lib.fix (self: {
               url = w.url;
               apiKeyFile = w.apiKeyFile or null;
             }
-          ) extraApiWaits}
+          ) (extraApiWaits ++ itemWaits)}
 
           curl_cmd=curl-${name}
 
@@ -307,6 +316,12 @@ lib.fix (self: {
     AuthSubnetWhitelist=127.0.0.1/32 lets localhost connections in without
     auth, and *arr / Prowlarr bind to / connect from 127.0.0.1.
 
+    Carries a `_waitForUrl` marker: the consuming reconciler polls
+    qBittorrent's WebUI before pushing, because the *arr connection-tests
+    the client server-side on PUT/POST and the qbittorrent unit reports
+    active a beat before the WebUI binds its port (see
+    docs/plans/active/prowlarr-downloadclients-qbittorrent-readiness-race.md).
+
     Args:
       port      : qBittorrent webUI port (e.g. 8080)
       category  : qBittorrent category name (matches autoCategories)
@@ -375,6 +390,10 @@ lib.fix (self: {
       categories = [ ];
     }
     // {
+      # Same readiness probe mkQbtPushService uses; answered without auth
+      # from localhost via the subnet whitelist. mkArrApiPushService waits
+      # on it and strips the marker before the item is pushed.
+      _waitForUrl = "http://127.0.0.1:${toString port}/api/v2/app/version";
       fields = [
         {
           name = "host";

@@ -1,8 +1,10 @@
 # prowlarr-downloadclients vs qBittorrent WebUI readiness race
 
-Status: open
+Status: fix implemented (proposed-fix option 2 — `mkQbtDownloadClient` emits a
+`_waitForUrl` marker; `mkArrApiPushService` polls it before reconciling and
+strips it from the pushed JSON). Pending cold-boot verification below.
 Owner: dan
-Last updated: 2026-06-07
+Last updated: 2026-07-05
 
 ## Symptom
 
