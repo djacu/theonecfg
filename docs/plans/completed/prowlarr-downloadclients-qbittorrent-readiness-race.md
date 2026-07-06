@@ -1,8 +1,10 @@
 # prowlarr-downloadclients vs qBittorrent WebUI readiness race
 
-Status: open
+Status: closed — fixed and verified (proposed-fix option 2 —
+`mkQbtDownloadClient` emits a `_waitForUrl` marker; `mkArrApiPushService`
+polls it before reconciling and strips it from the pushed JSON).
 Owner: dan
-Last updated: 2026-06-07
+Last updated: 2026-07-05
 
 ## Symptom
 
@@ -95,3 +97,14 @@ down qBittorrent still fails loudly rather than hanging.
 - Reboot `scheelite`; confirm `prowlarr-downloadclients.service` reaches
   `active (exited)` with no `Connection refused` in its journal.
 - `systemctl --failed` is clean after boot across several reboots.
+
+## Verification result (2026-07-05)
+
+Race reproduced on both pre-fix cold boots (2026-06-07 and 2026-07-05
+08:43, the kernel-6.18.37 reboot). Cold boot at 10:54 with the fix
+deployed: unit started 10:54:49, PUT fired 10:55:03 — the 14 s gap is
+the readiness wait polling qBittorrent's WebUI until it answered —
+then exited 0. `systemctl --failed` clean. The wait demonstrably
+engaged (pre-fix boots PUT ~1 s after start and got Connection
+refused), so this is the fix working, not the race being won by
+timing.
