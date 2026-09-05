@@ -178,6 +178,27 @@ inputs: {
             # its UI (i.e. not via an *arr). Manual grabs land here
             # before the user sorts/imports them somewhere.
             extraCategories.prowlarr = "${tankDownloadsDir}/prowlarr";
+            # Pushed via /api/v2/app/setPreferences on every deploy (see
+            # library.declarative mkQbtPushService), so these survive the
+            # qBittorrent.conf reinstall the upstream module does on each
+            # ExecStartPre. Anything NOT declared here reverts to qBt's
+            # defaults (queueing on, 5/3/3 active) on the next restart.
+            #
+            # queueing_enabled=false: seed every torrent instead of parking
+            # most in the queue. Empornium has no minimum seed time (no
+            # hit-and-run) and ratio won't build on this niche content (no
+            # leechers), so seeding is for availability/bonus rather than
+            # obligation — but there's no reason to leave hundreds queued at
+            # zero upload. ~616 torrents now; expected to drop as the import
+            # backlog and cleanup settle.
+            #
+            # With no seed-time rule, space cleanup is unblocked: already-
+            # imported torrents can be removed any time (their library copies
+            # are independent cross-dataset copies). Reclaim policy TBD — bulk
+            # removal, or whisparr.removeCompletedDownloads.
+            preferences = {
+              queueing_enabled = false;
+            };
           };
           # prowlarrTags follow a content-type taxonomy: each app's tag list
           # describes what it consumes; each indexer's tag list (below) describes
