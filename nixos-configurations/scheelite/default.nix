@@ -192,12 +192,20 @@ inputs: {
             # zero upload. ~616 torrents now; expected to drop as the import
             # backlog and cleanup settle.
             #
-            # With no seed-time rule, space cleanup is unblocked: already-
-            # imported torrents can be removed any time (their library copies
-            # are independent cross-dataset copies). Reclaim policy TBD — bulk
-            # removal, or whisparr.removeCompletedDownloads.
+            # Space reclaim ("split the difference"): seed each torrent ~14
+            # days (Empornium has no minimum, but seed time earns bonus points),
+            # then Pause. max_ratio_act=0 is Pause, NOT delete — so unimported
+            # torrents are never removed before they're handled. Whisparr's
+            # removeCompletedDownloads (set via its API; stored in its DB, so it
+            # survives deploys) then removes the *imported* ones once they pause;
+            # unimported ones just stay paused on disk. Imports are independent
+            # cross-dataset copies, so removing a seeded download never touches
+            # the Jellyfin/Stash library.
             preferences = {
               queueing_enabled = false;
+              max_seeding_time_enabled = true;
+              max_seeding_time = 20160; # 14 days, in minutes — tune freely
+              max_ratio_act = 0; # 0 = Pause when a limit is hit (never deletes)
             };
           };
           # prowlarrTags follow a content-type taxonomy: each app's tag list
