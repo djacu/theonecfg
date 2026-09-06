@@ -20,6 +20,37 @@ in
   options.theonecfg.users.djacu.programs.fish.enable = mkEnableOption "djacu fish config";
 
   config = mkIf (cfg.enable && cfg.programs.fish.enable) {
+    # Batch-add torrent files to scheelite's qBittorrent with one category.
+    # Works around qBt 5.2.0-5.2.3's WebUI opening a separate add dialog per
+    # file (upstream restores a shared dialog in 5.2.4). Streams each file
+    # over ssh into the localhost-only API (no auth needed on the host, no
+    # temp files). Usage: qbt-add <category> <file.torrent>...
+    programs.fish.functions.qbt-add = ''
+      if test (count $argv) -lt 2
+          echo "usage: qbt-add <category> <file.torrent>..." >&2
+          return 1
+      end
+      set -l category $argv[1]
+      if not string match -qr '^[A-Za-z0-9._-]+$' -- $category
+          echo "qbt-add: category must be a plain word: $category" >&2
+          return 1
+      end
+      set -l failed 0
+      for f in $argv[2..]
+          if not test -f "$f"
+              echo "skip (not a file): $f" >&2
+              set failed 1
+              continue
+          end
+          set -l resp (ssh djacu@scheelite "curl -s -F 'category=$category' -F 'torrents=@-;filename=upload.torrent' http://127.0.0.1:8080/api/v2/torrents/add" < "$f")
+          echo "$resp  <- "(basename "$f")
+          if test "$resp" != "Ok."
+              set failed 1
+          end
+      end
+      return $failed
+    '';
+
     # Fish startup guard: prefer forwarded SSH_AUTH_SOCK, else local gpg socket
     home.file.".config/fish/conf.d/10-ssh-auth-sock.fish".text = ''
       function __forwarded_agent --description "Detect forwarded SSH agent"
