@@ -235,6 +235,10 @@ in
       sops.templates."namer.cfg" = {
         content = toNamerIni namerSettings;
         owner = "namer";
+        # The rendered file is swapped in place at activation; without this
+        # the unit text never changes and a switch leaves namer running on
+        # the old config (bitten live 2026-09-06 enabling the delete button).
+        restartUnits = [ "namer.service" ];
       };
 
       # namer creates none of its dirs (its config verify exits if any is
