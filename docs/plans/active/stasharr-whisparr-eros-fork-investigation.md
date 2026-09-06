@@ -1,5 +1,14 @@
 # Stasharr ↔ Whisparr fork mismatch — follow-up investigation
 
+> **2026-09-06: deprioritized.** The run-both-V2+Eros plan's main
+> motivation — Whisparr's manual-import toil — is solved by the namer
+> import-rescue pipeline (see `whisparr-namer-import-rescue.md`:
+> phash + web-UI matching on V2, JAV included). What Eros would still
+> add: the Stasharr request button (accepted as broken 2026-05-10) and
+> StashDB-organized browsing (Stash already provides locally). Revisit
+> only if the Stasharr request-flow becomes wanted. The fork-landscape
+> details below remain the reference for V2-vs-Eros API differences.
+
 ## What surfaced
 
 End-to-end smoke test of Stasharr Portal (Phase 4.2 of
@@ -118,3 +127,52 @@ the original PHash-on-mega-pack motivation. Stasharr stays deployed
 because its catalog UI and local-availability badge still provide
 value; the broken request button is a known limitation. Revisit if
 the Stasharr request flow becomes worth the operational cost.
+
+## 2026-08-16 revisit — run V2 + Eros side-by-side (banked, not built)
+
+Re-evaluated because the user asked about moving to "Whisparr V3 (StashDB)".
+Key change since 2026-05-10: **Eros is now its own actively-maintained repo with
+official releases**, not just a branch/container.
+
+Verified 2026-08-16:
+
+- `Whisparr/Whisparr-Eros` — separate repo, **official (non-prerelease) releases**;
+  latest `v3.3.8-release.1097` (2026-08-15), commits landing daily.
+- **StashDB-based** — `WhisparrCloudRequestBuilder.cs` → `https://stashdb.org/graphql`,
+  plus `NzbDrone.Core/ImportLists/StashDB/` and StashDB foreign IDs on
+  movies/performers/studios. **Radarr/movie model** (one folder per scene).
+  **Supports Postgres** (`Whisparr:Postgres`). Default port 6969.
+- `Whisparr/Whisparr` (the Sonarr-fork nixpkgs ships as `whisparr` 2.0.0.2151) has
+  **no** published 3.x release — only `v2.2.0-*`. nixpkgs only tracks 2.0.0.x (TPDb).
+
+Direction (community-recommended, per r/whisparr): **run BOTH — additive & non-destructive**
+rather than migrate. There is no automatic V2→V3 migration (different DB architecture).
+
+Division of labor:
+
+- **Keep V2** (TPDb, Sonarr, flat `/Studio/file.mp4`) — primary for **sites/studios + JAV**
+  (TPDb has more JAV/VR coverage; V2 has a JAV tab). Existing library untouched.
+- **Add Eros/V3** (StashDB) — **performer-centric** tracking + StashDB-only scenes, AND it
+  **fixes Stasharr's request button** (the eros `/api/v3/movie?stashId=` shape from the top
+  of this doc). Repoint Stasharr → Eros.
+- **`namer`** (ThePornDatabase/namer) as the import enabler: V3 needs strict
+  `Studio.YYYY-MM-DD.Performers.Title.mp4` naming to match StashDB; namer renames to exactly
+  that, and it also reduces V2's TPDb import toil.
+
+Integration shape (extends Option B): `theonecfg.services.whisparr-eros`, **port 6970**
+(V2 keeps 6969), own postgres instance, own sops api-key / Caddy vhost / kanidm auth, new
+qBittorrent category `whisparr-eros` → `/tank0/downloads/whisparr-eros`, and its **own root
+folder / ZFS dataset** (e.g. `tank0/media/adult-performers`) — must NOT share
+`/tank0/media/adult` (two managers conflict over rename/organize). Add Eros to Prowlarr;
+add an Eros Jellyfin library.
+
+Open questions before building:
+
+1. **Packaging** — Eros is not in nixpkgs. OCI container (image name unconfirmed — hotio
+   `whisparr:v3` historically; upstream image TBD) vs a custom nix package.
+1. **Prowlarr** — does its "Whisparr" application type target the eros movie-API or the
+   v2 series-API? Determines whether a Prowlarr app entry can drive Eros directly.
+1. **Folder-per-scene clutter** — Eros (Radarr base) makes a folder per scene; verify the
+   interaction with Jellyfin/Stash (cf. `docs/plans/completed/jellyfin-adult-stash-integration.md`).
+
+Status: **banked 2026-08-16.** Immediate focus returned to reducing V2 import toil.
