@@ -210,6 +210,240 @@ def feed(api, env, state):
     return counters
 
 
+def canonical_stem(path):
+    return Path(path).stem
+
+
+def site_of(stem):
+    return stem.split(" - ", 1)[0]
+
+
+def normalize_title(s):
+    return "".join(ch for ch in s.casefold() if ch.isalnum())
+
+
+def scan_scratch(scratch):
+    """inode -> [paths] across watch/work/failed/dest (videos and sidecars).
+
+    Tolerates entries vanishing mid-scan (the live watchdog moves files
+    concurrently)."""
+    index = {}
+    for sub in SCRATCH_SUBDIRS:
+        for p in (Path(scratch) / sub).iterdir():
+            try:
+                if p.is_file():
+                    index.setdefault(p.stat().st_ino, []).append(p)
+            except FileNotFoundError:
+                continue
+    return index
+
+
+def already_imported(api, download_id):
+    resp = api.get("/api/v3/history", {
+        "downloadId": download_id, "eventType": 3, "pageSize": 1000})
+    records = resp.get("records", resp) if isinstance(resp, dict) else resp
+    return {r["episodeId"] for r in records
+            if r.get("episodeId") and str(r.get("eventType")) in ("3", "downloadFolderImported")}
+
+
+def ensure_series(api, site):
+    """Return a seriesId for `site`, adding it unmonitored if needed.
+
+    Exact-normalized title match required — never add a guessed series.
+    rootFolderPath and qualityProfileId are copied from an existing
+    series (self-configuring, per the design doc).
+    """
+    want = normalize_title(site)
+    results = api.get("/api/v3/series/lookup", {"term": site}) or []
+    match = next((r for r in results if normalize_title(r.get("title", "")) == want), None)
+    if not match:
+        return None
+    if match.get("id"):
+        # Exists in the library but /parse didn't map it (alias gap) —
+        # adding again won't help; leave for a human.
+        return None
+    existing = api.get("/api/v3/series") or []
+    if not existing:
+        return None
+    body = {
+        "title": match["title"],
+        "tvdbId": match["tvdbId"],
+        "qualityProfileId": existing[0]["qualityProfileId"],
+        "rootFolderPath": existing[0].get("rootFolderPath") or "",
+        "monitored": False,
+        "addOptions": {"searchForMissingEpisodes": False},
+    }
+    if not body["rootFolderPath"]:
+        return None
+    added = api.post("/api/v3/series", body)
+    return added.get("id") if added else None
+
+
+def pack_complete(items, inode_index):
+    """Every video file of the download must have a scratch link before any
+    of it may be imported — importing marks the download complete and
+    Whisparr removes the torrent WITH DATA (immediately, if paused)."""
+    for item in items:
+        path = Path(item.get("path", ""))
+        if path.suffix.lstrip(".").lower() not in VIDEO_SUPERSET:
+            continue
+        if not path.exists():
+            return False  # inconsistent state; do not risk it
+        if path.stat().st_ino not in inode_index:
+            return False
+    return True
+
+
+def _confirm_command(api, command_id, timeout=900):
+    # Generous: the batched imports are serial multi-GB cross-dataset
+    # copies; 120 s would false-fail large batches.
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        status = api.get(f"/api/v3/command/{command_id}").get("status")
+        if status in ("completed", "failed", "aborted"):
+            return status
+        time.sleep(5)
+    return "timeout"
+
+
+def harvest(api, env, state):
+    counters = Counter()
+    scratch = env["scratch"]
+    dest = Path(scratch) / "dest"
+    inode_index = scan_scratch(scratch)
+    by_inode = {e["inode"]: (k, e) for k, e in state["entries"].items()
+                if e["status"] == "fed"}
+    parked_inodes = {e["inode"] for e in state["entries"].values()
+                     if e["status"] == "needs_human"}
+    # download_id -> list of (dest_path, key, entry, episode_ids, series_id, pei)
+    batches = {}
+    for dest_path in sorted(p for p in dest.iterdir() if p.is_file()):
+        if not is_video(dest_path.name, list(VIDEO_SUPERSET)):
+            continue
+        try:
+            st = dest_path.stat()
+        except FileNotFoundError:
+            continue
+        if st.st_nlink == 1:
+            counters["orphan_pending"] += 1  # original gone; orphan pass imports untracked
+            continue
+        if st.st_ino in parked_inodes:
+            counters["needs_human_parked"] += 1  # standing count; quiescent
+            continue
+        mapped = by_inode.get(st.st_ino)
+        if not mapped or mapped[1]["size"] != st.st_size:
+            counters["unmapped"] += 1
+            print(f"harvest: unmapped dest file: {dest_path.name}", file=sys.stderr)
+            continue
+        key, entry = mapped
+        stem = canonical_stem(dest_path)
+        try:
+            parse = api.get("/api/v3/parse", {"title": stem}) or {}
+            series = parse.get("series")
+            episodes = parse.get("episodes") or []
+            if not series:
+                if ensure_series(api, site_of(stem)):
+                    counters["series_added"] += 1  # episodes arrive async; retry next tick
+                else:
+                    counters["needs_human_series"] += 1
+                    print(f"harvest: no confident series for: {stem}", file=sys.stderr)
+                continue
+            if not episodes:
+                entry["attempts"] += 1
+                if entry["attempts"] > env["max_attempts"]:
+                    entry["status"] = "needs_human"
+                    counters["needs_human_ambiguous"] += 1
+                    print(f"harvest: parked (no episode after {entry['attempts']} tries): {stem}",
+                          file=sys.stderr)
+                else:
+                    now = int(time.time())
+                    if now - entry["last_refresh"] > 86400:
+                        api.post("/api/v3/command", {"name": "RefreshSeries",
+                                                     "seriesIds": [series["id"]]})
+                        entry["last_refresh"] = now
+                    counters["awaiting_episode"] += 1
+                continue
+            episode_ids = [e["id"] for e in episodes]
+            if any(e.get("hasFile") for e in episodes):
+                if set(episode_ids) & already_imported(api, entry["download_id"]):
+                    # Crash-window replay: our own import already landed.
+                    dest_path.unlink()
+                    entry["status"] = "imported"
+                    counters["imported_replay"] += 1
+                else:
+                    entry["status"] = "needs_human"
+                    counters["needs_human_duplicate"] += 1
+                    print(f"harvest: duplicate (episode has file), parked: {stem}",
+                          file=sys.stderr)
+                continue
+            pei = parse.get("parsedEpisodeInfo") or {}
+            batches.setdefault(entry["download_id"], []).append(
+                (dest_path, key, entry, episode_ids, series["id"], pei))
+        except urllib.error.HTTPError as err:
+            counters["errors"] += 1
+            print(f"harvest: {dest_path.name}: HTTP {err.code}", file=sys.stderr)
+
+    for download_id, group in sorted(batches.items()):
+        try:
+            items_list = manual_import_items(api, download_id)
+            if not pack_complete(items_list, inode_index):
+                counters["pack_deferred"] += len(group)
+                print(f"harvest: pack incomplete, deferring: {download_id}", file=sys.stderr)
+                continue
+            items = {i["path"]: i for i in items_list}
+            files = []
+            batch = []
+            for dest_path, key, entry, episode_ids, series_id, pei in group:
+                item = items.get(entry["original_path"], {})
+                quality = item.get("quality") or pei.get("quality")
+                languages = item.get("languages") or pei.get("languages")
+                if not quality:
+                    # Nulls corrupt the import at this build; defer + report.
+                    entry["attempts"] += 1
+                    counters["quality_missing"] += 1
+                    print(f"harvest: no quality for {entry['original_path']}, deferring",
+                          file=sys.stderr)
+                    continue
+                files.append({
+                    "path": entry["original_path"],
+                    "folderName": item.get("folderName", ""),
+                    "seriesId": series_id,
+                    "episodeIds": episode_ids,
+                    "quality": quality,
+                    "languages": languages or [{"id": 1, "name": "English"}],
+                    "releaseGroup": item.get("releaseGroup") or "",
+                    "downloadId": download_id,
+                })
+                batch.append((dest_path, key, entry, episode_ids))
+            if not files:
+                continue
+            cmd = api.post("/api/v3/command", {
+                "name": "ManualImport", "importMode": "copy", "files": files})
+            _confirm_command(api, cmd["id"])
+            imported_eps = already_imported(api, download_id)
+            for dest_path, key, entry, episode_ids in batch:
+                if set(episode_ids) <= imported_eps:
+                    dest_path.unlink()
+                    entry["status"] = "imported"
+                    counters["imported"] += 1
+                    print(f"harvest: imported {entry['original_path']} -> {dest_path.name}")
+                else:
+                    # Keep the dest link + entry: bounded in-place retry
+                    # (an unbounded prune-and-refeed would re-POST forever).
+                    entry["attempts"] += 1
+                    if entry["attempts"] > env["max_attempts"]:
+                        entry["status"] = "needs_human"
+                        counters["needs_human_import_failed"] += 1
+                    else:
+                        counters["import_failed"] += 1
+                    print(f"harvest: import not confirmed for {entry['original_path']}",
+                          file=sys.stderr)
+        except urllib.error.HTTPError as err:
+            counters["errors"] += 1
+            print(f"harvest: {download_id}: HTTP {err.code}", file=sys.stderr)
+    return counters
+
+
 def main():
     env = load_env()
     with open(env["key_file"]) as f:
@@ -220,6 +454,7 @@ def main():
     rc = 0
     try:
         counters += feed(api, env, state)
+        counters += harvest(api, env, state)
     except (urllib.error.URLError, OSError) as err:
         print(f"shuttle: aborted: {err}", file=sys.stderr)
         rc = 1
