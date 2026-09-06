@@ -102,7 +102,11 @@ let
       web = true;
       host = "127.0.0.1";
       port = cfg.port;
-      allow_delete_files = false;
+      # Delete button in the web UI, scoped by namer to failed_dir. Deleting
+      # a failed entry whose torrent is gone frees the pinned bytes; while
+      # the torrent lives it just opts the file out of auto-matching (the
+      # shuttle's state remembers it was fed and never re-feeds).
+      allow_delete_files = true;
     };
   } cfg.settings;
 

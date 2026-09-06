@@ -574,8 +574,12 @@ retries.
 - TPDb token and the API-key alias: sops, owner `namer`, mode 0400.
 - Web UI: localhost bind + Kanidm forward-auth via Caddy; rename
   powers are containment-checked to the scratch dirs;
-  `allow_delete_files` stays false (junk pins are removed by hand,
-  guided by the reconciliation report).
+  `allow_delete_files = true` (enabled 2026-09-06 after a week of
+  shell-side triage proved the workflow): the delete button is scoped
+  by namer to `failed_dir`, sits behind Kanidm auth, and deleting
+  remains an explicit human act — it frees pinned bytes when the
+  torrent is gone, or opts the file out of auto-matching while it
+  lives. `dest/` pins still require shell removal.
 - Unlinking a `dest/` link after confirmed import can never lose data
   (library copy exists); unlinking any pin is an explicit human act.
 
