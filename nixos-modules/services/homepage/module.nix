@@ -122,6 +122,15 @@ let
       widget = null; # No upstream Homepage widget for Whisparr
     }
     {
+      enabled = svc.namer.enable;
+      group = "Media";
+      name = "namer";
+      href = publicUrl svc.namer.domain;
+      icon = "mdi-rename-box";
+      description = "phash import rescue";
+      widget = null;
+    }
+    {
       enabled = svc.prowlarr.enable;
       group = "Media";
       name = "Prowlarr";
