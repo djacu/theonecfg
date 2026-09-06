@@ -376,9 +376,12 @@ module; the scheelite commit only populates `secrets/scheelite.yaml`.
   is unreachable at startup).
 - User `namer` (`isSystemUser`, primary group `namer`,
   `extraGroups = [ "media" ]`), matching sibling idiom.
-- Scratch dirs `${scratchDir}/{watch,work,failed,dest}` via tmpfiles
-  (`2775 namer media`); scratch MUST live on the downloads dataset —
-  the module derives its default from
+- Scratch dirs `${scratchDir}/{watch,work,failed,dest}` are created by a
+  root `ExecStartPre` (`install -d -m 2775 -o namer -g media`), not
+  tmpfiles: tmpfiles' unsafe-path-transition guard refuses a
+  namer-owned entry nested under the qbittorrent-owned downloads root.
+  dataDir stays tmpfiles-managed. Scratch MUST live on the downloads
+  dataset — the module derives its default from
   `theonecfg.services.qbittorrent.downloadsDir`.
 - Data dir (phash DB, requests cache, rendered-config adjacent state)
   defaults to `/var/lib/namer`; scheelite overrides to

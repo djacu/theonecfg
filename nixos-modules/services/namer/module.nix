@@ -234,14 +234,12 @@ in
       };
 
       # namer creates none of its dirs (its config verify exits if any is
-      # missing) — tmpfiles are mandatory. Scratch dirs follow the sgid
-      # media-group idiom (see media-storage); dataDir is namer-private.
+      # missing). dataDir is namer-private and root-owned above it, so
+      # tmpfiles can manage it directly. Scratch dirs are created by a
+      # root ExecStartPre instead (see systemd.services.namer below):
+      # tmpfiles' unsafe-path-transition guard refuses to nest a
+      # namer-owned entry under the qbittorrent-owned downloads root.
       systemd.tmpfiles.rules = [
-        "d ${cfg.scratchDir} 2775 namer media - -"
-        "d ${cfg.scratchDir}/watch 2775 namer media - -"
-        "d ${cfg.scratchDir}/work 2775 namer media - -"
-        "d ${cfg.scratchDir}/failed 2775 namer media - -"
-        "d ${cfg.scratchDir}/dest 2775 namer media - -"
         "d ${cfg.dataDir} 0750 namer namer - -"
       ];
 
@@ -252,7 +250,16 @@ in
         wants = [ "network-online.target" ];
         environment.NAMER_CONFIG = config.sops.templates."namer.cfg".path;
         serviceConfig = {
-          ExecStartPre = "${workSweep}/bin/namer-work-sweep";
+          ExecStartPre = [
+            # tmpfiles cannot manage these: its unsafe-path-transition
+            # guard refuses namer-owned entries nested under the
+            # qbittorrent-owned downloads root (cross-user nesting is the
+            # whole point here — the scratch area must share the downloads
+            # filesystem for hardlinks). Create them privileged instead;
+            # RequiresMountsFor has already mounted the filesystem.
+            "+${pkgs.coreutils}/bin/install -d -m 2775 -o namer -g media ${cfg.scratchDir} ${cfg.scratchDir}/watch ${cfg.scratchDir}/work ${cfg.scratchDir}/failed ${cfg.scratchDir}/dest"
+            "${workSweep}/bin/namer-work-sweep"
+          ];
           ExecStart = "${pkgs.namer}/bin/namer watchdog";
           User = "namer";
           Group = "namer";
