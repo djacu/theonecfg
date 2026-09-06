@@ -1,7 +1,9 @@
 # Whisparr import rescue via namer (phash) — design
 
-Status: design approved and adversarially reviewed (2026-09-05),
-implementation not started. Companion to the seeding-lifecycle work
+Status: implemented 2026-09-06; in observation. First live sweeps
+imported 320 files, auto-added 17 sites, preserved 21 pack-sibling
+pins (16.3 GB) through 3 torrent removals, parked 10 duplicates —
+zero errors. Companion to the seeding-lifecycle work
 (commits `67fdedc`, `29ac595`): that made torrents seed 14 days, pause,
 and get removed by Whisparr once imported — this design rescues the
 files Whisparr cannot import on its own so that lifecycle can finish
