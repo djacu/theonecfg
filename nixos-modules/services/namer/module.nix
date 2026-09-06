@@ -141,6 +141,10 @@ let
     '';
   };
 
+  shuttleBin = pkgs.writers.writePython3Bin "whisparr-namer-shuttle" {
+    flakeIgnore = [ "E501" ];
+  } (builtins.readFile ./shuttle.py);
+
 in
 {
   options.theonecfg.services.namer = {
@@ -312,6 +316,53 @@ in
         import forward_auth_kanidm
         reverse_proxy 127.0.0.1:${toString cfg.port}
       '';
+    })
+
+    (mkIf (cfg.shuttle.enable && whisparrCfg.enable) {
+      # Read-only reuse of the existing whisparr/api-key sops entry under a
+      # different owner (sops-nix `key` aliasing; single yaml entry).
+      sops.secrets."whisparr/api-key-namer" = {
+        key = "whisparr/api-key";
+        owner = "namer";
+      };
+
+      systemd.services.whisparr-namer-shuttle = {
+        description = "Feed Whisparr's import-blocked files to namer and import the matches";
+        # after= only (no requires=): if whisparr is down the sweep exits 1
+        # and Persistent=true retries next tick — no need to drag units up.
+        after = [
+          "namer.service"
+          "whisparr.service"
+        ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${shuttleBin}/bin/whisparr-namer-shuttle";
+          User = "namer";
+          Group = "namer";
+          SupplementaryGroups = [ "media" ];
+        };
+        environment = {
+          WHISPARR_URL = "http://127.0.0.1:${toString whisparrCfg.port}";
+          WHISPARR_API_KEY_FILE = config.sops.secrets."whisparr/api-key-namer".path;
+          SCRATCH_DIR = cfg.scratchDir;
+          STATE_FILE = "${cfg.dataDir}/shuttle-state.json";
+          TARGET_EXTENSIONS = lib.concatStringsSep "," cfg.videoExtensions;
+        };
+        unitConfig.RequiresMountsFor = [
+          cfg.scratchDir
+          cfg.dataDir
+        ];
+      };
+
+      systemd.timers.whisparr-namer-shuttle = {
+        description = "Hourly whisparr-namer shuttle sweep";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnCalendar = cfg.shuttle.interval;
+          RandomizedDelaySec = "5m";
+          Persistent = true;
+        };
+      };
     })
   ]);
 }
