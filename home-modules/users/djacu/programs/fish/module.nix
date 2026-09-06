@@ -49,7 +49,15 @@ in
             end
             set -l resp (ssh djacu@scheelite "curl -s -F 'category=$category' -F 'torrents=@-;filename=upload.torrent' http://127.0.0.1:8080/api/v2/torrents/add" < "$f")
             echo "$resp  <- "(basename "$f")
-            if test "$resp" != "Ok."
+            # qBt >=5.1 answers JSON ({"success_count":1,...}); older said "Ok."
+            set -l ok 0
+            if test "$resp" = "Ok."
+                set ok 1
+            else if string match -q '*"failure_count":0*' -- $resp
+                and not string match -q '*"success_count":0*' -- $resp
+                set ok 1
+            end
+            if test $ok -eq 0
                 set failed 1
             end
         end
