@@ -265,6 +265,14 @@ def ensure_series(api, site):
     existing = api.get("/api/v3/series") or []
     if not existing:
         return None
+    if any(normalize_title(s.get("title", "")) == want for s in existing):
+        # TPDb sometimes renames/reuses a site entry: the lookup match can
+        # carry id=0 even though a same-titled series already exists in the
+        # library (created from the old entity). Adding it would give
+        # Whisparr two title-identical series and 500 every /parse for that
+        # site (MultipleSeriesFoundException) — observed live 2026-09-06
+        # with SodCreate vs "SOD Create" (slug senz).
+        return None
     body = {
         "title": match["title"],
         "tvdbId": match["tvdbId"],

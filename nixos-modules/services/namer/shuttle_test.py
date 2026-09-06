@@ -212,6 +212,20 @@ class TestHarvestHelpers(unittest.TestCase):
         api2 = FakeApi({("GET", "/api/v3/series/lookup"): [{"title": "Mom Swap Extra", "tvdbId": 9}]})
         self.assertIsNone(shuttle.ensure_series(api2, "Mom Swap"))
 
+    def test_ensure_series_refuses_title_duplicate_of_library(self):
+        # TPDb renamed/reused entity: lookup match has NO library id, but a
+        # same-normalized-title series already exists (created from the old
+        # entity). Adding would 500 every /parse for that site
+        # (MultipleSeriesFoundException) — the SodCreate/"SOD Create" case.
+        api = FakeApi({
+            ("GET", "/api/v3/series/lookup"): [{"title": "SOD Create", "tvdbId": 99}],
+            ("GET", "/api/v3/series"): [
+                {"id": 1, "qualityProfileId": 4,
+                 "rootFolderPath": "/tank0/media/adult", "title": "SodCreate"}],
+        })
+        self.assertIsNone(shuttle.ensure_series(api, "SodCreate"))
+        self.assertEqual([c for c in api.calls if c[0] == "POST"], [])
+
 
 class TestHarvest(unittest.TestCase):
     def setUp(self):
