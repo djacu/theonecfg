@@ -473,7 +473,7 @@ class TestOrphansAndReconcile(unittest.TestCase):
         self.assertNotIn("GONE:aaaa1111", state["entries"])
         self.assertIn("AAA:deadbeef", state["entries"])
 
-    def test_reconcile_flags_stale_work_and_splits_unsupported(self):
+    def test_reconcile_ignores_hardlink_mtime_and_splits_unsupported(self):
         stale = self.scratch / "work" / "old.mp4"
         stale.write_bytes(b"x")
         old = time.time() - 3 * 86400
@@ -489,7 +489,12 @@ class TestOrphansAndReconcile(unittest.TestCase):
             "original_path": str(src), "link_name": link.name, "fed_at": 0,
             "status": "fed", "attempts": 0, "last_refresh": 0}
         counters = shuttle.reconcile(self.env(), state)
-        self.assertEqual(counters["stale_work"], 1)
+        # fresh ctime (file was just created here) + old mtime (os.utime
+        # aged it) is exactly the hardlink-fed case from live: must NOT be
+        # stale. This is the false-positive regression being fixed. The
+        # positive stale path (old ctime) isn't cheaply testable without
+        # faking time.
+        self.assertEqual(counters["stale_work"], 0)
         self.assertEqual(counters["needs_human_unsupported"], 1)
         self.assertEqual(counters["awaiting_match"], 0)
 

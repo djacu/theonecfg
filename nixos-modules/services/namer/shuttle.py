@@ -543,7 +543,11 @@ def reconcile(env, state):
                 counters["pinned_bytes"] += st.st_size
                 print(f"reconcile: pin ({sub}, {st.st_size} bytes): {p.name}",
                       file=sys.stderr)
-            if sub == "work" and now - st.st_mtime > 86400:
+            # st_mtime is the ORIGINAL download's (hardlinks share the
+            # inode) — months old the moment a file is fed. st_ctime is
+            # updated by link creation and each rename, so it tracks when
+            # the entry reached its current pipeline stage.
+            if sub == "work" and now - st.st_ctime > 86400:
                 counters["stale_work"] += 1
                 print(f"reconcile: stale in work/ (>1 day): {p.name}", file=sys.stderr)
     for key in sorted(state["entries"]):
