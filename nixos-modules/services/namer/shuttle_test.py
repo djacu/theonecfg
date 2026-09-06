@@ -2,6 +2,7 @@ import os
 import tempfile
 import time
 import unittest
+from collections import Counter
 from pathlib import Path
 
 import shuttle
@@ -367,6 +368,130 @@ class TestHarvest(unittest.TestCase):
         counters2 = shuttle.harvest(api, self.env(), state)
         self.assertEqual(counters2["needs_human_parked"], 1)
         self.assertEqual(len(api.calls), calls_before)
+
+
+class TestOrphansAndReconcile(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.scratch = self.root / "scratch"
+        for d in ("watch", "work", "failed", "dest"):
+            (self.scratch / d).mkdir(parents=True)
+        self.downloads = self.root / "downloads"
+        self.downloads.mkdir()
+        self.state_file = str(self.root / "state.json")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def env(self):
+        return {"url": "http://x", "key_file": "", "scratch": str(self.scratch),
+                "state_file": self.state_file, "exts": ["mp4"], "max_attempts": 168}
+
+    def orphan_dest(self, name="Site - 2026-01-01 - T [WEBDL-1080p].mp4"):
+        src = self.downloads / "gone.mp4"
+        src.write_bytes(b"x" * 512)
+        dest = self.scratch / "dest" / name
+        os.link(src, dest)
+        src.unlink()  # original removed out-of-band -> nlink == 1
+        return dest
+
+    def test_import_untracked_success(self):
+        dest = self.orphan_dest()
+        parse_states = iter([
+            {"series": {"id": 5}, "episodes": [{"id": 7, "hasFile": False}],
+             "parsedEpisodeInfo": {"quality": {"quality": {"id": 3}},
+                                   "languages": [{"id": 1}]}},
+            {"series": {"id": 5}, "episodes": [{"id": 7, "hasFile": True}]},
+        ])
+        api = FakeApi({
+            ("GET", "/api/v3/parse"): lambda p: next(parse_states),
+            ("GET", "/api/v3/manualimport"): [
+                {"path": str(dest), "episodes": [], "rejections": [],
+                 "quality": {"quality": {"id": 3}}, "languages": [{"id": 1}]}],
+            ("POST", "/api/v3/command"): {"id": 100},
+            ("GET", "/api/v3/command/100"): {"status": "completed"},
+        })
+        self.assertEqual(shuttle.import_untracked(api, dest), "imported")
+        self.assertFalse(dest.exists())
+        cmd = [c for c in api.calls if c[0] == "POST"][0][2]
+        self.assertNotIn("downloadId", cmd["files"][0])
+        self.assertEqual(cmd["importMode"], "copy")
+        self.assertIsNotNone(cmd["files"][0]["quality"])
+
+    def test_import_untracked_duplicate_keeps_pin(self):
+        dest = self.orphan_dest()
+        api = FakeApi({
+            ("GET", "/api/v3/parse"): {"series": {"id": 5},
+                                       "episodes": [{"id": 7, "hasFile": True}]},
+        })
+        self.assertEqual(shuttle.import_untracked(api, dest), "duplicate")
+        self.assertTrue(dest.exists())
+
+    def test_orphan_imports_bounded(self):
+        dest = self.orphan_dest()
+        api = FakeApi({
+            ("GET", "/api/v3/parse"): {"series": None, "episodes": []},
+        })
+        env = self.env()
+        env["max_attempts"] = 2
+        state = shuttle.load_state(self.state_file)
+        counters = Counter()
+        shuttle.orphan_imports(api, env, state, counters)
+        shuttle.orphan_imports(api, env, state, counters)
+        self.assertEqual(counters["untracked_no_match"], 2)
+        calls_before = len(api.calls)
+        counters3 = Counter()
+        shuttle.orphan_imports(api, env, state, counters3)  # past the bound
+        self.assertEqual(counters3["needs_human_orphan"], 1)
+        self.assertEqual(len(api.calls), calls_before)  # quiescent
+
+    def test_reconcile_reports_pins_and_prunes_state(self):
+        # pinned file in failed/ (original gone)
+        src = self.downloads / "was.mp4"
+        src.write_bytes(b"x" * 2048)
+        pin = self.scratch / "failed" / "AAA-deadbeef-was.mp4"
+        os.link(src, pin)
+        st = src.stat()
+        src.unlink()
+        state = shuttle.load_state(self.state_file)
+        # entry whose original AND links are gone -> pruned
+        state["entries"]["GONE:aaaa1111"] = {
+            "inode": 999999, "size": 1, "download_id": "GONE",
+            "original_path": str(self.downloads / "x.mp4"),
+            "link_name": "GONE-aaaa1111-x.mp4", "fed_at": 0, "status": "fed",
+            "attempts": 0, "last_refresh": 0}
+        # entry matching the pin -> kept
+        state["entries"]["AAA:deadbeef"] = {
+            "inode": st.st_ino, "size": st.st_size, "download_id": "AAA",
+            "original_path": str(self.downloads / "was.mp4"),
+            "link_name": "AAA-deadbeef-was.mp4", "fed_at": 0, "status": "fed",
+            "attempts": 0, "last_refresh": 0}
+        counters = shuttle.reconcile(self.env(), state)
+        self.assertEqual(counters["pinned_files"], 1)
+        self.assertEqual(counters["pinned_bytes"], 2048)
+        self.assertNotIn("GONE:aaaa1111", state["entries"])
+        self.assertIn("AAA:deadbeef", state["entries"])
+
+    def test_reconcile_flags_stale_work_and_splits_unsupported(self):
+        stale = self.scratch / "work" / "old.mp4"
+        stale.write_bytes(b"x")
+        old = time.time() - 3 * 86400
+        os.utime(stale, (old, old))
+        # a fed unsupported-extension pin: counted separately, not awaiting
+        src = self.downloads / "clip.wmv"
+        src.write_bytes(b"w" * 32)
+        link = self.scratch / "watch" / "BBB-cafe0123-clip.wmv"
+        os.link(src, link)
+        state = shuttle.load_state(self.state_file)
+        state["entries"]["BBB:cafe0123"] = {
+            "inode": src.stat().st_ino, "size": 32, "download_id": "BBB",
+            "original_path": str(src), "link_name": link.name, "fed_at": 0,
+            "status": "fed", "attempts": 0, "last_refresh": 0}
+        counters = shuttle.reconcile(self.env(), state)
+        self.assertEqual(counters["stale_work"], 1)
+        self.assertEqual(counters["needs_human_unsupported"], 1)
+        self.assertEqual(counters["awaiting_match"], 0)
 
 
 if __name__ == "__main__":

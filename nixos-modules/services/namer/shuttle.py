@@ -444,6 +444,135 @@ def harvest(api, env, state):
     return counters
 
 
+def import_untracked(api, dest_path):
+    """Import an orphaned-but-matched dest file (original gone) from its
+    scratch path, WITHOUT a downloadId. Frees the pinned bytes on success.
+    Confirmation is the episode's hasFile flip (history has no downloadId
+    to filter by for untracked imports). Quality comes from the parse
+    (spec: "quality from the parse"), item echo as fallback."""
+    stem = canonical_stem(dest_path)
+    parse = api.get("/api/v3/parse", {"title": stem}) or {}
+    series = parse.get("series")
+    episodes = parse.get("episodes") or []
+    if not series or not episodes:
+        return "no_match"
+    if any(e.get("hasFile") for e in episodes):
+        return "duplicate"  # never auto-unlink a pin; a human decides
+    pei = parse.get("parsedEpisodeInfo") or {}
+    items = {i["path"]: i for i in
+             api.get("/api/v3/manualimport", {
+                 "folder": str(dest_path.parent), "filterExistingFiles": "true"}) or []}
+    item = items.get(str(dest_path), {})
+    quality = pei.get("quality") or item.get("quality")
+    languages = pei.get("languages") or item.get("languages")
+    if not quality:
+        return "no_match"
+    cmd = api.post("/api/v3/command", {
+        "name": "ManualImport",
+        "importMode": "copy",
+        "files": [{
+            "path": str(dest_path),
+            "folderName": "",
+            "seriesId": series["id"],
+            "episodeIds": [e["id"] for e in episodes],
+            "quality": quality,
+            "languages": languages or [{"id": 1, "name": "English"}],
+            "releaseGroup": "",
+        }],
+    })
+    _confirm_command(api, cmd["id"])
+    parse2 = api.get("/api/v3/parse", {"title": stem}) or {}
+    episodes2 = parse2.get("episodes") or []
+    if episodes2 and all(e.get("hasFile") for e in episodes2):
+        dest_path.unlink()
+        return "imported"
+    return "no_match"
+
+
+def orphan_imports(api, env, state, counters):
+    dest = Path(env["scratch"]) / "dest"
+    by_inode = {e["inode"]: k for k, e in state["entries"].items()}
+    for dest_path in sorted(p for p in dest.iterdir() if p.is_file()):
+        if not is_video(dest_path.name, list(VIDEO_SUPERSET)):
+            continue
+        try:
+            st = dest_path.stat()
+        except FileNotFoundError:
+            continue
+        if st.st_nlink != 1:
+            continue
+        attempts = state["orphan_attempts"].get(str(st.st_ino), 0)
+        if attempts >= env["max_attempts"]:
+            counters["needs_human_orphan"] += 1  # standing count; quiescent
+            continue
+        try:
+            outcome = import_untracked(api, dest_path)
+        except urllib.error.HTTPError as err:
+            counters["errors"] += 1
+            print(f"orphan: {dest_path.name}: HTTP {err.code}", file=sys.stderr)
+            continue
+        counters[f"untracked_{outcome}"] += 1
+        if outcome == "imported":
+            state["orphan_attempts"].pop(str(st.st_ino), None)
+            key = by_inode.get(st.st_ino)
+            if key:
+                state["entries"][key]["status"] = "imported"
+            print(f"orphan: imported untracked -> {dest_path.name}")
+        else:
+            state["orphan_attempts"][str(st.st_ino)] = attempts + 1
+            print(f"orphan: {outcome}: {dest_path.name}", file=sys.stderr)
+
+
+def reconcile(env, state):
+    """Tie link/state lifecycles to reality. Never deletes data: pins are
+    reported, only ever removed by a human."""
+    counters = Counter()
+    scratch = env["scratch"]
+    inode_index = scan_scratch(scratch)
+    now = time.time()
+    for sub in SCRATCH_SUBDIRS:
+        for p in (Path(scratch) / sub).iterdir():
+            try:
+                if not p.is_file() or not is_video(p.name, list(VIDEO_SUPERSET)):
+                    continue
+                st = p.stat()
+            except FileNotFoundError:
+                continue
+            if st.st_nlink == 1:
+                counters["pinned_files"] += 1
+                counters["pinned_bytes"] += st.st_size
+                print(f"reconcile: pin ({sub}, {st.st_size} bytes): {p.name}",
+                      file=sys.stderr)
+            if sub == "work" and now - st.st_mtime > 86400:
+                counters["stale_work"] += 1
+                print(f"reconcile: stale in work/ (>1 day): {p.name}", file=sys.stderr)
+    for key in sorted(state["entries"]):
+        entry = state["entries"][key]
+        original_gone = not Path(entry["original_path"]).exists()
+        no_links = entry["inode"] not in inode_index
+        if original_gone and no_links:
+            # Resolved out-of-band (imported+removed, or user-deleted).
+            del state["entries"][key]
+            counters["state_pruned"] += 1
+    # awaiting-match = fed, namer-supported, not yet in dest;
+    # fed-but-unsupported entries are a standing needs-human count.
+    dest_inodes = set()
+    for p in (Path(scratch) / "dest").iterdir():
+        try:
+            if p.is_file():
+                dest_inodes.add(p.stat().st_ino)
+        except FileNotFoundError:
+            continue
+    for e in state["entries"].values():
+        if e["status"] != "fed" or e["inode"] in dest_inodes:
+            continue
+        if is_video(e["original_path"], env["exts"]):
+            counters["awaiting_match"] += 1
+        else:
+            counters["needs_human_unsupported"] += 1
+    return counters
+
+
 def main():
     env = load_env()
     with open(env["key_file"]) as f:
@@ -455,6 +584,8 @@ def main():
     try:
         counters += feed(api, env, state)
         counters += harvest(api, env, state)
+        orphan_imports(api, env, state, counters)
+        counters += reconcile(env, state)
     except (urllib.error.URLError, OSError) as err:
         print(f"shuttle: aborted: {err}", file=sys.stderr)
         rc = 1
