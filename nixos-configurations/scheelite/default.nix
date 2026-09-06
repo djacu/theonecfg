@@ -252,6 +252,10 @@ inputs: {
             rootFolders = [ { path = "${tankMediaDir}/adult"; } ];
             prowlarrTags = [ "adult" ];
           };
+          namer = {
+            enable = true;
+            dataDir = "${tankServicesDir}/namer";
+          };
           prowlarr = {
             enable = true;
             dataDir = "${tankServicesDir}/prowlarr";
@@ -419,6 +423,13 @@ inputs: {
         sops.secrets."stash/api-key".owner = "stash";
         sops.secrets."stasharr/admin-username".owner = "stasharr";
         sops.secrets."stasharr/admin-password".owner = "stasharr";
+
+        # Downloads must be group-writable (0664): fs.protected_hardlinks
+        # requires rw for a non-owner (the namer user) to hardlink them for
+        # the import-rescue pipeline. Existing files get a one-time
+        # `chmod -R g+w /tank0/downloads/whisparr` at deploy time (see
+        # docs/plans/active/whisparr-namer-import-rescue.md).
+        systemd.services.qbittorrent.serviceConfig.UMask = "0002";
       };
     };
 }
