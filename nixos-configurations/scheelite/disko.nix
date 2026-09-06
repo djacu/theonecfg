@@ -512,6 +512,11 @@
             mountpoint = "/tank0/services/loki";
             options.mountpoint = "legacy";
           };
+          "tank0/services/namer" = {
+            type = "zfs_fs";
+            mountpoint = "/tank0/services/namer";
+            options.mountpoint = "legacy";
+          };
         };
       };
     };
