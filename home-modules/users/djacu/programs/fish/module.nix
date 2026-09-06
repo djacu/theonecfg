@@ -53,8 +53,7 @@ in
             set -l ok 0
             if test "$resp" = "Ok."
                 set ok 1
-            else if string match -q '*"failure_count":0*' -- $resp
-                and not string match -q '*"success_count":0*' -- $resp
+            else if string match -q '*"failure_count":0*' -- $resp; and not string match -q '*"success_count":0*' -- $resp
                 set ok 1
             end
             if test $ok -eq 0
