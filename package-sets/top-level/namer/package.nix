@@ -61,8 +61,8 @@ let
 
     pnpmDeps = fetchPnpmDeps {
       inherit (finalAttrs) pname version src;
-      fetcherVersion = 3;
-      hash = "sha256-toazMdRXBQYpXP2peIJvb6p0I7Q2QiCFIDE2jDeMVDk=";
+      fetcherVersion = 4;
+      hash = "sha256-s1aFqnh9WwuiDjkbRsnzNCiFTS1VgtcNUxwxHHxSqls=";
     };
 
     nativeBuildInputs = [
