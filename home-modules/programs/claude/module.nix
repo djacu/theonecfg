@@ -56,6 +56,10 @@ in
 
         ## Reporting
         - End each task with: what changed / what's still open / what was not verified. No padding.
+
+        ## Commits, issues, PRs
+        - Plain engineer voice. No thank-you flourishes, reassurance paragraphs, bolded lead-ins, or em dashes. State what changed and why, once.
+        - Disclose LLM assistance per nixpkgs CONTRIBUTING.md: an `Assisted-by: <tool> (<model>)` trailer on every commit whose code or message was LLM-produced, and the same single line at the end of the PR description. Never `Co-Authored-By: Claude` or "Generated with" footers; co-author trailers are for humans.
       '';
 
       mcpServers.nixos = {
