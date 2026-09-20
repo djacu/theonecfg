@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -21,7 +22,33 @@ in
   options.theonecfg.programs.mpv.enable = mkEnableOption "mpv config";
 
   config = mkIf cfg.enable {
-    programs.mpv.enable = true;
+    programs.mpv = {
+
+      enable = true;
+
+      scripts = [
+        pkgs.mpvScripts.mpris
+        pkgs.mpvScripts.thumbfast
+        pkgs.mpvScripts.uosc
+      ];
+
+      config = {
+        hwdec = "auto";
+
+        border = false;
+        osd-bar = false;
+
+        slang = "eng";
+        sub-auto = "fuzzy";
+
+        keep-open = true;
+        save-position-on-quit = true;
+
+        screenshot-format = "png";
+        screenshot-directory = "~/Pictures/mpv";
+      };
+
+    };
   };
 
 }
