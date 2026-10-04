@@ -555,3 +555,9 @@ machine-id above equal the values staged in runbook step 2 (Review Focus 1
 and 5); `fprintd-enroll` then `sudo -k; sudo true`; speakers, headset jack,
 Wi-Fi, Bluetooth; optional `nix shell .#efibootmgr -c sudo efibootmgr -b 0003 -B`
 and `-b 0004 -B` for the stale Windows entries.
+
+Confirmed by the user on 2026-10-04: host key fingerprint and machine-id
+equal the staged values (the staged public key on argentite matched);
+speakers and headset jack, Wi-Fi, and Bluetooth all work. Still open:
+fingerprint enrollment, the optional stale-entry cleanup, and the standby
+spike (Task 8).
