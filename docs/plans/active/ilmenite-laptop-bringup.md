@@ -26,7 +26,11 @@ Decisions taken during design (2026-10-03):
 - Hibernation dropped. It was the original motivation but requires encrypted
   swap plus an initrd ordering guard, and the user chose not to pursue it.
 - Swap kept at 32 GB with `randomEncryption = true` for memory pressure only.
-- Fresh root and `djacu` password hashes; nothing reused from malachite.
+- Fresh root and `djacu` password hashes; nothing reused from malachite. Set
+  with `hashedPassword` rather than malachite's `initialHashedPassword`: with
+  `users.mutableUsers = false` the module copies the latter into the former
+  anyway, and `hashedPassword` states the intent (enforced on every
+  activation, and `/etc/shadow` is rolled back each boot).
 - The out-of-tree `framework_laptop` kernel module stays enabled (default from
   nixos-hardware) because it is the only path to a battery charge limit on
   this EC.
@@ -240,7 +244,8 @@ and edited as listed. The directory name is the hostname; the auto-import in
   hardware.intelgpu.driver = "xe";
   hardware.intelgpu.vaapiDriver = "intel-media-driver";
   ```
-- Replace both `initialHashedPassword` values with the Phase 0 hashes.
+- Replace both `initialHashedPassword` lines with `hashedPassword` set to the
+  Phase 0 hashes. Same effect on an immutable-users host; clearer name.
 - Keep verbatim: `boot.kernelPackages = pkgs.linuxPackages_6_18`, systemd-boot
   with `canTouchEfiVariables`, `boot.supportedFilesystems = [ "zfs" ]`,
   `boot.zfs.devNodes = "/dev/disk/by-id"`, `boot.zfs.forceImportRoot = true`,
@@ -509,5 +514,8 @@ how long "long" is.
 - Speaker tuning for the Pro chassis, once a community filter chain exists.
 - `secrets/ilmenite.yaml` and a `.sops.yaml` recipient derived from the seeded
   host key, when the host needs secrets.
+- Align the other hosts from `initialHashedPassword` to `hashedPassword` in
+  a separate PR. No behaviour change, but it alters each host's derivation,
+  so it stays out of this branch's fleet-safety gate.
 - Battery charge limit via Plasma's battery settings, which reads
   `charge_control_end_threshold`.
