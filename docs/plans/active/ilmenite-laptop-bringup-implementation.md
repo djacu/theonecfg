@@ -1004,63 +1004,57 @@ ______________________________________________________________________
 
 **Files:**
 
+- Create: `docs/investigations/ilmenite-standby-measure.sh` (committed
+  alongside this plan; run it from a checkout of the branch on the laptop)
 - Create: `docs/investigations/ilmenite-standby-power.md`
 
 **Interfaces:**
 
 - Consumes: the booted ilmenite (Task 7).
-
 - Produces: measurements and a recommendation; any configuration change is a
   new bounded task, not part of this plan.
 
-- [ ] **Step 1: Baseline (on the laptop, bash)**
+The script runs as `djacu` and uses `sudo` only for the three root-only
+debugfs reads, so the output files land in `$HOME` where they can be read
+over SSH. It also records `ACAD/online` so a scenario accidentally run on
+the charger is caught. All commands below are fish, on the laptop, from the
+repo checkout.
 
-```bash
-cat /sys/class/dmi/id/bios_version
-cat /sys/power/mem_sleep
-journalctl --list-boots | tail -n 3
-sudo cat /sys/kernel/debug/pmc_core/substate_residencies
+- [ ] **Step 1: Baseline (on the laptop, fish)**
+
+```fish
+cat /sys/class/dmi/id/bios_version; cat /sys/power/mem_sleep; journalctl --list-boots --no-pager | tail -n 3
 ```
 
-Record all four outputs. Expected `mem_sleep`: `[s2idle]`.
+Record all three outputs. Expected `mem_sleep`: `[s2idle]`.
 
-- [ ] **Step 2: Measurement script (on the laptop, bash)**
+- [ ] **Step 2: Measurement script**
 
-Save as `~/standby-measure.sh`:
-
-```bash
-#!/usr/bin/env bash
-# Usage: sudo ./standby-measure.sh before|after <label>
-set -eu
-phase=$1; label=$2
-out=~/standby-$label-$phase.txt
-{
-  date +%s
-  cat /sys/class/power_supply/BAT1/charge_now
-  cat /sys/class/power_supply/BAT1/voltage_now
-  cat /sys/kernel/debug/pmc_core/slp_s0_residency_usec
-  cat /sys/kernel/debug/pmc_core/substate_residencies
-  if [ "$phase" = after ]; then
-    journalctl -b -k | grep -E 'PM: suspend (entry|exit)' | tail -n 2
-    cat /sys/kernel/debug/pmc_core/s0ix_blocker || true
-    journalctl -b -k | grep -ic BERT || true
-  fi
-} > "$out"
-echo "wrote $out"
-```
-
-`chmod +x ~/standby-measure.sh`.
+`docs/investigations/ilmenite-standby-measure.sh` in the checkout. It takes
+`before|after <label>` and writes `$HOME/standby-<label>-<phase>.txt` with
+the timestamp, AC state, battery charge and voltage, `slp_s0_residency_usec`,
+`substate_residencies`, and on `after` also the last suspend entry/exit
+lines, `s0ix_blocker`, the BERT count, and the last two boots. The first
+`sudo` in each run asks for a password or a finger.
 
 - [ ] **Step 3: Scenario A, nothing plugged in**
 
-On battery, no expansion cards, no hub: `sudo ./standby-measure.sh before a`,
-close the lid for 30 minutes by the clock, open it, log in,
-`sudo ./standby-measure.sh after a`. Expected: both files written; the
-`after` file shows a `suspend exit` line and a BERT count of `0`.
+Charger unplugged, no hub, no expansion cards. Run `before`, close the lid
+immediately, leave it 30 minutes by the clock, open it, log in, run `after`
+right away:
+
+```fish
+./docs/investigations/ilmenite-standby-measure.sh before a
+./docs/investigations/ilmenite-standby-measure.sh after a
+```
+
+Expected: both files written; the `after` file shows a `suspend exit` line
+and a BERT count of `0`. If the laptop cold-booted instead of resuming,
+still run `after`: the boots and BERT lines record the firmware reset.
 
 - [ ] **Step 4: Scenario B, expansion cards installed**
 
-Same procedure with label `b`.
+Same procedure with label `b`, the usual expansion cards inserted, no hub.
 
 - [ ] **Step 5: Scenario C, USB-C hub and Ethernet attached**
 
@@ -1068,18 +1062,24 @@ Same procedure with label `c`.
 
 - [ ] **Step 6: powertop baseline**
 
-On battery, idle, lid open: `sudo powertop --html=$HOME/powertop.html`. Keep
-the file for the write-up. Do not run `--auto-tune`.
+On battery, idle, lid open. powertop is not installed on the host, so run it
+from the checkout:
+
+```fish
+nix shell .#powertop -c sudo powertop --html=$HOME/powertop.html --time=60
+```
+
+Keep the file for the write-up. Do not run `--auto-tune`.
 
 - [ ] **Step 7: Compute and decide**
 
 For each scenario: drain in %/h = (charge_before − charge_after) / 4737000 ×
-100 / 0.5; Wh/h = (charge_before − charge_after) × average voltage / 1e12 / 0.5;
-S0ix residency = (slp_s0_after − slp_s0_before) / (time_after − time_before)
-/ 1e6. Apply the spec's decision rules: residency above 90% and drain under
-about 1%/h means s2idle is healthy; otherwise identify blockers from
-`s0ix_blocker` and powertop; any BERT record means lid-close sleep is unsafe
-on this BIOS.
+100 / 0.5; Wh/h = (charge_before − charge_after) × average voltage / 1e12 /
+0.5; S0ix residency = (slp_s0_after − slp_s0_before) / (time_after −
+time_before) / 1e6. Apply the spec's decision rules: residency above 90% and
+drain under about 1%/h means s2idle is healthy; otherwise identify blockers
+from `s0ix_blocker` and powertop; any BERT record means lid-close sleep is
+unsafe on this BIOS.
 
 - [ ] **Step 8: Write the investigation and commit**
 
