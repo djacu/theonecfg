@@ -26,7 +26,8 @@ Decisions taken during design (2026-10-03):
 - Hibernation dropped. It was the original motivation but requires encrypted
   swap plus an initrd ordering guard, and the user chose not to pursue it.
 - Swap kept at 32 GB with `randomEncryption = true` for memory pressure only.
-- Fresh root and `djacu` password hashes; nothing reused from malachite. Set
+- A fresh `djacu` password hash; root reuses malachite's hash (user decision
+  2026-10-03). Set
   with `hashedPassword` rather than malachite's `initialHashedPassword`: with
   `users.mutableUsers = false` the module copies the latter into the former
   anyway, and `hashedPassword` states the intent (enforced on every

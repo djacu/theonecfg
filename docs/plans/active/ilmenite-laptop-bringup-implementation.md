@@ -27,8 +27,8 @@ nixos-anywhere 1.13.0, OpenZFS 2.4.4, Plasma 6.
 - `system.stateVersion = "26.05"` and `home.stateVersion = "26.05"`.
 - `boot.kernelPackages = pkgs.linuxPackages_6_18`; the Series 3 module asserts
   kernel >= 6.17.
-- `users.mutableUsers = false`; passwords via `hashedPassword` with fresh
-  SHA-512 hashes, never malachite's.
+- `users.mutableUsers = false`; passwords via `hashedPassword`: a fresh
+  SHA-512 hash for `djacu`, and malachite's existing root hash (user decision).
 - No hibernation: no `resumeDevice`, no `boot.zfs.unsafeAllowHibernation`;
   the kernel command line must contain `nohibernate` and no `resume=`.
 - Swap: 32G, `randomEncryption = true`.
@@ -97,8 +97,9 @@ ______________________________________________________________________
 nix shell .#mkpasswd -c mkpasswd -m sha-512
 ```
 
-Run once for root and once for `djacu`, typing each new password at the
-prompt. Paste the two output lines to the executor.
+Run once for `djacu`, typing the new password at the prompt, and paste the
+output line to the executor. Root reuses malachite's hash: the executor
+copies it from `nixos-configurations/malachite/default.nix`.
 
 - [ ] **Step 2: Executor stores them (bash)**
 
