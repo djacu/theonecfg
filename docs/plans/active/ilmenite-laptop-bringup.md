@@ -520,3 +520,38 @@ how long "long" is.
   so it stays out of this branch's fleet-safety gate.
 - Battery charge limit via Plasma's battery settings, which reads
   `charge_control_end_threshold`.
+
+## Install log
+
+2026-10-03. Installed by the user from argentite with `nix run .#nixos-anywhere`
+per the runbook, against the 26.05 live ISO at 10.0.10.80. First boot
+prompted for the ZFS passphrase and reached Plasma; password login worked
+before any fingerprint enrollment. The user pushed the branch and cloned it
+on ilmenite to apply home-manager themselves.
+
+Checks run over SSH as `djacu` (read-only) after first boot:
+
+| Check                               | Result                                                                                                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hostname` / `hostid`               | `ilmenite` / `1166a74d` (matches `networking.hostId`)                                                                                                                           |
+| `/etc/machine-id`                   | `1e050d2efa534a4bb483341d0d6acea2`; `/persist/etc/machine-id` 33 bytes, `0444`, install-time timestamp                                                                          |
+| Host key                            | `SHA256:o5+QBX+sPbLKHXFegjf+k0vVcM4N0hzgcEUXvEvui1o`; `/persist/etc/ssh/` has ed25519 + rsa, private `0600`, install-time timestamp                                             |
+| `zpool status zroot`                | `ONLINE`, no errors, single vdev `nvme-eui...-part3`                                                                                                                            |
+| `zfs get keylocation zroot`         | `prompt`; all seven datasets `keystatus available`, `aes-256-gcm`                                                                                                               |
+| `swapon --show`                     | `/dev/dm-0` 32G (random-key mapper)                                                                                                                                             |
+| `/proc/cmdline`                     | `nvme.noacpi=1 nohibernate root=fstab ...`, no `resume=`                                                                                                                        |
+| Modules                             | `xe` (22 users), `framework_laptop`, `cros_ec_lpcs` loaded; `i915` not loaded                                                                                                   |
+| `BAT1/charge_control_end_threshold` | `100` (out-of-tree module working)                                                                                                                                              |
+| `systemctl --failed`                | `0 loaded units listed`                                                                                                                                                         |
+| `/run/current-system`               | `f5m95v7r...-nixos-system-ilmenite-26.11.20260905.c043004` (the closure built in Task 2)                                                                                        |
+| `mem_sleep` / kernel                | `[s2idle]` / `6.18.49`                                                                                                                                                          |
+| Firmware `BootOrder` (from efivars) | `0005 0001 2001 2002 2003`; `0005` = `Linux Boot Manager`; stale Windows entries now `0003`/`0004`                                                                              |
+| Journal warnings this boot          | Plasma portal registration noise, accounts-daemon `/etc/tcb`, Discover flatpak, konsole pipewire lib; nothing from the kernel beyond the firmware noise listed in the inventory |
+| `fwupdmgr get-devices`              | System firmware 3.02, ME 21.0.6.1503, several component devices listed                                                                                                          |
+| Network                             | Ethernet via the USB-C hub connected; Wi-Fi and Bluetooth present, unblocked, not yet configured                                                                                |
+
+Left for the user on the laptop: confirm the host key fingerprint and
+machine-id above equal the values staged in runbook step 2 (Review Focus 1
+and 5); `fprintd-enroll` then `sudo -k; sudo true`; speakers, headset jack,
+Wi-Fi, Bluetooth; optional `nix shell .#efibootmgr -c sudo efibootmgr -b 0003 -B`
+and `-b 0004 -B` for the stale Windows entries.
