@@ -558,6 +558,8 @@ and `-b 0004 -B` for the stale Windows entries.
 
 Confirmed by the user on 2026-10-04: host key fingerprint and machine-id
 equal the staged values (the staged public key on argentite matched);
-speakers and headset jack, Wi-Fi, and Bluetooth all work. Still open:
-fingerprint enrollment, the optional stale-entry cleanup, and the standby
-spike (Task 8).
+speakers and headset jack, Wi-Fi, and Bluetooth all work; fingerprint
+enrollment and sudo via fingerprint work; the stale Windows boot entries
+were removed; the staging directory on argentite was deleted. Every
+post-install check in the runbook passed. Still open: the standby spike
+(Task 8).
