@@ -31,7 +31,7 @@
 | silver     | argentite    | workstation | Threadripper 2950X (X399 DESIGNARE EX) | —     |
 | tantalum   | tantalite    | —           | —                                      | —     |
 | tin        | cassiterite  | laptop      | ThinkPad T490                          | —     |
-| titanium   | ilmenite     | —           | —                                      | —     |
+| titanium   | ilmenite     | laptop      | Framework 13 Pro (Core Ultra Series 3) | —     |
 | tungsten   | scheelite    | server      | Ryzen 9 7950X (PRIME X670E-PRO WIFI)   | —     |
 | uranium    | carnotite    | —           | —                                      | —     |
 | uranium    | uraninite    | —           | —                                      | —     |

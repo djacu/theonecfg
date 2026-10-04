@@ -11,6 +11,10 @@ inputs: {
       type = "laptop";
       forwardAgent = true;
     };
+    ilmenite = {
+      type = "laptop";
+      forwardAgent = true;
+    };
     malachite = {
       type = "laptop";
       forwardAgent = true;
@@ -37,6 +41,7 @@ inputs: {
   nixosHardware = {
     inherit (inputs.nixos-hardware.nixosModules)
       framework-11th-gen-intel
+      framework-intel-core-ultra-series3
       lenovo-thinkpad-t480
       ;
   };
