@@ -25,17 +25,18 @@ already green.
 
 ## Procedure (fish, on argentite)
 
-Replace `<host>` and `<ip>`.
+Replace `<host>`, `<ip>`, `<user>`, and `<pool>`.
 
 1. Confirm the disk id in the host's `disko.nix` exists on the target and is
    the intended disk:
 
    ```fish
-   ssh root@<ip> 'ls -l /dev/disk/by-id/ | grep -v -- -part; lsblk -o NAME,SIZE,MODEL,SERIAL /dev/nvme0n1'
+   ssh root@<ip> 'ls -l /dev/disk/by-id/ | grep -v -- -part; lsblk -o NAME,SIZE,MODEL,SERIAL /dev/nvme0n1; modprobe zfs && zfs version'
    ```
 
    The `device` in `disko.nix` must appear in the listing and point at the
-   NVMe shown by `lsblk`. Stop if it does not.
+   NVMe shown by `lsblk`, and `zfs version` must print a version (the ZFS
+   module is loaded on the ISO). Stop if either check fails.
 
 1. Stage the passphrase and the identity files:
 
@@ -54,6 +55,10 @@ Replace `<host>` and `<ip>`.
    cat $work/extra/persist/etc/machine-id
    ```
 
+   The passphrase must be at least 8 characters (the OpenZFS minimum, checked
+   only at `zpool create`, after the disk is partitioned) and ASCII only; the
+   initrd prompt uses the US keymap.
+
    The `od` output must end with the passphrase's last character followed
    by a single `\n` and nothing else. ZFS trims that one newline when it
    reads the file, so the same passphrase typed at the initrd prompt
@@ -66,7 +71,7 @@ Replace `<host>` and `<ip>`.
 1. Install:
 
    ```fish
-   set -x SSHPASS <root password set on the live ISO>
+   read -s -P 'ISO root password: ' -x SSHPASS
    nix run .#nixos-anywhere -- \
      --env-password \
      --flake .#<host> \
@@ -77,10 +82,12 @@ Replace `<host>` and `<ip>`.
    ```
 
    nixos-anywhere sees `VARIANT_ID=installer` and skips kexec, uploads the
-   key file, runs disko (destroy, format, mount), untars the extra files
-   into `/mnt`, copies the closure built on argentite, runs `nixos-install`,
+   key file, runs disko (destroy, format, mount), copies the closure built on
+   argentite, untars the extra files into `/mnt`, runs `nixos-install`,
    exports the pool, and reboots. In the disko output look for the
-   `zpool create` line and the hook's `zfs set keylocation=prompt`.
+   `zpool create` line and the hook's `zfs set keylocation=prompt`. Unplug the
+   USB stick as soon as nixos-anywhere prints `Rebooting`, so the firmware
+   boots the new install and not the installer.
 
 1. First boot, on the target: the initrd asks `Enter key for <pool>`. Log in
    to Plasma with the password, before enrolling any fingerprint.
