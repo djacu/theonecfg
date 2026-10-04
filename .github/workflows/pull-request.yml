@@ -1,9 +1,9 @@
 name: pull request checks
 on:
   pull_request:
-  push: # This is only run when PRs are merged into master
+  push: # This is only run when PRs are merged into main
     branches:
-      - master
+      - main
   workflow_dispatch:
 jobs:
   nix-checks:
