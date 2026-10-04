@@ -117,7 +117,7 @@ run as root on the live system and avoid shell-specific syntax.
    ```sh
    date -u > /run/hibtest-marker
    cat /run/hibtest-marker
-   uptime -s
+   cat /proc/uptime
    ```
 
 1. (argentite) Save the pre-hibernate kernel log:
@@ -165,13 +165,13 @@ run as root on the live system and avoid shell-specific syntax.
    survived) and collect the post-resume state:
 
    ```fish
-   lssh 'cat /run/hibtest-marker; uptime -s; ls /sys/class/power_supply; cat /sys/class/power_supply/BAT1/status' > ~/hibtest-1-post-state.txt
+   lssh 'cat /run/hibtest-marker; cat /proc/uptime; ls /sys/class/power_supply; cat /sys/class/power_supply/BAT1/status' > ~/hibtest-1-post-state.txt
    lssh dmesg > ~/hibtest-1-post-dmesg.txt
    grep -i -E 'ACPI (BIOS )?Error|_WAK|BERT|Hardware Error|hibernat|PM: ' ~/hibtest-1-post-dmesg.txt | head -n 60
    ```
 
-   The cycle passes if the marker shows the time from step 6, `uptime -s`
-   shows the first boot's time, `BAT1` is listed, there are no `ACPI BIOS Error` lines, and display, keyboard, and Ethernet work.
+   The cycle passes if the marker shows the time from step 6, `/proc/uptime`
+   is larger than a fresh boot would give, `BAT1` is listed, there are no `ACPI BIOS Error` lines, and display, keyboard, and Ethernet work.
 
 ### Cycles 2 and 3
 
