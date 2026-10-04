@@ -74,7 +74,6 @@ Replace `<host>` and `<ip>`.
      --disk-encryption-keys /tmp/secret.key $work/zfs.key \
      --extra-files $work/extra
    set -e SSHPASS
-   rm -rf $work
    ```
 
    nixos-anywhere sees `VARIANT_ID=installer` and skips kexec, uploads the
@@ -101,15 +100,25 @@ Each line is a command and what it must show.
 - `swapon --show` lists one `/dev/mapper/` device; `cat /proc/cmdline` contains `nohibernate` and no `resume=`.
 - `lsmod | grep -E '^(xe|framework_laptop|cros_ec_lpcs) '` lists all three.
 - `cat /sys/class/power_supply/BAT1/charge_control_end_threshold` prints a number.
-- `sudo efibootmgr` shows `Linux Boot Manager` first in `BootOrder`.
+- `nix shell .#efibootmgr -c sudo efibootmgr` (efibootmgr is not installed on the host; `sudo` keeps `PATH`) shows `Linux Boot Manager` first in `BootOrder`.
 - `cat /etc/machine-id` equals the staged id; `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` equals the staged fingerprint.
 - `systemctl --failed` prints `0 loaded units listed`.
 - `fprintd-enroll` succeeds; afterwards `sudo -k; sudo true` accepts a finger.
 - `fwupdmgr get-devices` lists the system firmware and the fingerprint reader.
 - Speakers, headset jack, Wi-Fi, and Bluetooth each work once.
 
-Optional: delete stale firmware boot entries with `sudo efibootmgr -b <id> -B`
+Optional: delete stale firmware boot entries with
+`nix shell .#efibootmgr -c sudo efibootmgr -b <id> -B`
 after confirming each points at a partition that no longer exists.
+
+## Cleanup (fish, on argentite)
+
+Only after the post-install checks pass, since Rollback re-runs step 3 and
+needs the staged files:
+
+```fish
+rm -rf $work
+```
 
 ## Rollback
 
