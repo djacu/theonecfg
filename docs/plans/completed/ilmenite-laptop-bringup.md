@@ -1,6 +1,6 @@
 # Plan: ilmenite — Framework Laptop 13 Pro bringup
 
-**Status:** Design approved 2026-10-03; plan under review
+**Status:** Completed 2026-10-04; installed, verified, standby findings in `docs/investigations/ilmenite-standby-power.md`
 **Started:** 2026-10-03
 **Owner:** djacu
 

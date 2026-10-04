@@ -3,7 +3,7 @@
 **Status:** Complete
 **Date:** 2026-10-04
 **Owner:** djacu
-**Context:** Task 8 of `docs/plans/active/ilmenite-laptop-bringup-implementation.md`
+**Context:** Task 8 of `docs/plans/completed/ilmenite-laptop-bringup-implementation.md`
 
 ## Question
 
