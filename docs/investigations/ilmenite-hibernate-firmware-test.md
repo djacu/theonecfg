@@ -1,6 +1,6 @@
 # ilmenite hibernate firmware test
 
-**Status:** Procedure ready, not yet run
+**Status:** Complete. Passed, 3 of 3 cycles (2026-10-04)
 **Date:** 2026-10-04
 **Owner:** djacu
 **Context:** Gate for the ilmenite suspend-then-hibernate design. Decided
@@ -59,6 +59,10 @@ FrameworkComputer/SoftwareFirmwareIssueTracker#274, which did not reproduce in
 - AC and the USB-C hub with Ethernet connected, so argentite can reach the
   live system. Logs on the live system vanish at power off, and the display
   may not come back right away after a resume.
+- The stick in a port on the laptop itself, not in the hub. The live root
+  filesystem is the squashfs on the stick, so unplugging the hub with the
+  stick in it kills the session with `SQUASHFS error` lines on the console.
+  Recover with `echo b > /proc/sysrq-trigger` and start the cycle again.
 
 ## Procedure
 
@@ -144,11 +148,15 @@ run as root on the live system and avoid shell-specific syntax.
 1. (live, as root) Confirm the image is there:
 
    ```sh
-   blkid /dev/disk/by-partlabel/disk-disk1-swap
+   hexdump -C -s 4086 -n 10 /dev/disk/by-partlabel/disk-disk1-swap
    ```
 
-   Expected: `TYPE="swsuspend"`. `TYPE="swap"` means no image was written, or
-   something consumed it. Record and stop the cycle.
+   The ten bytes at that offset are the swap magic. Expected: `S1SUSPEND`.
+   `SWAPSPACE2` means no image was written; record and stop the cycle. Random
+   bytes mean the partition was rewritten since the hibernate, most likely by
+   a normal boot of the installed system in between. `blkid` is not reliable
+   here: on the first run it printed nothing for a partition that did hold an
+   image.
 
 1. (live) Resume from userspace:
 
@@ -179,6 +187,15 @@ Continue from the resumed session. Swap is still active and the kernel
 restored the swap signature when it read the image, so repeat steps 6 to 12
 twice more, numbering the files `hibtest-2-*` and `hibtest-3-*`. The same GRUB
 edit is needed on every boot.
+
+Run cycle 3 on battery with the hub unplugged, since that is the real use
+case and the firmware takes a different path with no external power and no
+dock: unplug the hub after writing the marker, keep it unplugged through the
+power-on and the resume, and plug it back in only for the checks. The stick
+must be in a laptop port for this (see Preconditions). If a session is ever
+broken, hibernating it anyway leaves a useless image on the partition; in the
+next fresh session run the `mkswap` from step 5 again, which wipes the old
+`swsuspend` signature, and start the cycle over.
 
 ### After the last cycle
 
@@ -223,9 +240,11 @@ update.
 
 ## Results
 
-| Cycle | Kernel | Powered off after | Image present | Resumed | ACPI errors | BAT1 present | Notes |
-| ----- | ------ | ----------------- | ------------- | ------- | ----------- | ------------ | ----- |
-|       |        |                   |               |         |             |              |       |
+| Cycle | Kernel  | Powered off after | Image present | Resumed | ACPI errors | BAT1 present | Notes                                                                                                                                                                                                                               |
+| ----- | ------- | ----------------- | ------------- | ------- | ----------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | 6.18.33 | ~5 s              | yes           | yes     | none        | yes          | AC + hub. Image 621599 pages (2.4 GB), written at 2968 MB/s. Display back after a one-second flicker. One driver error on restore: `spd5118 0-0050` (DDR5 SPD sensor) `-6`. Bluetooth re-initialised. Marker and uptime continuous. |
+| 2     | 6.18.33 | ~5 s              | yes           | yes     | none        | yes          | AC + hub, from the resumed session. Same `spd5118` `-6` on restore, nothing else. Marker and uptime continuous. Fresh ISO boots and the restored session each pulled a new DHCP lease (.80, .84, .85).                              |
+| 3     | 6.18.33 | ~5 s              | yes           | yes     | none        | yes          | Battery, hub (AC + Ethernet) unplugged from before the hibernate until after the resume, stick in a laptop port. Fresh session. Same `spd5118` `-6` on restore, nothing else. Marker and uptime continuous.                         |
 
 ## Decision
 
@@ -235,3 +254,16 @@ reinstall via `docs/runbooks/install-laptop-with-nixos-anywhere.md`).
 
 Fail: stop. Watch the Framework BIOS page and the community thread above, and
 rerun this procedure after a BIOS update.
+
+**Outcome (2026-10-04): pass.** Three cycles on 6.18.33, two on AC with the
+hub and one on battery without it, all entered S4 ("Preparing to enter system
+sleep state S4"), powered off on their own in about five seconds, and came
+back ("Waking up from system sleep state S4") with the marker and uptime
+intact, the battery and AC devices present, and no ACPI errors of any kind.
+The `_WAK.G4` failure from the community report did not reproduce on this
+unit. The only restore-time error in all three cycles was the `spd5118`
+DDR5 SPD sensor driver returning `-6` on resume, which is cosmetic; worth
+checking on the installed kernel later, since a failed resume callback on a
+sensor costs nothing but a log line. Not exercised here: resume with the
+installed kernel, the `xe` driver under a running desktop, and systemd's own
+hibernate path. Those come with the real implementation. The design proceeds.
