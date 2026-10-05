@@ -482,6 +482,13 @@ Results go into `docs/investigations/ilmenite-hibernation-verification.md`.
   A swap container that never unlocks hangs the initrd, as the root one does.
 - A reinstall wipes the laptop. The owner confirmed on 2026-10-04 that
   nothing unpushed is on it.
+- systemd can miss its own timer wake: after the suspend returns it polls the
+  timer descriptor with a zero timeout, and if the expiry has not been
+  delivered yet it ends the sleep as a manual wake (systemd issue #38193,
+  open). Plasma re-runs the lid action within about 30 s, so on AC nothing
+  changes; on battery each miss delays the hibernate by one delay period.
+  Seen once on AC with the hub attached, not in the overnight battery run.
+  Accepted 2026-10-05; observe, and revisit when a fixed systemd lands.
 
 ## Exit criteria
 
@@ -504,3 +511,8 @@ Results go into `docs/investigations/ilmenite-hibernation-verification.md`.
   silencing it.
 - Setting the power button's action to Sleep in Plasma, a user setting, so a
   docked, lid-closed laptop can be put to sleep with the configured mode.
+- Track systemd issue #38193 (timer wake missed by the zero-timeout poll); drop
+  the observation note from the verification doc when a fixed systemd is in
+  the pin.
+- Remove `btintel-pcie-sleep` once the pin's kernel carries the btintel_pcie
+  PM fix merged to bluetooth-next on 2026-09-29.
