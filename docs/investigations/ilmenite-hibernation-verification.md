@@ -187,9 +187,10 @@ through dm-crypt.
 
 ## Results
 
-| Test | Date | Result | Notes |
-| ---- | ---- | ------ | ----- |
-|      |      |        |       |
+| Test | Date       | Result | Notes                                                                                                                                                                                                                                                         |
+| ---- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | 2026-10-04 | pass   | First boot after the reinstall: one prompt. Journal (monotonic): cryptswap finished 17.16 s, resume unit ran 17.16 to 17.17 s, cryptzroot finished 19.04 s from the cached passphrase, import 19.04 to 19.26 s, rollback 19.26 to 19.32 s. No ordering cycle. |
+|      |            |        |                                                                                                                                                                                                                                                               |
 
 ## Decision
 
