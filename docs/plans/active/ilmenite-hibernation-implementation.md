@@ -318,14 +318,15 @@ nix eval --raw "$H.environment.etc.fstab.text" | grep 'cryptswap none swap'
 
 Expected, line by line (JSON keys come out alphabetical):
 
-| Check         | Expected                                                                                                                                                                                                                      |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| resumeDevice  | `/dev/mapper/cryptswap<end>`                                                                                                                                                                                                  |
-| luks names    | `["cryptswap","cryptzroot"]`                                                                                                                                                                                                  |
-| swapDevices   | `[{"device":"/dev/mapper/cryptswap","discardPolicy":"once","re":false}]`                                                                                                                                                      |
-| luks devices  | `{"cryptswap":{"allowDiscards":true,"bypassWorkqueues":true,"device":"/dev/disk/by-partlabel/disk-disk1-swap"},"cryptzroot":{"allowDiscards":true,"bypassWorkqueues":true,"device":"/dev/disk/by-partlabel/disk-disk1-zfs"}}` |
-| rootFsOptions | `["acltype","canmount","checksum","compression","dnodesize","normalization","relatime","xattr"]` (no `encryption`, `keyformat`, `keylocation`)                                                                                |
-| swap size     | `68G`                                                                                                                                                                                                                         |
+| Check           | Expected                                                                                                                                                                                                                      |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| resumeDevice    | `/dev/mapper/cryptswap<end>`                                                                                                                                                                                                  |
+| luks names      | `["cryptswap","cryptzroot"]`                                                                                                                                                                                                  |
+| swapDevices     | `[{"device":"/dev/mapper/cryptswap","discardPolicy":"once","re":false}]`                                                                                                                                                      |
+| luks devices    | `{"cryptswap":{"allowDiscards":true,"bypassWorkqueues":true,"device":"/dev/disk/by-partlabel/disk-disk1-swap"},"cryptzroot":{"allowDiscards":true,"bypassWorkqueues":true,"device":"/dev/disk/by-partlabel/disk-disk1-zfs"}}` |
+| rootFsOptions   | `["acltype","canmount","checksum","compression","dnodesize","normalization","relatime","xattr"]` (no `encryption`, `keyformat`, `keylocation`)                                                                                |
+| swap size       | `68G`                                                                                                                                                                                                                         |
+| fstab swap line | `/dev/mapper/cryptswap none swap defaults,discard=once` (artefact-level check for Review Focus 7)                                                                                                                             |
 
 - [ ] **Step 5: Commit (bash)**
 
