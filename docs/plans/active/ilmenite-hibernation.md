@@ -356,7 +356,7 @@ these changes:
 1. Staging as today: a work directory with the passphrase file written with
    `printf '%s\n'`, fresh ed25519 and RSA host keys, and a fresh machine-id
    under `extra/persist/etc/`. The file name changes from `zfs.key` to
-   `luks.key`; it still lands as `/tmp/secret.key` on the installer through
+   `disk.key`; it still lands as `/tmp/secret.key` on the installer through
    `--disk-encryption-keys`.
 1. New: write ilmenite's host id into the installer's `/etc/hostid` over SSH
    before running the install. The ZFS tools read that file, so the pool is
@@ -374,7 +374,7 @@ these changes:
 
 Runbook edits, enumerated line by line in the implementation plan: the title
 and introduction (no ZFS native encryption, no key-location requirement); the
-staging section (`luks.key`; the OpenZFS passphrase rules replaced by what
+staging section (`disk.key`; the OpenZFS passphrase rules replaced by what
 disko does, which is strip trailing newlines with `$(cat ...)` for both format
 and open); the host-id pre-seed step; the install log lines to watch
 (`luksFormat`, `zpool create` without encryption properties); the first-boot
