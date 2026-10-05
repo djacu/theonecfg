@@ -187,10 +187,11 @@ through dm-crypt.
 
 ## Results
 
-| Test | Date       | Result | Notes                                                                                                                                                                                                                                                         |
-| ---- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | 2026-10-04 | pass   | First boot after the reinstall: one prompt. Journal (monotonic): cryptswap finished 17.16 s, resume unit ran 17.16 to 17.17 s, cryptzroot finished 19.04 s from the cached passphrase, import 19.04 to 19.26 s, rollback 19.26 to 19.32 s. No ordering cycle. |
-|      |            |        |                                                                                                                                                                                                                                                               |
+| Test | Date       | Result | Notes                                                                                                                                                                                                                                                                                                                        |
+| ---- | ---------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | 2026-10-04 | pass   | First boot after the reinstall: one prompt. Journal (monotonic): cryptswap finished 17.16 s, resume unit ran 17.16 to 17.17 s, cryptzroot finished 19.04 s from the cached passphrase, import 19.04 to 19.26 s, rollback 19.26 to 19.32 s. No ordering cycle.                                                                |
+| 2a   | 2026-10-05 | pass   | Cold ARC, `systemctl hibernate` from Plasma: marker kept, uptime continued, no ACPI errors, S4 entry and wake logged. Drivers: `spd5118` `-6` at thaw and restore (cosmetic); `btintel_pcie` `pci_pm_poweroff returns -16` during the power-off after the image write; Bluetooth function after resume checked by the owner. |
+|      |            |        |                                                                                                                                                                                                                                                                                                                              |
 
 ## Decision
 
