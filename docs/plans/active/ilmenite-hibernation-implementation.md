@@ -100,7 +100,7 @@ OpenZFS 2.4.4, systemd 261.2, Plasma 6 (powerdevil 6.7.4).
    `/dev/mapper/cryptswap`; a check that greps for the mapper path fails on a
    correct system. Pinned to Task 6 step 7 and the runbook's post-install
    checks.
-1. `discardPolicy = "once"` must reach the swap unit as `Options=discard=once`;
+1. `discardPolicy = "once"` must reach the swap unit as `Options=defaults,discard=once`;
    a dropped option leaves old image ciphertext on the drive without any
    visible symptom. Pinned to Task 7 test 8.
 
@@ -313,6 +313,7 @@ nix eval --json "$H.swapDevices" --apply 'l: map (s: { inherit (s) device discar
 nix eval --json "$H.boot.initrd.luks.devices" --apply 'd: builtins.mapAttrs (n: v: { inherit (v) device allowDiscards bypassWorkqueues; }) d'
 nix eval --json "$H.disko.devices.zpool.zroot.rootFsOptions" --apply builtins.attrNames
 nix eval --raw "$H.disko.devices.disk.disk1.content.partitions.swap.size"; echo
+nix eval --raw "$H.environment.etc.fstab.text" | grep 'cryptswap none swap'
 ```
 
 Expected, line by line (JSON keys come out alphabetical):
@@ -844,7 +845,7 @@ Each line is a command and what it must show.
   `ls -l /dev/mapper/cryptswap` points at that same `dm-N` and the size is
   68G.
 - LUKS hosts: `systemctl show -p Options dev-mapper-cryptswap.swap` prints
-  `Options=discard=once`.
+  `Options=defaults,discard=once`.
 - `cat /proc/cmdline`: LUKS hosts contain `resume=/dev/mapper/cryptswap` and
   no `nohibernate`; ZFS-native hosts contain `nohibernate` and no `resume=`.
 - `lsmod | grep -E '^(xe|framework_laptop|cros_ec_lpcs) '` lists all three.
@@ -1054,7 +1055,7 @@ ssh djacu@<ip> 'cat /proc/cmdline; swapon --show; ls -l /dev/mapper/cryptswap; s
 
 Expected: `resume=/dev/mapper/cryptswap` and no `nohibernate`; one
 `/dev/dm-N` partition swap of 68G, and the `ls -l` resolving to that `dm-N`
-(Review Focus 6); `Options=discard=once`; `off`; `1166a74d`; the staged
+(Review Focus 6); `Options=defaults,discard=once`; `off`; `1166a74d`; the staged
 machine-id and fingerprint; `0 loaded units listed`; `s "yes"`; a number
 (record it in the install log: greater than zero means systemd will use the
 firmware alarm path, which decides whether Task 7a is needed); the four-line
@@ -1146,10 +1147,12 @@ journalctl -b -o short-monotonic -u systemd-cryptsetup@cryptswap.service -u syst
 journalctl -b -p warning --no-pager | grep -i 'ordering cycle'
 ```
 
-Pass: one prompt; in the first listing both cryptsetup units finish before
-`systemd-hibernate-resume.service` starts, which finishes before
-`zfs-import-zroot.service` starts, which finishes before
-`rollback-root.service`. The second command prints nothing. (PID 1 logs
+Pass: one prompt; in the first listing `systemd-cryptsetup@cryptswap.service`
+finishes before `systemd-hibernate-resume.service` starts (the resume unit
+binds to the swap mapper, not the pool one, so `cryptzroot` may finish
+later); the resume unit and `systemd-cryptsetup@cryptzroot.service` both
+finish before `zfs-import-zroot.service` starts; the import finishes before
+`rollback-root.service` starts. The second command prints nothing. (PID 1 logs
 units by description, so the unit filters are what make the first command
 show them.)
 
@@ -1278,7 +1281,7 @@ systemctl show -p Options -p ActiveState dev-mapper-cryptswap.swap
 set dm (basename (readlink -f /dev/mapper/cryptswap)); cat /sys/block/$dm/queue/discard_granularity
 ```
 
-Pass: `Options=discard=once` and `ActiveState=active` (Review Focus 7);
+Pass: `Options=defaults,discard=once` and `ActiveState=active` (Review Focus 7);
 the granularity is greater than `0`, so the discard reaches the drive
 through dm-crypt.
 

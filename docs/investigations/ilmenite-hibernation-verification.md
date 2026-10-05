@@ -49,10 +49,12 @@ journalctl -b -o short-monotonic -u systemd-cryptsetup@cryptswap.service -u syst
 journalctl -b -p warning --no-pager | grep -i 'ordering cycle'
 ```
 
-Pass: one prompt; in the first listing both cryptsetup units finish before
-`systemd-hibernate-resume.service` starts, which finishes before
-`zfs-import-zroot.service` starts, which finishes before
-`rollback-root.service`. The second command prints nothing. (PID 1 logs
+Pass: one prompt; in the first listing `systemd-cryptsetup@cryptswap.service`
+finishes before `systemd-hibernate-resume.service` starts (the resume unit
+binds to the swap mapper, not the pool one, so `cryptzroot` may finish
+later); the resume unit and `systemd-cryptsetup@cryptzroot.service` both
+finish before `zfs-import-zroot.service` starts; the import finishes before
+`rollback-root.service` starts. The second command prints nothing. (PID 1 logs
 units by description, so the unit filters are what make the first command
 show them.)
 
@@ -179,7 +181,7 @@ systemctl show -p Options -p ActiveState dev-mapper-cryptswap.swap
 set dm (basename (readlink -f /dev/mapper/cryptswap)); cat /sys/block/$dm/queue/discard_granularity
 ```
 
-Pass: `Options=discard=once` and `ActiveState=active` (Review Focus 7);
+Pass: `Options=defaults,discard=once` and `ActiveState=active` (Review Focus 7);
 the granularity is greater than `0`, so the discard reaches the drive
 through dm-crypt.
 

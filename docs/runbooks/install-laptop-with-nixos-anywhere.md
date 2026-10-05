@@ -161,7 +161,7 @@ Each line is a command and what it must show.
   `ls -l /dev/mapper/cryptswap` points at that same `dm-N` and the size is
   68G.
 - LUKS hosts: `systemctl show -p Options dev-mapper-cryptswap.swap` prints
-  `Options=discard=once`.
+  `Options=defaults,discard=once`.
 - `cat /proc/cmdline`: LUKS hosts contain `resume=/dev/mapper/cryptswap` and
   no `nohibernate`; ZFS-native hosts contain `nohibernate` and no `resume=`.
 - `lsmod | grep -E '^(xe|framework_laptop|cros_ec_lpcs) '` lists all three.
