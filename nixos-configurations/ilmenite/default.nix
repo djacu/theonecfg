@@ -15,6 +15,7 @@ inputs: {
       imports = [
         ./disko.nix
         ./hardware.nix
+        ./hibernation.nix
         ./impermanence.nix
 
         theonecfg.nixosHardware.framework-intel-core-ultra-series3
@@ -29,9 +30,6 @@ inputs: {
         boot.loader.efi.efiSysMountPoint = "/boot";
         boot.supportedFilesystems = [ "zfs" ];
         boot.zfs.devNodes = "/dev/disk/by-id";
-        # Kept true for parity with the other hosts. Recovery from an unclean
-        # pool is zfs_force=1 from the systemd-boot editor, which is enabled.
-        boot.zfs.forceImportRoot = true;
 
         boot.initrd.systemd.services.rollback-root = {
           description = "Rollback ZFS root to empty snapshot";
