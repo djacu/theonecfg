@@ -85,4 +85,15 @@
   boot.extraModprobeConfig = ''
     options zfs zfs_arc_max=17179869184
   '';
+
+  # systemd's suspend-then-hibernate takes the firmware battery-alarm path
+  # when the battery exposes an alarm, and on that path it decides whether a
+  # wake was the timer by reading the SMBIOS wake-up type, which this
+  # firmware does not update on a resume from s2idle: the timed wake was
+  # treated as manual and the machine stayed on (verification test 3).
+  # With the trip point disabled the alarm reads 0 and systemd uses its own
+  # timer loop, which also handles the low-battery estimate.
+  services.udev.extraRules = ''
+    SUBSYSTEM=="power_supply", KERNEL=="BAT1", ATTR{alarm}="0"
+  '';
 }
