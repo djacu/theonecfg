@@ -75,4 +75,14 @@
       ExecStop = "${pkgs.kmod}/bin/modprobe btintel_pcie";
     };
   };
+
+  # The hibernation image may not exceed about half of RAM, and the ZFS ARC
+  # counts towards it: the kernel's one reclaim pass cannot shed tens of
+  # gigabytes of ARC, and a 55 GB ARC aborted hibernation with "Image
+  # allocation is 5925659 pages short" (verification test 2d). Cap the ARC at
+  # a quarter of RAM so the image always fits with room for applications.
+  # The initrd copies this file, so the cap applies from the first import.
+  boot.extraModprobeConfig = ''
+    options zfs zfs_arc_max=17179869184
+  '';
 }
