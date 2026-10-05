@@ -1393,7 +1393,7 @@ git push
 ```fish
 git pull
 sudo nixos-rebuild switch --flake .#ilmenite
-sudo udevadm trigger --subsystem-match=power_supply
+sudo udevadm trigger --settle --subsystem-match=power_supply
 cat /sys/class/power_supply/BAT1/alarm
 ```
 
