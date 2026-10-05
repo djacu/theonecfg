@@ -14,7 +14,8 @@ flips `forceImportRoot` to `false`, orders the pool import after the resume
 unit and the pool container unlock, and sets the systemd, logind, and Plasma
 sleep policy. The reinstall reuses the nixos-anywhere runbook with a
 host-id pre-seed. Verification is evaluation and build on argentite, then
-eight hardware tests driven by the owner and checked read-only over SSH.
+eight hardware tests driven by the owner and checked read-only over SSH,
+with one conditional fix task for the firmware battery-alarm path.
 
 **Tech Stack:** NixOS unstable (flake pin `nixos-26.11.20260905.c043004`),
 kernel `linuxPackages_6_18`, disko, impermanence, nixos-anywhere 1.13.0,
@@ -45,22 +46,35 @@ OpenZFS 2.4.4, systemd 261.2, Plasma 6 (powerdevil 6.7.4).
 - `networking.hostId` stays `1166a74d`; its file bytes are `4d a7 66 11`.
 - The other four hosts' `system.build.toplevel.drvPath` values must not
   change (baseline recorded in Task 0).
+- Never deploy this branch to ilmenite except through the Task 6 reinstall.
+  Tasks 1 to 3 describe a disk layout the installed ilmenite does not have;
+  a `nixos-rebuild` of any of them onto it would make the initrd wait for
+  LUKS containers that do not exist.
 - Every commit subject uses the repo's attr-path style and ends with the
   trailer `Assisted-by: Claude Code (claude-fable-5-1)`. No co-author
   trailers.
-- Run `nix fmt -- <files>` on every new or edited file; `git diff --exit-code` after formatting must be clean.
+- Run `nix fmt -- <files>` on every new or edited file; afterwards
+  `git --no-pager diff --no-ext-diff --exit-code -- <those files>` must be
+  clean. Always scope diffs with explicit pathspecs: the working tree
+  carries unrelated changes (`.claude/settings.local.json`, the
+  intent-to-add `docs/plans/active/scheelite-remote-access.md`, `songs/`)
+  that make an unscoped `--exit-code` fail forever. Leave those alone and
+  never sweep them into a commit.
 - New files must be `git add -N`'d before any `nix eval`/`nix build`, or the
   flake cannot see them.
 - Commands the user runs on argentite or ilmenite are fish; commands the
   executor runs through the Bash tool are bash. Each block says which.
 - The executor never installs, activates, or rebuilds anything on ilmenite.
-  Install and verification steps that touch the laptop are run by the owner;
-  the executor prepares commands and checks results read-only over SSH.
-- Work happens on branch `djacu/ilmenite-hibernation`. Leave the pre-existing
-  uncommitted changes in the working tree alone (`.claude/settings.local.json`,
-  the staged `docs/plans/active/scheelite-remote-access.md`, `songs/`).
+  Install, switch, and verification steps that touch the laptop are run by
+  the owner; the executor prepares commands and checks results read-only
+  over SSH.
+- Work happens on branch `djacu/ilmenite-hibernation`.
 - `git diff` in this repo uses an external diff tool; add `--no-ext-diff`
-  whenever its output is piped.
+  whenever its output is piped or its exit code is used.
+- The executor's scratch file for this plan is
+  `/tmp/claude-1000/ilmenite-hibernation-baseline.txt`, outside the
+  per-session scratchpad on purpose: it must survive a session change, and
+  the repo has no git-ignored workspace directory.
 
 ## Review Focus
 
@@ -74,13 +88,21 @@ OpenZFS 2.4.4, systemd 261.2, Plasma 6 (powerdevil 6.7.4).
    Task 7 test 6.
 1. A passphrase file with a `\r` or trailing space formats both containers
    with a passphrase the boot prompt cannot reproduce; disko strips only
-   newlines. Pinned to Task 6 step 2.
+   newlines. Pinned to Task 6 step 3.
 1. The installer's `/etc/hostid` must hold the id's bytes in little-endian
-   order (`4d a7 66 11`); the wrong order gives the pool a foreign host id
-   and the first boot refuses the import. Pinned to Task 6 step 3.
+   order (`4d a7 66 11`) in a real file; the installer ships it as a symlink
+   into its read-only store, so an overwrite in place fails and leaves the
+   installer's own id. Pinned to Task 6 step 4.
 1. A typo in `systemd-cryptsetup@cryptzroot.service` makes the ordering a
    silent no-op; the unit name must match the crypttab entry name. Pinned to
    Task 2 step 4.
+1. `swapon --show` prints the mapper's `/dev/dm-N` name, not
+   `/dev/mapper/cryptswap`; a check that greps for the mapper path fails on a
+   correct system. Pinned to Task 6 step 7 and the runbook's post-install
+   checks.
+1. `discardPolicy = "once"` must reach the swap unit as `Options=discard=once`;
+   a dropped option leaves old image ciphertext on the drive without any
+   visible symptom. Pinned to Task 7 test 8.
 
 ______________________________________________________________________
 
@@ -128,6 +150,11 @@ ______________________________________________________________________
   on `/dev/mapper/cryptswap`; Task 2 orders the import after
   `systemd-cryptsetup@cryptzroot.service`, whose name derives from the
   container name set here.
+
+This task's commit on its own describes a config with both `resume=` and
+`nohibernate` on the command line and `forceImportRoot` still `true`. That
+evaluates cleanly and is never deployed (Global Constraints); Task 2
+completes the picture.
 
 - [ ] **Step 1: Run the gate to see it fail (bash)**
 
@@ -271,7 +298,7 @@ Write the file with exactly this content:
 
 ```bash
 nix fmt -- nixos-configurations/ilmenite/disko.nix
-git --no-pager diff --no-ext-diff --stat
+git --no-pager diff --no-ext-diff --stat -- nixos-configurations/ilmenite
 ```
 
 Expected: only `disko.nix` listed.
@@ -288,7 +315,7 @@ nix eval --json "$H.disko.devices.zpool.zroot.rootFsOptions" --apply builtins.at
 nix eval --raw "$H.disko.devices.disk.disk1.content.partitions.swap.size"; echo
 ```
 
-Expected, line by line:
+Expected, line by line (JSON keys come out alphabetical):
 
 | Check         | Expected                                                                                                                                                                                                                      |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -329,7 +356,8 @@ ______________________________________________________________________
   `systemd-cryptsetup@cryptzroot.service`.
 
 - Produces: `hibernation.nix` as the single home for everything
-  hibernation-related; Task 3 appends the sleep policy to it.
+  hibernation-related; Task 3 appends the sleep policy to it, Task 7a may
+  append a udev rule.
 
 - [ ] **Step 1: Run the gate to see it fail (bash)**
 
@@ -413,21 +441,23 @@ nix eval --json "$H.boot.initrd.systemd.services.zfs-import-zroot.after"
 nix eval --json "$H.boot.initrd.systemd.services.rollback-root.after"
 nix eval --json "$H.boot.loader.systemd-boot.editor"
 cat "$(nix build --no-link --print-out-paths "$H.boot.initrd.systemd.contents.\"/etc/crypttab\".source")"
-grep -c 'forceImportRoot' nixos-configurations/ilmenite/default.nix
+nix eval --json "$H.warnings"
+grep -c 'forceImportRoot' nixos-configurations/ilmenite/default.nix || true
 ```
 
 Expected:
 
-| Check                  | Expected                                                                                                                                                             |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| unsafeAllowHibernation | `true`                                                                                                                                                               |
-| forceImportRoot        | `false`                                                                                                                                                              |
-| kernelParams           | a list containing `"resume=/dev/mapper/cryptswap"` and not containing `"nohibernate"`                                                                                |
-| import `after`         | contains `"systemd-modules-load.service"`, `"systemd-ask-password-console.service"`, `"systemd-hibernate-resume.service"`, `"systemd-cryptsetup@cryptzroot.service"` |
-| rollback-root after    | `["zfs-import-zroot.service"]`                                                                                                                                       |
-| editor                 | `true`                                                                                                                                                               |
-| crypttab               | two lines; the first field of one is `cryptswap`, of the other `cryptzroot`; both end with `discard,no-read-workqueue,no-write-workqueue`                            |
-| default.nix            | `0`                                                                                                                                                                  |
+| Check                  | Expected                                                                                                                                             |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| unsafeAllowHibernation | `true`                                                                                                                                               |
+| forceImportRoot        | `false`                                                                                                                                              |
+| kernelParams           | a list containing `"resume=/dev/mapper/cryptswap"` and not containing `"nohibernate"`                                                                |
+| import `after`         | `["systemd-modules-load.service","systemd-ask-password-console.service","systemd-hibernate-resume.service","systemd-cryptsetup@cryptzroot.service"]` |
+| rollback-root after    | `["zfs-import-zroot.service"]`                                                                                                                       |
+| editor                 | `true`                                                                                                                                               |
+| crypttab               | two lines; the first field of one is `cryptswap`, of the other `cryptzroot`; both end with `discard,no-read-workqueue,no-write-workqueue`            |
+| warnings               | `[]`                                                                                                                                                 |
+| default.nix            | `0`                                                                                                                                                  |
 
 The crypttab first field is the `%i` of `systemd-cryptsetup@%i.service`, so
 `cryptzroot` there is what makes the `after` entry real (Review Focus 5).
@@ -466,7 +496,7 @@ ______________________________________________________________________
 
 ```bash
 H=.#nixosConfigurations.ilmenite.config
-nix eval --raw "$H.environment.etc.\"systemd/sleep.conf\".text" | grep -c 'HibernateDelaySec=3h'
+nix eval --raw "$H.environment.etc.\"systemd/sleep.conf\".text" | grep -c 'HibernateDelaySec=3h' || true
 nix eval --json "$H.environment.etc" --apply 'e: e ? "xdg/powerdevilrc"'
 ```
 
@@ -522,12 +552,14 @@ with a single `}`.
 
 ```bash
 H=.#nixosConfigurations.ilmenite.config
+nix eval --raw "$H.environment.etc.\"systemd/sleep.conf\".text" | od -c | tail -n 4
 nix eval --raw "$H.environment.etc.\"systemd/sleep.conf\".text"
 nix eval --raw "$H.environment.etc.\"xdg/powerdevilrc\".text"
 nix eval --json "$H.services.logind.settings.Login.HandleLidSwitch"
 ```
 
-Expected, exactly:
+Expected: the `od` tail ends with `3 h \n \n` (the section serialiser adds
+one trailing empty line); the text, exactly, plus that trailing empty line:
 
 ```
 [Sleep]
@@ -536,7 +568,7 @@ HibernateOnACPower=false
 SuspendEstimationSec=3h
 ```
 
-then
+then, byte-exact:
 
 ```
 [AC][SuspendAndShutdown]
@@ -596,22 +628,33 @@ for h in malachite cassiterite argentite scheelite; do
 done | diff - /tmp/claude-1000/ilmenite-hibernation-baseline.txt && echo PARITY-OK
 ```
 
-Expected: `PARITY-OK`. A difference means something outside
-`nixos-configurations/ilmenite/` changed; `git --no-pager diff --no-ext-diff --stat main` must list only files under that directory and under `docs/`.
+Expected: `PARITY-OK`. If it differs: stop, run
+`git --no-pager diff --no-ext-diff --stat main -- . ':!docs'`, which must
+list only files under `nixos-configurations/ilmenite/`; anything else is a
+stray edit to revert before continuing. If only ilmenite files are listed
+and the paths still differ, the baseline was taken on a different pin;
+re-run Task 0 step 2 on `main` in a worktree and compare again.
 
 - [ ] **Step 3: Formatting gate (bash)**
 
 ```bash
 nix fmt -- nixos-configurations/ilmenite docs/plans/active/ilmenite-hibernation.md docs/plans/active/ilmenite-hibernation-implementation.md
-git --no-pager diff --no-ext-diff --exit-code && echo FORMAT-CLEAN
+git --no-pager diff --no-ext-diff --exit-code -- nixos-configurations/ilmenite docs/plans/active/ilmenite-hibernation.md docs/plans/active/ilmenite-hibernation-implementation.md && echo FORMAT-CLEAN
 ```
 
-Expected: `FORMAT-CLEAN`. If the formatter changed a file, commit it with
-subject `nixosConfigurations.ilmenite: format` or `docs/plans: format`.
+Expected: `FORMAT-CLEAN`. If the formatter changed a file, commit only that
+file:
+
+```bash
+git add <file>
+git commit -m "<nixosConfigurations.ilmenite|docs/plans>: format
+
+Assisted-by: Claude Code (claude-fable-5-1)"
+```
 
 ______________________________________________________________________
 
-### Task 5: Runbook and decision-doc updates
+### Task 5: Runbook, decision-doc update, push
 
 **Files:**
 
@@ -621,16 +664,17 @@ ______________________________________________________________________
 
 **Interfaces:**
 
-- Produces: the procedure Task 6 follows verbatim.
+- Produces: the procedure Task 6 follows verbatim; the branch on the remote
+  so the laptop can clone it.
 
 - [ ] **Step 1: Run the gate to see it fail (bash)**
 
 ```bash
-grep -c 'cryptswap' docs/runbooks/install-laptop-with-nixos-anywhere.md
-grep -c 'keylocation' docs/runbooks/install-laptop-with-nixos-anywhere.md
+grep -c 'cryptswap' docs/runbooks/install-laptop-with-nixos-anywhere.md || true
+grep -c 'must use .keylocation' docs/runbooks/install-laptop-with-nixos-anywhere.md || true
 ```
 
-Expected: `0`, then a number greater than `0`.
+Expected: `0`, then `1`.
 
 - [ ] **Step 2: Replace the runbook**
 
@@ -662,7 +706,8 @@ On the target:
 
 1. Secure Boot off in firmware. The 26.05 ISO's boot loader is unsigned GRUB;
    with Secure Boot on, the stick is not listed as bootable.
-1. Boot the NixOS minimal live ISO. Wired network is simplest.
+1. Boot the NixOS minimal live ISO from a port on the laptop itself, not a
+   hub. Wired network is simplest.
 1. As the `nixos` user: `sudo passwd root` and set a throwaway password.
 1. Note the address: `ip -4 -brief addr`.
 
@@ -673,13 +718,20 @@ green.
 
 ## Procedure (fish, on argentite)
 
-Replace `<host>`, `<ip>`, `<user>`, and `<pool>`.
+Replace `<host>`, `<ip>`, `<user>`, and `<pool>`. The live ISO has a fresh
+host key on every boot, so talk to it without recording that key; the two
+aliases below do what nixos-anywhere itself does:
+
+```fish
+alias isossh 'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
+alias isoscp 'scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
+```
 
 1. Confirm the disk id in the host's `disko.nix` exists on the target and is
    the intended disk:
 
    ```fish
-   ssh root@<ip> 'ls -l /dev/disk/by-id/ | grep -v -- -part; lsblk -o NAME,SIZE,MODEL,SERIAL /dev/nvme0n1; modprobe zfs && zfs version'
+   isossh root@<ip> 'ls -l /dev/disk/by-id/ | grep -v -- -part; lsblk -o NAME,SIZE,MODEL,SERIAL /dev/nvme0n1; modprobe zfs && zfs version'
    ```
 
    The `device` in `disko.nix` must appear in the listing and point at the
@@ -724,16 +776,19 @@ Replace `<host>`, `<ip>`, `<user>`, and `<pool>`.
    it, and these hosts import without `-f`, so the installer must carry the
    host's id. nixos-anywhere exports the pool at the end anyway, but that
    export runs with `|| true`; this makes a swallowed failure harmless.
+   The ISO ships its own `/etc/hostid` as a symlink into its read-only
+   store, so the link is removed and a real file put in its place:
 
    ```fish
-   scp (nix build --no-link --print-out-paths .#nixosConfigurations.<host>.config.environment.etc.hostid.source) root@<ip>:/etc/hostid
-   ssh root@<ip> 'od -An -tx1 /etc/hostid'
+   isoscp (nix build --no-link --print-out-paths .#nixosConfigurations.<host>.config.environment.etc.hostid.source) root@<ip>:/root/hostid
+   isossh root@<ip> 'rm -f /etc/hostid && mv /root/hostid /etc/hostid && od -An -tx1 /etc/hostid'
    nix build --no-link --print-out-paths .#nixosConfigurations.<host>.config.environment.etc.hostid.source | xargs od -An -tx1
    ```
 
    The two `od` lines must be identical: the host id's bytes in reverse
    order, `4d a7 66 11` for ilmenite. The ZFS tools and the kernel module
-   both read `/etc/hostid` on demand, so no reload is needed.
+   both read `/etc/hostid` on demand, so no reload is needed. Stop if the
+   lines differ.
 
 1. Install:
 
@@ -751,12 +806,14 @@ Replace `<host>`, `<ip>`, `<user>`, and `<pool>`.
    nixos-anywhere sees `VARIANT_ID=installer` and skips kexec, uploads the
    key file, runs disko (destroy, format, mount), copies the closure built on
    argentite, untars the extra files into `/mnt`, runs `nixos-install`,
-   exports the pool, and reboots. In the disko output look for, on LUKS
-   hosts, one `luksFormat` per container and a `zpool create` line without
+   unmounts, exports the pool, and reboots about six seconds after printing
+   `Rebooting`. In the disko output look for, on LUKS hosts, one
+   `luksFormat` per container and a `zpool create` line without
    `encryption=`; on ZFS-native hosts, the `zpool create` line and the
-   hook's `zfs set keylocation=prompt`. Unplug the USB stick as soon as
-   nixos-anywhere prints `Rebooting`, so the firmware boots the new install
-   and not the installer.
+   hook's `zfs set keylocation=prompt`. Leave the stick in until the screen
+   goes dark for the reboot: it is the live system's root, and the unmount
+   and export still need it. Then pull it, or pick the NVMe entry in the
+   firmware boot menu.
 
 1. First boot, on the target. LUKS hosts: the initrd asks once,
    `Please enter passphrase for disk cryptswap` or `cryptzroot`, whichever
@@ -764,7 +821,8 @@ Replace `<host>`, `<ip>`, `<user>`, and `<pool>`.
    ZFS-native hosts: `Enter key for <pool>`. Log in to Plasma with the
    password, before enrolling any fingerprint.
 
-1. Apply home-manager on the target, from a checkout of the repo:
+1. Apply home-manager on the target, from a checkout of the repo on the
+   branch that was installed:
 
    ```fish
    nix run --inputs-from . home-manager-unstable -- switch --flake .#<host>-<user>
@@ -778,10 +836,15 @@ Each line is a command and what it must show.
 - `zpool status <pool>` shows `state: ONLINE`.
 - LUKS hosts: `zfs get -H -o value encryption <pool>` prints `off`;
   `sudo cryptsetup status cryptswap` and `sudo cryptsetup status cryptzroot`
-  both print `is active` with `type: LUKS2` and flags `discards` and
-  `no_read_workqueue no_write_workqueue`.
+  both print `is active and is in use`, `type:    LUKS2`, and
+  `flags:   discards no_read_workqueue no_write_workqueue`.
 - ZFS-native hosts: `zfs get -H -o value keylocation <pool>` prints `prompt`.
-- `swapon --show` lists one `/dev/mapper/` device: `cryptswap` on LUKS hosts.
+- `swapon --show` lists one partition entry named `/dev/dm-N` (the mapper's
+  kernel name, not the `/dev/mapper/` alias); on LUKS hosts
+  `ls -l /dev/mapper/cryptswap` points at that same `dm-N` and the size is
+  68G.
+- LUKS hosts: `systemctl show -p Options dev-mapper-cryptswap.swap` prints
+  `Options=discard=once`.
 - `cat /proc/cmdline`: LUKS hosts contain `resume=/dev/mapper/cryptswap` and
   no `nohibernate`; ZFS-native hosts contain `nohibernate` and no `resume=`.
 - `lsmod | grep -E '^(xe|framework_laptop|cros_ec_lpcs) '` lists all three.
@@ -817,35 +880,47 @@ and re-run the install step.
 If the first boot cannot import the pool: on LUKS hosts, first try
 `zfs_force=1` once, typed into the boot entry from the systemd-boot editor
 (press `e`), which imports with `-f` for that boot only. If that is not
-enough, boot the stick, unlock the pool container, import, export, and
-reboot:
+enough, boot the stick and repair from there, in this order.
+
+First, on a host that can hibernate, make sure no hibernation image is
+waiting on its swap. Importing the pool elsewhere while an image exists, and
+then letting the next normal boot resume that image, corrupts the pool. The
+same applies to booting such a host with `noresume`: never do it while an
+image may exist. Unlock the swap container and overwrite the swap header,
+which drops any image:
+
+```sh
+cryptsetup open /dev/disk/by-partlabel/disk-disk1-swap cryptswap
+mkswap /dev/mapper/cryptswap
+```
+
+Then import without mounting (`-N`: the datasets' mountpoints are `/`,
+`/nix`, and `/home`, and a mounting import would cover the live system's own
+directories), export, and reboot:
 
 ```sh
 cryptsetup open /dev/disk/by-partlabel/disk-disk1-zfs cryptzroot
-zpool import -f <pool>
+zpool import -f -N <pool>
 zpool export <pool>
 ```
 
-Before importing a hibernation-capable host's pool from the stick, make
-sure no hibernation image is waiting on its swap: unlock the swap container
-and overwrite the swap header, `cryptsetup open
-/dev/disk/by-partlabel/disk-disk1-swap cryptswap && mkswap /dev/mapper/cryptswap`.
-Importing the pool elsewhere while an image exists and then letting the next
-normal boot resume that image corrupts the pool. Never boot such a host with
-`noresume` for the same reason.
+ZFS-native hosts skip the `cryptsetup` lines and use the same `-N` import.
 ````
 
 - [ ] **Step 3: Format and run the gate to see it pass (bash)**
 
 ```bash
 nix fmt -- docs/runbooks/install-laptop-with-nixos-anywhere.md
-grep -c 'cryptswap' docs/runbooks/install-laptop-with-nixos-anywhere.md
-grep -c 'keylocation' docs/runbooks/install-laptop-with-nixos-anywhere.md
+grep -c 'cryptswap' docs/runbooks/install-laptop-with-nixos-anywhere.md || true
+grep -c 'must use .keylocation' docs/runbooks/install-laptop-with-nixos-anywhere.md || true
+grep -c 'keylocation' docs/runbooks/install-laptop-with-nixos-anywhere.md || true
 grep -n 'disk.key\|zfs.key' docs/runbooks/install-laptop-with-nixos-anywhere.md
+grep -c 'import -f -N' docs/runbooks/install-laptop-with-nixos-anywhere.md || true
 ```
 
-Expected: a number greater than `0`; `2` (both in the ZFS-native bullets, not
-as a requirement); only `disk.key` lines, no `zfs.key`.
+Expected: a number greater than `0`; `0`; `4` (the ZFS-native bullet, the
+install-log sentence, the post-install check, and `keylocation = "file`, all
+descriptive, none a requirement); only `disk.key` lines, no `zfs.key`; `1`.
 
 - [ ] **Step 4: Append to the decision doc**
 
@@ -873,9 +948,9 @@ git commit -m "docs/runbooks: install-laptop-with-nixos-anywhere: LUKS hosts
 
 Generalise the passphrase handling to LUKS and ZFS-native hosts, add the
 host-id pre-seed for forceImportRoot=false hosts, the post-install checks
-for the containers, resume device and command line, the stale EFI entry
-after a reinstall, and the rule to invalidate a hibernation image before
-importing a pool from the stick.
+for the containers, resume device, swap options and command line, the
+stale EFI entry after a reinstall, and a Rollback that invalidates a
+hibernation image and imports without mounting.
 
 Assisted-by: Claude Code (claude-fable-5-1)"
 git add docs/plans/active/scheelite-force-import-root-decision.md
@@ -884,24 +959,50 @@ git commit -m "docs/plans/active: scheelite-force-import-root-decision: note ilm
 Assisted-by: Claude Code (claude-fable-5-1)"
 ```
 
+- [ ] **Step 6: Push the branch (bash)**
+
+The laptop clones this branch after the reinstall, and Task 7a may need a
+`nixos-rebuild switch` from it. The owner approved pushing this branch when
+approving the plan.
+
+```bash
+git push -u origin djacu/ilmenite-hibernation
+```
+
+Expected: the branch is on the remote. `main` keeps describing the old disk
+layout until the PR in Task 8 merges; that is deliberate, since ilmenite is
+verified on the branch first, the same way the bringup went.
+
 ______________________________________________________________________
 
 ### Task 6: Reinstall ilmenite (owner-driven)
 
-**Files:** none in the repo. The spec's "Install log" is written in Task 7's
-investigation doc.
+**Files:**
+
+- Create: `docs/investigations/ilmenite-hibernation-verification.md`
+  (skeleton with the install log; Task 7 fills the tests)
 
 **Interfaces:**
 
-- Consumes: the runbook (Task 5), the built closure (Task 4).
-- Produces: ilmenite running the new layout; its new host-key fingerprint and
-  machine-id, recorded for Task 7.
+- Consumes: the runbook (Task 5), the built closure (Task 4), the pushed
+  branch (Task 5 step 6).
+- Produces: ilmenite running the new layout; its new host-key fingerprint,
+  machine-id, prompt count, install times, and `BAT1/alarm` value, written
+  into the verification doc's install log.
 
 The executor prepares each command block, the owner runs it, and the
 executor reads results. The executor does not run `nixos-anywhere`,
 `nixos-rebuild`, or `home-manager` against ilmenite.
 
-- [ ] **Step 1: Pre-wipe checks (owner, fish)**
+- [ ] **Step 1: Create the verification doc skeleton**
+
+Write `docs/investigations/ilmenite-hibernation-verification.md` with the
+full text given in Task 7 step 1, then `git add -N` it and
+`nix fmt -- docs/investigations/ilmenite-hibernation-verification.md`. The
+install-log fields are filled in during this task as results arrive, so a
+session break loses nothing.
+
+- [ ] **Step 2: Pre-wipe checks (owner, fish)**
 
 On ilmenite, in the theonecfg clone: `git status --short --branch`.
 Expected: nothing unpushed (confirmed once on 2026-10-04; confirm again).
@@ -911,44 +1012,62 @@ Then on argentite:
 ssh-keygen -R ilmenite; ssh-keygen -R 10.0.10.83; ssh-keygen -R 10.0.10.84; ssh-keygen -R 10.0.10.85
 ```
 
-Also remove any other address ilmenite has used that `grep ilmenite ~/.ssh/known_hosts` or a later `ssh` warning reveals.
+Most of these are no-ops; they remove whatever old ilmenite key is recorded.
+The ISO itself is never recorded, since the runbook's aliases discard its
+key.
 
-- [ ] **Step 2: Boot the stick and stage (owner, fish)**
+- [ ] **Step 3: Boot the stick and stage (owner, fish)**
 
 Runbook Prerequisites, then Procedure steps 1 and 2 with `<host>` =
 `ilmenite`. The `od` line must end in the passphrase's last character then
 `\n` only (Review Focus 3). Paste the `od` tail, the fingerprint, and the
-machine-id into the chat; the executor records them.
+machine-id into the chat; the executor writes them into the install log.
 
-- [ ] **Step 3: Host-id pre-seed (owner, fish)**
+- [ ] **Step 4: Host-id pre-seed (owner, fish)**
 
 Runbook Procedure step 3. Expected: both `od` lines print `4d a7 66 11`
-(Review Focus 4). Stop if they differ.
+(Review Focus 4). Stop if they differ; the usual cause is the ISO's
+symlinked `/etc/hostid` not having been removed.
 
-- [ ] **Step 4: Install (owner, fish)**
+- [ ] **Step 5: Install (owner, fish)**
 
-Runbook Procedure step 4. Watch for two `luksFormat` lines and a `zpool create` without `encryption=`. Unplug the stick at `Rebooting`.
+Note the time, then Runbook Procedure step 4. Watch for two `luksFormat`
+lines and a `zpool create` without `encryption=`. Leave the stick in until
+the screen goes dark. Note the time again; the install log records start,
+end, and anything disko or nixos-install printed that looked wrong.
 
-- [ ] **Step 5: First boot and home-manager (owner)**
+- [ ] **Step 6: First boot and home-manager (owner)**
 
-Runbook Procedure steps 5 and 6. Report: how many passphrase prompts
-appeared (expected: one), and which container's name the prompt showed.
+Runbook Procedure steps 5 and 6, cloning branch `djacu/ilmenite-hibernation`
+on the laptop. Report: how many passphrase prompts appeared (expected: one),
+and which container's name the prompt showed.
 
-- [ ] **Step 6: Post-install checks (owner on the target; executor read-only over SSH)**
+- [ ] **Step 7: Post-install checks (owner on the target; executor read-only over SSH)**
 
 Owner: run the runbook's Post-install checks and paste results. Executor,
 from argentite, with `<ip>` the new address (find it by the staged
 fingerprint if DHCP moved it):
 
 ```bash
-ssh djacu@<ip> 'cat /proc/cmdline; swapon --show; zfs get -H -o value encryption zroot; hostid; cat /etc/machine-id; ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub; systemctl --failed; busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanSuspendThenHibernate; cat /sys/class/power_supply/BAT1/alarm; cat /etc/systemd/sleep.conf; cat /etc/xdg/powerdevilrc'
+ssh djacu@<ip> 'cat /proc/cmdline; swapon --show; ls -l /dev/mapper/cryptswap; systemctl show -p Options dev-mapper-cryptswap.swap; zfs get -H -o value encryption zroot; hostid; cat /etc/machine-id; ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub; systemctl --failed; busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanSuspendThenHibernate; cat /sys/class/power_supply/BAT1/alarm; cat /etc/systemd/sleep.conf; cat /etc/xdg/powerdevilrc'
 ```
 
 Expected: `resume=/dev/mapper/cryptswap` and no `nohibernate`; one
-`/dev/mapper/cryptswap` swap of 68G; `off`; `1166a74d`; the staged
+`/dev/dm-N` partition swap of 68G, and the `ls -l` resolving to that `dm-N`
+(Review Focus 6); `Options=discard=once`; `off`; `1166a74d`; the staged
 machine-id and fingerprint; `0 loaded units listed`; `s "yes"`; a number
-(record it: greater than zero means systemd will use the firmware alarm
-path); the four-line sleep.conf and the powerdevilrc from Task 3.
+(record it in the install log: greater than zero means systemd will use the
+firmware alarm path, which decides whether Task 7a is needed); the four-line
+sleep.conf and the powerdevilrc from Task 3.
+
+- [ ] **Step 8: Commit the install log (bash)**
+
+```bash
+git add docs/investigations/ilmenite-hibernation-verification.md
+git commit -m "docs/investigations: ilmenite hibernation verification: install log
+
+Assisted-by: Claude Code (claude-fable-5-1)"
+```
 
 ______________________________________________________________________
 
@@ -956,56 +1075,88 @@ ______________________________________________________________________
 
 **Files:**
 
-- Create: `docs/investigations/ilmenite-hibernation-verification.md`
+- Modify: `docs/investigations/ilmenite-hibernation-verification.md`
+  (results)
 
 **Interfaces:**
 
 - Consumes: ilmenite on the new layout (Task 6).
+- Produces: the written results the spec's exit criteria require, and the
+  decision whether Task 7a runs.
 
-- Produces: the written results the spec's exit criteria require.
+**When a test fails:** stop the sequence, record the observation in the
+results table, and consult the spec's Risks section for the named fallback.
+A fix is a commit on this branch, evaluated with the Task 2 or Task 3 gates,
+then applied by the owner on ilmenite from their clone with
+`sudo nixos-rebuild switch --flake .#ilmenite` (not `boot`: a kernel change
+followed by a hibernate loses that session), after which the failed test is
+re-run before the next one starts. The executor never runs the switch.
 
-- [ ] **Step 1: Create the doc with the procedure and an empty results table**
-
-Write `docs/investigations/ilmenite-hibernation-verification.md`:
+- [ ] **Step 1: The verification doc text (written in Task 6 step 1)**
 
 ````markdown
 # ilmenite hibernation verification
 
 **Status:** In progress
-**Date:** <date of the first test>
+**Date:** <date of the install>
 **Owner:** djacu
-**Context:** Task 7 of `docs/plans/active/ilmenite-hibernation-implementation.md`; design in `docs/plans/active/ilmenite-hibernation.md`
+**Context:** Tasks 6 and 7 of `docs/plans/active/ilmenite-hibernation-implementation.md`; design in `docs/plans/active/ilmenite-hibernation.md`
 
 ## Install log
 
 - Staged fingerprint: <fingerprint>; machine-id: <id>.
 - Host-id pre-seed: both `od` lines `4d a7 66 11`.
-- Install: <date>, <duration>, prompts at first boot: <n>, prompt named
-  <cryptswap|cryptzroot>.
+- Install: started <time>, ended <time>; prompts at first boot: <n>, prompt
+  named <cryptswap|cryptzroot>; anything odd in the disko or nixos-install
+  output: <none|notes>.
 - Post-install checks: <all passed | list>.
-- `BAT1/alarm` at first boot: <value>.
+- `BAT1/alarm` at first boot: <value>. Greater than zero means systemd uses
+  the firmware alarm path in suspend-then-hibernate.
 
 ## Tests
 
 The owner runs the (ilmenite) commands in fish on the laptop; the executor
-runs the (argentite) commands in bash over SSH, read-only.
+runs the (argentite) commands in bash over SSH, read-only. systemd-sleep's
+path decisions are debug-level messages, so each session that includes
+tests 3, 4, or 5 starts with the session setup below and ends with its
+removal. The drop-ins live in `/run`: a resume keeps them, a cold boot
+drops them, so repeat the setup after any reboot.
+
+Session setup (ilmenite):
+
+```fish
+sudo mkdir -p /run/systemd/system/systemd-suspend-then-hibernate.service.d
+printf '[Service]\nEnvironment=SYSTEMD_LOG_LEVEL=debug\n' | sudo tee /run/systemd/system/systemd-suspend-then-hibernate.service.d/debug.conf
+sudo systemctl daemon-reload
+```
+
+Session teardown (ilmenite):
+
+```fish
+sudo rm -rf /run/systemd/system/systemd-suspend-then-hibernate.service.d /run/systemd/sleep.conf.d
+sudo systemctl daemon-reload
+```
 
 ### 1. Cold boot ordering
 
 (ilmenite) Reboot, count prompts. Then:
 
 ```fish
-journalctl -b -o short-monotonic | grep -E 'cryptsetup@|hibernate-resume|zfs-import-zroot|rollback-root' | head -n 20
+journalctl -b -o short-monotonic -u systemd-cryptsetup@cryptswap.service -u systemd-cryptsetup@cryptzroot.service -u systemd-hibernate-resume.service -u zfs-import-zroot.service -u rollback-root.service --no-pager
+journalctl -b -p warning --no-pager | grep -i 'ordering cycle'
 ```
 
-Pass: one prompt; both `systemd-cryptsetup@` units finish before
+Pass: one prompt; in the first listing both cryptsetup units finish before
 `systemd-hibernate-resume.service` starts, which finishes before
 `zfs-import-zroot.service` starts, which finishes before
-`rollback-root.service`. No "Found ordering cycle" line in `journalctl -b -p warning`.
+`rollback-root.service`. The second command prints nothing. (PID 1 logs
+units by description, so the unit filters are what make the first command
+show them.)
 
 ### 2. Hibernate and resume, cold ARC and warm ARC
 
-(ilmenite)
+(ilmenite) `/tmp` lives on the root dataset, which is rolled back on every
+cold boot, so a marker there survives a resume and nothing else:
 
 ```fish
 date -u > /tmp/hibtest-marker; cat /tmp/hibtest-marker; cat /proc/uptime
@@ -1020,34 +1171,33 @@ sudo dmesg | grep -i -E 'ACPI (BIOS )?Error|_WAK|BERT|Hardware Error' | head
 sudo dmesg | grep -i -E 'sleep state S4|failed to restore|dpm_run_callback|spd5118' | tail -n 8
 ```
 
-Pass: marker from before the hibernate (a cold boot would have rolled
-`/tmp` back), uptime continued, no ACPI errors, S4 entry and wake lines
-present. Note whether `spd5118` still returns `-6`.
+Pass: marker from before the hibernate, uptime continued, no ACPI errors,
+S4 entry and wake lines present. Note whether `spd5118` still returns `-6`.
 
-Warm ARC: write a random file of 30 GB, read it twice, check the ARC size,
-then hibernate again the same way:
+Warm ARC: the ARC cap at this pin is RAM minus 1 GiB, about 63 GiB. Write a
+random file of 50 GB, read it twice, confirm the ARC holds most of it, then
+hibernate again the same way. This pushes saveable memory well past the
+kernel's half-of-RAM image limit, so the ARC shrinker must give memory back.
 
 ```fish
-dd if=/dev/urandom of=/home/djacu/arcfill bs=1M count=30000 status=progress
+dd if=/dev/urandom of=/home/djacu/arcfill bs=1M count=50000 status=progress
 cat /home/djacu/arcfill > /dev/null; cat /home/djacu/arcfill > /dev/null
 grep -E '^(size|c_max) ' /proc/spl/kstat/zfs/arcstats
 date -u > /tmp/hibtest-marker; systemctl hibernate
 ```
 
-After the resume: marker present, `sudo dmesg | grep -i -E 'hibernation|Image'
-| tail -n 12` shows the image pages count and no "Image allocation" or
-"Not enough" error. Then `rm /home/djacu/arcfill`.
+After the resume: marker present; `sudo dmesg | grep -i -E 'hibernation|Image'
+| tail -n 12` shows the image page count and no "Image allocation" or "Not
+enough" error. Then `rm /home/djacu/arcfill`.
 
 ### 3. suspend-then-hibernate with a short delay
 
-(ilmenite) Runtime-only overrides, no rebuild:
+(ilmenite) Session setup first. Then a runtime-only sleep override, no
+rebuild:
 
 ```fish
 sudo mkdir -p /run/systemd/sleep.conf.d
 printf '[Sleep]\nHibernateDelaySec=2min\nSuspendEstimationSec=2min\nHibernateOnACPower=yes\n' | sudo tee /run/systemd/sleep.conf.d/test.conf
-sudo mkdir -p /run/systemd/system/systemd-suspend-then-hibernate.service.d
-printf '[Service]\nEnvironment=SYSTEMD_LOG_LEVEL=debug\n' | sudo tee /run/systemd/system/systemd-suspend-then-hibernate.service.d/debug.conf
-sudo systemctl daemon-reload
 date -u > /tmp/hibtest-marker; systemctl suspend-then-hibernate
 ```
 
@@ -1056,42 +1206,45 @@ powers off (hibernated). Power on, one prompt, session back. Then:
 
 ```fish
 cat /tmp/hibtest-marker
-journalctl -b -u systemd-suspend-then-hibernate.service --no-pager | grep -i -E 'alarm|APM Timer|Manual wakeup|Timer fired|estimat|hibernat|suspend' | head -n 30
-sudo rm /run/systemd/sleep.conf.d/test.conf /run/systemd/system/systemd-suspend-then-hibernate.service.d/debug.conf; sudo systemctl daemon-reload
+journalctl -b -u systemd-suspend-then-hibernate.service --no-pager | grep -i -E 'alarm|APM Timer|wakeup|Timer fired|timeout|estimat|hibernat|suspend' | head -n 40
+sudo rm /run/systemd/sleep.conf.d/test.conf
 ```
 
-Pass: marker present; the journal shows which path systemd took (firmware
-alarm or timer) and, on the alarm path, "Woken by APM Timer" rather than a
-manual-wakeup exit. If the alarm path misjudged the wake, record it; the
-fix is a udev rule writing `0` to `/sys/class/power_supply/BAT1/alarm`,
-which forces the timer path, and it becomes a follow-up commit.
+Pass: marker present; the debug log shows which path systemd took
+(firmware alarm or timer) and, on the alarm path, "Woken by APM Timer"
+rather than a silent exit after the wake. If the alarm path misjudged the
+wake, which shows as the machine coming back awake after two minutes with
+no hibernate and Plasma re-suspending it about ten seconds later, record
+it and run Task 7a before test 4.
 
 ### 4. Lid on battery
 
-(ilmenite) Unplug. `cat /sys/class/power_supply/BAT1/charge_now`, close the
-lid for ten minutes, open it. Pass: `journalctl -b -u
-systemd-suspend-then-hibernate.service` shows one suspend entry and no
-hibernate; `charge_now` dropped by about 0.1 %.
+(ilmenite, session setup active) Unplug.
+`cat /sys/class/power_supply/BAT1/charge_now`, close the lid for ten
+minutes, open it. Pass: `journalctl -b -u
+systemd-suspend-then-hibernate.service --no-pager` shows one suspend entry
+and no hibernate; `charge_now` dropped by about 0.1 %.
 
 Overnight: `cat /sys/class/power_supply/BAT1/charge_now; date`, close the
 lid unplugged, leave it. In the morning the machine is off. Power on, one
-prompt, session back; `charge_now` again. Pass: hibernated after about 3 h
-(the journal's last entries before the hibernate are about 3 h after the
-lid close), total drop about 1.5 % plus the hibernate.
+prompt, session back; `charge_now` again. Pass: the debug log shows the
+hibernate about 3 h after the lid close, and the total drop is about 1.5 %
+plus the hibernate.
 
 ### 5. Lid on AC, then unplug
 
-(ilmenite) Plugged in through the hub, no external monitor. Close the lid
-for more than three hours, open it:
+(ilmenite, session setup active) Plugged in through the hub, no external
+monitor. Close the lid for more than three hours, open it:
 
 ```fish
-journalctl -b -u systemd-suspend-then-hibernate.service --since -5h --no-pager | grep -i -E 'suspend|wake|timer|hibernat' | head -n 30
+journalctl -b -u systemd-suspend-then-hibernate.service --since -5h --no-pager | grep -i -E 'suspend|wake|Timer fired|AC power|hibernat' | head -n 40
 ```
 
-Pass: a wake about every three hours, each followed by a new suspend, no
-hibernate. Then close the lid again, unplug the hub after ten minutes, and
-leave it. Pass: within three hours the machine is off; power on, one prompt,
-session back.
+Pass: a wake about every three hours, each logged as the timer firing on
+AC and followed by a new suspend, no hibernate. Then close the lid again,
+unplug the hub after ten minutes, and leave it. Pass: within three hours
+the machine is off; power on, one prompt, session back. Run the session
+teardown afterwards.
 
 ### 6. logind and Plasma agree
 
@@ -1118,10 +1271,16 @@ internal panel or external monitor.
 
 ### 8. Discard on cold boot
 
-(ilmenite) After any cold boot: `journalctl -b -u 'dev-mapper-cryptswap.swap'
---no-pager`. Pass: the swap unit activated; `swapon --show` lists it.
-`sudo cat /sys/block/dm-0/queue/discard_granularity` greater than `0` for the
-swap mapper (find its `dm-N` with `ls -l /dev/mapper/cryptswap`).
+(ilmenite) After any cold boot:
+
+```fish
+systemctl show -p Options -p ActiveState dev-mapper-cryptswap.swap
+set dm (basename (readlink -f /dev/mapper/cryptswap)); cat /sys/block/$dm/queue/discard_granularity
+```
+
+Pass: `Options=discard=once` and `ActiveState=active` (Review Focus 7);
+the granularity is greater than `0`, so the discard reaches the drive
+through dm-crypt.
 
 ## Results
 
@@ -1134,15 +1293,12 @@ swap mapper (find its `dm-N` with `ls -l /dev/mapper/cryptswap`).
 <Pass or fail against the spec's exit criteria, and anything changed as a result.>
 ````
 
-Then `git add -N docs/investigations/ilmenite-hibernation-verification.md`
-and `nix fmt -- docs/investigations/ilmenite-hibernation-verification.md`.
-
 - [ ] **Step 2: Run the tests (owner) and record (executor)**
 
-Walk tests 1 to 8 with the owner, one at a time, in the order written. For
-each, the executor fills the results row and replaces the install-log
-placeholders with the values from Task 6. Tests 4 and 5 span many hours; the
-doc is committed with `Status: In progress` between them.
+Walk tests 1 to 8 with the owner, in the order written, with the session
+setup and teardown where the doc says. For each, the executor fills the
+results row. Tests 4 and 5 span many hours; the doc is committed with
+`Status: In progress` between them.
 
 - [ ] **Step 3: Commit after each session (bash)**
 
@@ -1158,6 +1314,91 @@ and commit with `<tests done>` = `complete`.
 
 ______________________________________________________________________
 
+### Task 7a: Force the timer path (conditional)
+
+Run only if test 3 showed the firmware alarm path misjudging the timed wake
+(the machine came back awake after the delay and never hibernated). Skip
+otherwise and note "not needed" in the verification doc's Decision.
+
+**Files:**
+
+- Modify: `nixos-configurations/ilmenite/hibernation.nix` (append)
+
+**Interfaces:**
+
+- Consumes: `hibernation.nix` (Task 3); the `BAT1/alarm` value from the
+  install log.
+- Produces: `BAT1/alarm` reading `0`, so systemd takes the timer path.
+
+How it works, verified at the pin: systemd takes the alarm path only when
+every battery's `alarm` attribute is greater than zero; the kernel's ACPI
+battery driver exposes `alarm` read-write and evaluates the firmware trip
+point `_BTP` with the written value, so `0` disables the trip point and the
+attribute then reads `0`.
+
+- [ ] **Step 1: Run the gate to see it fail (bash)**
+
+```bash
+nix eval --raw .#nixosConfigurations.ilmenite.config.services.udev.extraRules | grep -c 'ATTR{alarm}' || true
+```
+
+Expected: `0`.
+
+- [ ] **Step 2: Append the rule to `hibernation.nix`**
+
+Insert before the final `}`:
+
+```nix
+
+  # The firmware battery alarm path in suspend-then-hibernate judges a wake
+  # by the SMBIOS wake-up byte, which this firmware misreports (verification
+  # test 3). With the trip point disabled, systemd uses its own timer.
+  services.udev.extraRules = ''
+    SUBSYSTEM=="power_supply", KERNEL=="BAT1", ATTR{alarm}="0"
+  '';
+```
+
+Then `nix fmt -- nixos-configurations/ilmenite/hibernation.nix`.
+
+- [ ] **Step 3: Run the gate to see it pass (bash)**
+
+```bash
+nix eval --raw .#nixosConfigurations.ilmenite.config.services.udev.extraRules | grep -c 'ATTR{alarm}' || true
+nix build --no-link --print-out-paths .#nixosConfigurations.ilmenite.config.system.build.toplevel
+```
+
+Expected: `1`, then a store path.
+
+- [ ] **Step 4: Commit and push (bash)**
+
+```bash
+git add nixos-configurations/ilmenite/hibernation.nix
+git commit -m "nixosConfigurations.ilmenite: disable the battery trip point
+
+systemd's suspend-then-hibernate judges a firmware-alarm wake by the
+SMBIOS wake-up byte, which this firmware misreports, so timed wakes
+were treated as manual and the machine never hibernated. With BAT1's
+alarm at 0 systemd uses its own timer.
+
+Assisted-by: Claude Code (claude-fable-5-1)"
+git push
+```
+
+- [ ] **Step 5: Apply and re-test (owner, fish on ilmenite)**
+
+```fish
+git pull
+sudo nixos-rebuild switch --flake .#ilmenite
+sudo udevadm trigger --subsystem-match=power_supply
+cat /sys/class/power_supply/BAT1/alarm
+```
+
+Expected: `0`. Then re-run verification test 3; it must now take the timer
+path and hibernate after the delay. Record both the failure and the fix in
+the results table before moving to test 4.
+
+______________________________________________________________________
+
 ### Task 8: Close out
 
 **Files:**
@@ -1165,7 +1406,8 @@ ______________________________________________________________________
 - Move: `docs/plans/active/ilmenite-hibernation.md` and
   `docs/plans/active/ilmenite-hibernation-implementation.md` to
   `docs/plans/completed/`
-- Modify: the spec's `**Status:**` line
+- Modify: the spec's `**Status:**` line; path references in the files
+  listed below
 
 **Interfaces:**
 
@@ -1173,36 +1415,39 @@ ______________________________________________________________________
 
 - [ ] **Step 1: Move and mark (bash)**
 
+Replace `<date>` with today's date before running.
+
 ```bash
 git mv docs/plans/active/ilmenite-hibernation.md docs/plans/completed/ilmenite-hibernation.md
 git mv docs/plans/active/ilmenite-hibernation-implementation.md docs/plans/completed/ilmenite-hibernation-implementation.md
 sed -i 's|^\*\*Status:\*\* .*|**Status:** Completed <date>; verified on hardware, results in `docs/investigations/ilmenite-hibernation-verification.md`|' docs/plans/completed/ilmenite-hibernation.md
 sed -i 's|docs/plans/active/ilmenite-hibernation|docs/plans/completed/ilmenite-hibernation|g' docs/plans/completed/ilmenite-hibernation-implementation.md docs/investigations/ilmenite-hibernation-verification.md docs/plans/active/scheelite-force-import-root-decision.md docs/runbooks/install-laptop-with-nixos-anywhere.md nixos-configurations/ilmenite/hibernation.nix
 nix fmt -- docs/plans/completed/ilmenite-hibernation.md docs/plans/completed/ilmenite-hibernation-implementation.md docs/investigations/ilmenite-hibernation-verification.md docs/plans/active/scheelite-force-import-root-decision.md docs/runbooks/install-laptop-with-nixos-anywhere.md nixos-configurations/ilmenite/hibernation.nix
-grep -rn 'plans/active/ilmenite-hibernation' docs nixos-configurations; echo "<end>"
+grep -rn 'docs/plans/active/ilmenite-hibernation' docs nixos-configurations; echo "<end>"
 ```
 
-Expected: nothing before `<end>`.
+Expected: nothing before `<end>`. (The pattern carries the `docs/` prefix
+so that this plan's own text, once moved, cannot match itself.)
 
 - [ ] **Step 2: Commit (bash)**
 
 ```bash
-git add -A docs/plans docs/investigations docs/runbooks nixos-configurations/ilmenite/hibernation.nix
+git add docs/plans/completed/ilmenite-hibernation.md docs/plans/completed/ilmenite-hibernation-implementation.md docs/investigations/ilmenite-hibernation-verification.md docs/plans/active/scheelite-force-import-root-decision.md docs/runbooks/install-laptop-with-nixos-anywhere.md nixos-configurations/ilmenite/hibernation.nix
 git commit -m "docs/plans: complete ilmenite hibernation
 
 Assisted-by: Claude Code (claude-fable-5-1)"
+git show --stat HEAD
 ```
 
-Check with `git show --stat HEAD` that only the intended files are in the
-commit; the pre-existing `docs/plans/active/scheelite-remote-access.md`
-intent-to-add entry must not be swept in. If it was, `git rm --cached` it,
-amend, and `git add -N` it again.
+Expected: the stat lists the two renames and the four edited files, nothing
+else. The pre-existing `docs/plans/active/scheelite-remote-access.md`
+intent-to-add entry stays out because the paths are explicit.
 
 - [ ] **Step 3: Finish the branch**
 
-Use superpowers:finishing-a-development-branch: push `djacu/ilmenite-hibernation`
-and open the PR against `main` with a body that lists the layout change,
-the reinstall, the policy, and the verification doc, ending with the single
-line `Assisted-by: Claude Code (claude-fable-5-1)`. Update the memory file
-`project_ilmenite_hibernation_notes.md` and the `MEMORY.md` index line to
-"done" with the date and the PR number.
+Use superpowers:finishing-a-development-branch: the branch is already
+pushed; open the PR against `main` with a body that lists the layout change,
+the reinstall, the policy, Task 7a if it ran, and the verification doc,
+ending with the single line `Assisted-by: Claude Code (claude-fable-5-1)`.
+Update the memory file `project_ilmenite_hibernation_notes.md` and the
+`MEMORY.md` index line to "done" with the date and the PR number.
