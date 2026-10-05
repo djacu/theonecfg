@@ -1,19 +1,19 @@
 # ilmenite hibernation verification
 
 **Status:** In progress
-**Date:** <date of the install>
+**Date:** 2026-10-04
 **Owner:** djacu
 **Context:** Tasks 6 and 7 of `docs/plans/active/ilmenite-hibernation-implementation.md`; design in `docs/plans/active/ilmenite-hibernation.md`
 
 ## Install log
 
-- Staged fingerprint: <fingerprint>; machine-id: <id>.
+- Staged fingerprint: SHA256:kkTuWyYgjKxk+dXIuRF+DUjwTuSz2FgLzWlXY8cEYkk (ED25519); machine-id: 74131ab09e7c46aca49811afc213d2cd. Passphrase file checked: last byte `\n`.
 - Host-id pre-seed: both `od` lines `4d a7 66 11`.
-- Install: started <time>, ended <time>; prompts at first boot: <n>, prompt
+- Install: 2026-10-04, nixos-anywhere from argentite; prompts at first boot: 1, prompt
   named \<cryptswap|cryptzroot>; anything odd in the disko or nixos-install
   output: \<none|notes>.
-- Post-install checks: \<all passed | list>.
-- `BAT1/alarm` at first boot: <value>. Greater than zero means systemd uses
+- Post-install checks: all passed (read-only over SSH at 10.0.10.85): `resume=/dev/mapper/cryptswap`, no `nohibernate`; swap `/dev/dm-0` 68G = `/dev/mapper/cryptswap`, `Options=defaults,discard=once`, active; `encryption off`; hostid `1166a74d`; machine-id and fingerprint as staged; no failed units; `zpool status` ONLINE on `dm-uuid-CRYPT-LUKS2-...-cryptzroot`; sleep.conf and powerdevilrc as evaluated. logind `CanSuspendThenHibernate` answered `challenge` over SSH, which is polkit for a non-local caller; Plasma treats `challenge` like `yes`.
+- `BAT1/alarm` at first boot: `480000`, greater than zero, so systemd takes the firmware alarm path; test 3 decides whether Task 7a is needed. Greater than zero means systemd uses
   the firmware alarm path in suspend-then-hibernate.
 
 ## Tests
@@ -158,7 +158,7 @@ busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login
 cat /sys/class/power_supply/BAT1/alarm
 ```
 
-Pass: `s "yes"`. System Settings, Power Management, "When sleeping, enter"
+Pass: `s "yes"` from the Plasma session (`challenge` when asked over SSH, which Plasma also accepts). System Settings, Power Management, "When sleeping, enter"
 shows "Standby, then hibernate" for both the AC and the battery tabs, and
 the low-battery tab's lid action shows Hibernate. Record the alarm value.
 
