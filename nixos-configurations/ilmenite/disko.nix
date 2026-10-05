@@ -17,19 +17,41 @@
               };
             };
             swap = {
-              size = "32G";
-              type = "8200";
+              size = "68G";
               content = {
-                type = "swap";
-                # Fresh key on every boot. No hibernation, so no resumeDevice.
-                randomEncryption = true;
+                type = "luks";
+                name = "cryptswap";
+                # Install-time only: nixos-anywhere uploads the passphrase here
+                # with --disk-encryption-keys. disko strips the trailing newline.
+                passwordFile = "/tmp/secret.key";
+                settings = {
+                  allowDiscards = true;
+                  bypassWorkqueues = true;
+                };
+                content = {
+                  type = "swap";
+                  resumeDevice = true;
+                  # swapon --discard=once: trims the whole swap at every
+                  # activation, so a stale hibernation image does not linger
+                  # until overwritten.
+                  discardPolicy = "once";
+                };
               };
             };
             zfs = {
               size = "100%";
               content = {
-                type = "zfs";
-                pool = "zroot";
+                type = "luks";
+                name = "cryptzroot";
+                passwordFile = "/tmp/secret.key";
+                settings = {
+                  allowDiscards = true;
+                  bypassWorkqueues = true;
+                };
+                content = {
+                  type = "zfs";
+                  pool = "zroot";
+                };
               };
             };
           };
@@ -45,14 +67,6 @@
           checksum = "edonr";
           compression = "lz4";
           dnodesize = "auto";
-          # encryption does not appear to work in vm test; only use on real system
-          encryption = "aes-256-gcm";
-          keyformat = "passphrase";
-          # Install-time only. nixos-anywhere uploads the passphrase to this
-          # path on the installer (--disk-encryption-keys) because disko runs
-          # without a terminal. postCreateHook switches the pool to prompt
-          # before the first boot.
-          keylocation = "file:///tmp/secret.key";
           normalization = "formD";
           relatime = "on";
           xattr = "sa";
@@ -62,9 +76,6 @@
           ashift = "12";
           autotrim = "on";
         };
-        postCreateHook = ''
-          zfs set keylocation=prompt zroot
-        '';
 
         datasets = {
           local = {
