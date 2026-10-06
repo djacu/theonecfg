@@ -107,6 +107,13 @@ the opposite: laptops auto-resume from suspend so often that the
 "force-import" gymnastics rarely fire. Decide per-host based on Q3
 findings.
 
+Update 2026-10: `ilmenite` is the first host running `false`, because
+`boot.zfs.unsafeAllowHibernation` asserts it. Its recovery path is
+`zfs_force=1` from the systemd-boot editor, which is enabled by default at
+the current pin (this doc's Q2 predates that). See
+`docs/plans/completed/ilmenite-hibernation.md` and the hardware verification
+doc it names for how the first boots and the unclean shutdowns went.
+
 ## Possible outcomes
 
 1. **Flip to `false` on scheelite.** Q3 shows clean shutdowns
