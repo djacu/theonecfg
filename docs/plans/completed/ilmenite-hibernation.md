@@ -139,8 +139,10 @@ powerdevil 6.7.4; kernel 6.18). Re-verify after a pin bump.
   unexpected wake with the lid still closed. The launcher's "Sleep" calls
   `SessionManagement::suspend()`, plain logind `Suspend`, regardless of
   `SleepMode`.
-  `nixos/modules/programs/environment.nix` line 34 puts `/etc/xdg` first in
-  `XDG_CONFIG_DIRS`, so `/etc/xdg/powerdevilrc` is a system default that the
+  `nixos/modules/programs/environment.nix` line 34 puts `/etc/xdg` in
+  `XDG_CONFIG_DIRS`, and the Plasma 6 module prepends
+  `$HOME/.config/kdedefaults` (`plasma6.nix` line 239), which ships no
+  `powerdevilrc`; so `/etc/xdg/powerdevilrc` is a system default that the
   user's own file overrides.
 - Hardware: BIOS 03.02 enters S4 and resumes. Three cycles on the installer
   stick's 6.18.33, two on AC with the hub and one on battery without it: image

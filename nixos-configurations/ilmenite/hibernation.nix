@@ -24,12 +24,13 @@
     "systemd-cryptsetup@cryptzroot.service"
   ];
 
-  # What "sleep" means to systemd. On battery: s2idle, then one wake at 3 h
-  # that hibernates; the firmware battery alarm hibernates earlier if the
-  # battery exposes one. SuspendEstimationSec matches the delay so the only
-  # timed wake is the one that hibernates. On AC the deadline is re-armed at
-  # every wake, so a docked laptop wakes briefly every 3 h, checks, and
-  # suspends again; unplug it and it hibernates at the next check.
+  # What "sleep" means to systemd. On battery: s2idle, then a wake at 3 h
+  # that hibernates. SuspendEstimationSec matches the delay so systemd adds
+  # no extra estimation wake before it knows a drain rate; once it has one,
+  # a low battery can bring the check forward. On AC the deadline is
+  # re-armed at every wake, so a docked laptop wakes briefly every 3 h,
+  # checks, and suspends again; unplug it and it hibernates at the next
+  # check. The firmware battery alarm is disabled further down.
   systemd.sleep.settings.Sleep = {
     HibernateDelaySec = "3h";
     HibernateOnACPower = false;
@@ -41,8 +42,9 @@
   services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
 
   # Plasma's lid policy. SleepMode 3 = suspend-then-hibernate; LidAction 2 =
-  # hibernate at once. /etc/xdg is first in XDG_CONFIG_DIRS, so this is a
-  # system default that the user's own powerdevilrc overrides.
+  # hibernate at once. /etc/xdg is in XDG_CONFIG_DIRS (after
+  # ~/.config/kdedefaults on Plasma, which ships no powerdevilrc), so this
+  # is a system default that the user's own powerdevilrc overrides.
   environment.etc."xdg/powerdevilrc".text = ''
     [AC][SuspendAndShutdown]
     SleepMode=3

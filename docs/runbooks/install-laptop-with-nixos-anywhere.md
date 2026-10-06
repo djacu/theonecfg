@@ -132,8 +132,9 @@ alias isoscp 'scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
    and export still need it. Then pull it, or pick the NVMe entry in the
    firmware boot menu.
 
-1. First boot, on the target. LUKS hosts: the initrd asks once,
-   `Please enter passphrase for disk cryptswap` or `cryptzroot`, whichever
+1. First boot, on the target. LUKS hosts: the initrd asks once, naming the
+   partition label with the container in parentheses, for example
+   `Please enter passphrase for disk disk-disk1-swap (cryptswap)`, whichever
    unit asks first; the other container unlocks from the cached answer.
    ZFS-native hosts: `Enter key for <pool>`. Log in to Plasma with the
    password, before enrolling any fingerprint.
