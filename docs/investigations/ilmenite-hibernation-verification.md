@@ -3,7 +3,7 @@
 **Status:** Complete
 **Date:** 2026-10-04
 **Owner:** djacu
-**Context:** Tasks 6 and 7 of `docs/plans/active/ilmenite-hibernation-implementation.md`; design in `docs/plans/active/ilmenite-hibernation.md`
+**Context:** Tasks 6 and 7 of `docs/plans/completed/ilmenite-hibernation-implementation.md`; design in `docs/plans/completed/ilmenite-hibernation.md`
 
 ## Install log
 
@@ -209,4 +209,12 @@ through dm-crypt.
 
 ## Decision
 
-\<Pass or fail against the spec's exit criteria, and anything changed as a result.>
+Pass. All eight tests pass against the spec's exit criteria, three of them
+only after changes the hardware forced: the btintel_pcie driver is unloaded
+around every sleep (`btintel-pcie-sleep`), the ZFS ARC is capped at 16 GiB,
+and the firmware battery alarm is disabled by a udev rule so systemd uses its
+own timer. One accepted limitation remains: systemd can miss its own timer
+wake (issue #38193), which Plasma repairs within half a minute; on battery
+that can delay a hibernate by one delay period. Measured: an overnight on
+battery cost 1.06 % for three hours of s2idle plus the hibernate; a docked
+laptop unplugged while asleep hibernated three hours after the unplug.

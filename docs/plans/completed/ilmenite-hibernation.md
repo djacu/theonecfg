@@ -1,6 +1,6 @@
 # Plan: ilmenite — suspend-then-hibernate
 
-**Status:** Design approved in conversation 2026-10-04; adversarial review applied the same day; awaiting final review, then an implementation plan follows
+**Status:** Completed 2026-10-05; verified on hardware, results in `docs/investigations/ilmenite-hibernation-verification.md`
 **Started:** 2026-10-04
 **Owner:** djacu
 **Gate:** `docs/investigations/ilmenite-hibernate-firmware-test.md` (passed, 3 of 3 cycles)
@@ -489,6 +489,30 @@ Results go into `docs/investigations/ilmenite-hibernation-verification.md`.
   changes; on battery each miss delays the hibernate by one delay period.
   Seen once on AC with the hub attached, not in the overnight battery run.
   Accepted 2026-10-05; observe, and revisit when a fixed systemd lands.
+
+## What the hardware changed
+
+Three additions landed during verification, all in `hibernation.nix`, each
+with its failing test in `docs/investigations/ilmenite-hibernation-verification.md`:
+
+- `systemd.services.btintel-pcie-sleep` unloads the Intel Bluetooth PCIe
+  driver before any sleep and reloads it after. Without it the driver
+  intermittently refused to enter D3 and the kernel rolled a hibernate back
+  after writing the image, leaving the laptop on. Upstream fix merged to
+  bluetooth-next on 2026-09-29, not in 6.18.49. Remove when the pin has it.
+- `zfs_arc_max` = 16 GiB. A 55 GB ARC made the image exceed the kernel's
+  half-of-RAM ceiling and the one reclaim pass could not shed it. Reverses
+  the bringup's "no ARC cap" non-goal.
+- A udev rule writes `0` to `BAT1/alarm`. On the firmware-alarm path systemd
+  judges a wake by the SMBIOS wake-up type, which this firmware does not
+  update on a resume from s2idle, so the timed wake read as manual and the
+  machine stayed on. With the alarm off systemd uses its own timer loop.
+
+One limitation accepted on 2026-10-05: systemd polls its timer descriptor
+with a zero timeout after the suspend returns and can miss the expiry
+(systemd issue #38193, open). Plasma re-runs the lid action within about 30 s,
+so on AC nothing changes; on battery a miss delays the hibernate by one delay
+period. Observe; revisit when a fixed systemd reaches the pin.
 
 ## Exit criteria
 

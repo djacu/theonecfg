@@ -1,5 +1,5 @@
 # Suspend-then-hibernate for ilmenite. Design and verified facts:
-# docs/plans/active/ilmenite-hibernation.md.
+# docs/plans/completed/ilmenite-hibernation.md.
 { pkgs, ... }:
 {
   # The ZFS module puts `nohibernate` on the kernel command line unless this

@@ -21,7 +21,7 @@ with one conditional fix task for the firmware battery-alarm path.
 kernel `linuxPackages_6_18`, disko, impermanence, nixos-anywhere 1.13.0,
 OpenZFS 2.4.4, systemd 261.2, Plasma 6 (powerdevil 6.7.4).
 
-**Spec:** `docs/plans/active/ilmenite-hibernation.md`
+**Spec:** `docs/plans/completed/ilmenite-hibernation.md`
 
 ## Global Constraints
 
@@ -376,7 +376,7 @@ Expected: `false`, `true`, `true`.
 
 ```nix
 # Suspend-then-hibernate for ilmenite. Design and verified facts:
-# docs/plans/active/ilmenite-hibernation.md.
+# docs/plans/completed/ilmenite-hibernation.md.
 {
   # The ZFS module puts `nohibernate` on the kernel command line unless this
   # is set, and asserts that the root pool is not force-imported: a forced
@@ -640,8 +640,8 @@ re-run Task 0 step 2 on `main` in a worktree and compare again.
 - [ ] **Step 3: Formatting gate (bash)**
 
 ```bash
-nix fmt -- nixos-configurations/ilmenite docs/plans/active/ilmenite-hibernation.md docs/plans/active/ilmenite-hibernation-implementation.md
-git --no-pager diff --no-ext-diff --exit-code -- nixos-configurations/ilmenite docs/plans/active/ilmenite-hibernation.md docs/plans/active/ilmenite-hibernation-implementation.md && echo FORMAT-CLEAN
+nix fmt -- nixos-configurations/ilmenite docs/plans/completed/ilmenite-hibernation.md docs/plans/completed/ilmenite-hibernation-implementation.md
+git --no-pager diff --no-ext-diff --exit-code -- nixos-configurations/ilmenite docs/plans/completed/ilmenite-hibernation.md docs/plans/completed/ilmenite-hibernation-implementation.md && echo FORMAT-CLEAN
 ```
 
 Expected: `FORMAT-CLEAN`. If the formatter changed a file, commit only that
@@ -700,7 +700,7 @@ unlocks:
   `postCreateHook` of `zfs set keylocation=prompt <pool>`.
 
 First executed for `ilmenite` on 2026-10-03 (ZFS-native) and again for the
-LUKS layout; see `docs/plans/active/ilmenite-hibernation.md`.
+LUKS layout; see `docs/plans/completed/ilmenite-hibernation.md`.
 
 ## Prerequisites
 
@@ -936,7 +936,7 @@ Update 2026-10: `ilmenite` is the first host running `false`, because
 `boot.zfs.unsafeAllowHibernation` asserts it. Its recovery path is
 `zfs_force=1` from the systemd-boot editor, which is enabled by default at
 the current pin (this doc's Q2 predates that). See
-`docs/plans/active/ilmenite-hibernation.md` and the hardware verification
+`docs/plans/completed/ilmenite-hibernation.md` and the hardware verification
 doc it names for how the first boots and the unclean shutdowns went.
 ```
 
@@ -1102,7 +1102,7 @@ re-run before the next one starts. The executor never runs the switch.
 **Status:** In progress
 **Date:** <date of the install>
 **Owner:** djacu
-**Context:** Tasks 6 and 7 of `docs/plans/active/ilmenite-hibernation-implementation.md`; design in `docs/plans/active/ilmenite-hibernation.md`
+**Context:** Tasks 6 and 7 of `docs/plans/completed/ilmenite-hibernation-implementation.md`; design in `docs/plans/completed/ilmenite-hibernation.md`
 
 ## Install log
 
@@ -1407,8 +1407,8 @@ ______________________________________________________________________
 
 **Files:**
 
-- Move: `docs/plans/active/ilmenite-hibernation.md` and
-  `docs/plans/active/ilmenite-hibernation-implementation.md` to
+- Move: `docs/plans/completed/ilmenite-hibernation.md` and
+  `docs/plans/completed/ilmenite-hibernation-implementation.md` to
   `docs/plans/completed/`
 - Modify: the spec's `**Status:**` line; path references in the files
   listed below
@@ -1422,12 +1422,12 @@ ______________________________________________________________________
 Replace `<date>` with today's date before running.
 
 ```bash
-git mv docs/plans/active/ilmenite-hibernation.md docs/plans/completed/ilmenite-hibernation.md
-git mv docs/plans/active/ilmenite-hibernation-implementation.md docs/plans/completed/ilmenite-hibernation-implementation.md
+git mv docs/plans/completed/ilmenite-hibernation.md docs/plans/completed/ilmenite-hibernation.md
+git mv docs/plans/completed/ilmenite-hibernation-implementation.md docs/plans/completed/ilmenite-hibernation-implementation.md
 sed -i 's|^\*\*Status:\*\* .*|**Status:** Completed <date>; verified on hardware, results in `docs/investigations/ilmenite-hibernation-verification.md`|' docs/plans/completed/ilmenite-hibernation.md
-sed -i 's|docs/plans/active/ilmenite-hibernation|docs/plans/completed/ilmenite-hibernation|g' docs/plans/completed/ilmenite-hibernation-implementation.md docs/investigations/ilmenite-hibernation-verification.md docs/plans/active/scheelite-force-import-root-decision.md docs/runbooks/install-laptop-with-nixos-anywhere.md nixos-configurations/ilmenite/hibernation.nix
+sed -i 's|docs/plans/completed/ilmenite-hibernation|docs/plans/completed/ilmenite-hibernation|g' docs/plans/completed/ilmenite-hibernation-implementation.md docs/investigations/ilmenite-hibernation-verification.md docs/plans/active/scheelite-force-import-root-decision.md docs/runbooks/install-laptop-with-nixos-anywhere.md nixos-configurations/ilmenite/hibernation.nix
 nix fmt -- docs/plans/completed/ilmenite-hibernation.md docs/plans/completed/ilmenite-hibernation-implementation.md docs/investigations/ilmenite-hibernation-verification.md docs/plans/active/scheelite-force-import-root-decision.md docs/runbooks/install-laptop-with-nixos-anywhere.md nixos-configurations/ilmenite/hibernation.nix
-grep -rn 'docs/plans/active/ilmenite-hibernation' docs nixos-configurations; echo "<end>"
+grep -rn 'docs/plans/completed/ilmenite-hibernation' docs nixos-configurations; echo "<end>"
 ```
 
 Expected: nothing before `<end>`. (The pattern carries the `docs/` prefix

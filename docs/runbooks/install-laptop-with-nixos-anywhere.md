@@ -15,7 +15,7 @@ unlocks:
   `postCreateHook` of `zfs set keylocation=prompt <pool>`.
 
 First executed for `ilmenite` on 2026-10-03 (ZFS-native) and again for the
-LUKS layout; see `docs/plans/active/ilmenite-hibernation.md`.
+LUKS layout; see `docs/plans/completed/ilmenite-hibernation.md`.
 
 ## Prerequisites
 
