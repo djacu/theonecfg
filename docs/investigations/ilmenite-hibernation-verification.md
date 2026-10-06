@@ -13,8 +13,7 @@
   named cryptswap; anything odd in the disko or nixos-install
   output: none reported.
 - Post-install checks: all passed (read-only over SSH at 10.0.10.85): `resume=/dev/mapper/cryptswap`, no `nohibernate`; swap `/dev/dm-0` 68G = `/dev/mapper/cryptswap`, `Options=defaults,discard=once`, active; `encryption off`; hostid `1166a74d`; machine-id and fingerprint as staged; no failed units; `zpool status` ONLINE on `dm-uuid-CRYPT-LUKS2-...-cryptzroot`; sleep.conf and powerdevilrc as evaluated. logind `CanSuspendThenHibernate` answered `challenge` over SSH, which is polkit for a non-local caller; Plasma treats `challenge` like `yes`.
-- `BAT1/alarm` at first boot: `480000`, greater than zero, so systemd takes the firmware alarm path; test 3 decides whether Task 7a is needed. Greater than zero means systemd uses
-  the firmware alarm path in suspend-then-hibernate.
+- `BAT1/alarm` at first boot: `480000`, greater than zero, so systemd takes the firmware alarm path; test 3 decides whether Task 7a is needed.
 
 ## Tests
 
