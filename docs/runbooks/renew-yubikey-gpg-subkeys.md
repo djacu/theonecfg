@@ -80,9 +80,13 @@ at home. If `date` is wrong, set it before going on:
 sudo date -s 'YYYY-MM-DD HH:MM'
 ```
 
-A clock earlier than the existing signatures (2025-10-19 or any later
-renewal) makes the renewal a silent no-op: gpg keeps the newest signature
-by creation time and reports nothing.
+A wrong clock has two faces, and neither renews anything. A clock after
+the key's creation (2025-10-19) but before the newest signature (the date
+in the committed `.asc` file name) is refused with
+`make_keysig_packet failed: Time conflict`. A clock before 2025-10-19 is
+accepted with "created N days in the future" warnings, but gpg keeps the
+newest signature by creation time, so the back-dated one loses silently.
+Step 7's `gpg -K` is the check that catches both.
 
 ### 4. Mount the backup and transfer sticks
 
@@ -145,8 +149,8 @@ printf '%s' "$CERTIFY_PASS" | gpg --batch --pinentry-mode loopback --passphrase-
 gpg -K
 ```
 
-Stop unless all three subkeys show `expires: 2027-10-19` and the certify key
-still shows no expiry.
+Stop unless all three subkeys show `expires:` with the date you put in
+`KEY_EXPIRATION` and the certify key still shows no expiry.
 
 ### 8. Export and update the backup
 
@@ -189,10 +193,16 @@ stubs; insert the YubiKey and run `gpg --card-status`, then look again.
 
 ### 11. Update the repo (ilmenite, fish)
 
+Set `new` to the exact file name section 8 wrote. The ISO clock is UTC, so
+the date in the name can be the day after the local ceremony date. Do not
+glob it: the transfer stick may carry an older export too, and a
+two-element `new` would write both names into the module.
+
 ```fish
 cd ~/dev/djacu/theonecfg
 git switch -c djacu/gpg-renewal-(date +%Y)
-set new (basename /mnt/public/8C9CFEF8EE37DA95-*.asc)
+set new 8C9CFEF8EE37DA95-YYYY-MM-DD.asc
+test -f /mnt/public/$new; or echo "no such file on the transfer stick"
 git rm home-modules/users/djacu/programs/gpg/8C9CFEF8EE37DA95-*.asc
 cp /mnt/public/$new home-modules/users/djacu/programs/gpg/$new
 sed -i "s|source = ./8C9CFEF8EE37DA95-.*\\.asc;|source = ./$new;|" home-modules/users/djacu/programs/gpg/module.nix
@@ -204,9 +214,10 @@ gpg -k 0x8C9CFEF8EE37DA95
 git commit
 ```
 
-Commit subject:
-`homeModules.users.djacu.programs.gpg: renew subkeys to 2027-10-19`. Open
-the PR and merge it.
+`git diff --cached --stat` must show one file removed, one added, and
+`module.nix` changed by one line. Commit subject:
+`homeModules.users.djacu.programs.gpg: renew subkeys to <KEY_EXPIRATION>`.
+Open the PR and merge it.
 
 ### 12. The other hosts
 
@@ -217,8 +228,8 @@ home-manager switch --flake .#(hostname)-djacu
 gpg -k 0x8C9CFEF8EE37DA95
 ```
 
-Each shows `expires: 2027-10-19` on the subkeys. home-manager re-imports
-the committed public key on every switch.
+Each shows the new expiry on the subkeys. home-manager re-imports the
+committed public key on every switch.
 
 ### 13. GitHub
 

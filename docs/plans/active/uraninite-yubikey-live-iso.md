@@ -161,11 +161,14 @@ pin bump. Items marked (review) were established by the adversarial review on
   two arguments it sets the primary key's expiry; the first argument must be
   a fingerprint, a key id is rejected (gpg manual, and review by test).
   `--quick-add-key` under `--batch --passphrase` needs `--pinentry-mode loopback` or fails with `No pinentry` (gpg manual, review).
-- gpg selects the newest self-signature by creation time. Renewing with a
-  system clock earlier than the existing signatures produces signatures that
-  lose, and both the ceremony keyring and the daily keyring keep showing the
-  old expiry with no error (review, verified with `--faked-system-time`).
-  The live ISO has no NTP, so the clock is checked before signing.
+- A wrong clock has two faces (verified on gpg 2.4.9 with
+  `--faked-system-time` during the final review; the earlier "silent no-op"
+  claim was half right). A clock after the key's creation but before the
+  newest self-signature is refused: `make_keysig_packet failed: Time conflict`, exit 2. A clock before the key's creation is accepted with
+  "created N days in the future" warnings, but gpg keeps the newest
+  self-signature by creation time, so the back-dated one loses silently.
+  Neither changes the expiry. The live ISO has no NTP, so the clock is
+  checked before signing and `gpg -K` after.
 - The ilmenite commit failure of 2026-10-10 was missing gpg-agent key stubs,
   fixed by `gpg --card-status`; unrelated to expiry but worth a line in the
   runbook.
@@ -482,7 +485,9 @@ On the ceremony laptop, booted from the ISO stick with Secure Boot off, in
    `gpg --card-status` is not needed and the YubiKey can stay at home.
 
 1. Clock: `date` shows today's real date. If the RTC is wrong, `sudo date -s 'YYYY-MM-DD HH:MM'`.
-   A clock earlier than 2025-10-19 makes the renewal a silent no-op.
+   A clock before the newest signature is refused with `Time conflict`; a
+   clock before the key's creation signs but loses silently. Step 7's
+   `gpg -K` catches both.
 
 1. Plug in the backup stick, a single LUKS partition. `lsblk` to find it,
    `sudo cryptsetup luksOpen /dev/sdX1 gnupg-secrets`, mount
@@ -491,7 +496,9 @@ On the ceremony laptop, booted from the ISO stick with Secure Boot off, in
 1. Plug in the transfer stick, mount `/dev/disk/by-label/GPGPUBLIC` at
    `/mnt/public`.
 
-1. `ls /mnt/encrypted-storage` and pick the newest dated directory, `BACKUP`.
+1. `ls /mnt/encrypted-storage` and pick the directory holding the keyring as
+   `BACKUP`: `gnupg` from the original provisioning on the first renewal,
+   the newest `<date>-renewed` afterwards.
    `export GNUPGHOME=$(mktemp -d)`, `sudo cp -av "/mnt/encrypted-storage/$BACKUP/." "$GNUPGHOME"/ && sudo chown -R djacu "$GNUPGHOME"`,
    `rm -f "$GNUPGHOME"/gpg-agent.conf` so the system agent config applies,
    `gpg -K` shows the certify key with secret present (`sec`, not `sec#`).
