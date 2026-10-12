@@ -15,6 +15,9 @@ let
     (import ./common.nix (
       args
       // {
+        # @args carries only what the caller passed, so the default above
+        # must be forwarded by hand or common.nix uses its own two systems.
+        inherit supportedSystems;
         extraOverlays = [ self.overlays.nixosTests ];
       }
     ))
