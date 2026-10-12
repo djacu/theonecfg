@@ -81,9 +81,12 @@ in
         )
       )
       (
-        filterAttrs (const (
-          value: value.config.nixpkgs.buildPlatform.system == system
-        )) inputs.self.nixosConfigurations
+        filterAttrs (
+          name: value:
+          # Live images are built by hydra-jobs/images.nix, a release-lib
+          # jobset file; this flake-output dispatch is not extended.
+          knownHosts.${name}.type != "live" && value.config.nixpkgs.buildPlatform.system == system
+        ) inputs.self.nixosConfigurations
       )
   );
 
