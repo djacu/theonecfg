@@ -57,6 +57,12 @@ let
     dir: import ../overlays/input-overlays/${dir}/overlay.nix inputs
   );
 
+  misc = _final: _prev: {
+    # This repo's counterpart of nixpkgs' modulesPath: lets a VM test import
+    # a NixOS module by path without going through the flake outputs.
+    theonecfgModulesPath = ../nixos-modules;
+  };
+
 in
 packageOverrides
 // inputOverlays
@@ -67,6 +73,7 @@ packageOverrides
     ++ [
       inputs.nur.overlays.default
       toplevelOverlays
+      misc
       fixes
     ]
     ++ (attrValues inputOverlays)
