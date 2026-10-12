@@ -22,7 +22,7 @@ runbook.
 2.4.9, `pkgs.testers.runNixOSTest`, `installer/cd-dvd/iso-image.nix`,
 Plasma 6, drduh/YubiKey-Guide `a4f662f`, grempe/diceware `9ef886a`.
 
-**Spec:** `docs/plans/active/uraninite-yubikey-live-iso.md`
+**Spec:** `docs/plans/completed/uraninite-yubikey-live-iso.md`
 
 ## Global Constraints
 

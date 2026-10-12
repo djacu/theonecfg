@@ -1,6 +1,6 @@
 # Plan: uraninite — air-gapped YubiKey live ISO and GPG subkey renewal
 
-**Status:** Design, revised after adversarial review, awaiting approval
+**Status:** Completed 2026-10-12; subkeys renewed to 2027-10-19, verified on GitHub (commits 8472955 and 23538e3 both `verified=true`); the ISO, VM test and runbook are on the branch
 **Started:** 2026-10-11
 **Owner:** djacu
 **Deadline:** the current subkeys expire 2026-10-19
@@ -664,3 +664,6 @@ order so every intermediate state passes `nix flake check`:
   split, if wanted.
 - Re-verify the pinned facts above whenever `nixpkgs-unstable` is bumped
   before the next renewal in October 2027.
+- A clock ahead of real time on the ceremony laptop (future-dated
+  signatures) is not covered by the runbook or the test; what gpg and other
+  hosts do with such signatures was not verified.
