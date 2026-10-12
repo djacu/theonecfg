@@ -10,6 +10,7 @@ let
   inherit (lib.attrsets)
     attrValues
     genAttrs
+    recurseIntoAttrs
     ;
 
   inherit (lib.filesystem)
@@ -63,10 +64,21 @@ let
     theonecfgModulesPath = ../nixos-modules;
   };
 
+  # VM tests, kept out of `default` so legacyPackages and the package jobs
+  # never load nixos/lib. hydra-jobs/vm-tests.nix applies it.
+  nixosTests = final: _prev: {
+    theonecfgTests = recurseIntoAttrs (packagesFromDirectoryRecursive {
+      inherit (final) callPackage;
+      directory = ../package-sets/nixos-tests;
+    });
+  };
+
 in
 packageOverrides
 // inputOverlays
 // {
+
+  inherit nixosTests;
 
   default = composeManyExtensions (
     (attrValues packageOverrides)
