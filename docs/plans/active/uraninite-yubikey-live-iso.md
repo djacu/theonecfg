@@ -105,7 +105,7 @@ pin bump. Items marked (review) were established by the adversarial review on
   `virtualisation.vlans = [ ]` removes only the per-vlan NICs;
   `qemu-vm.nix` adds a SLiRP NIC (`-net nic,netdev=user.0`) unconditionally
   through `virtualisation.qemu.networkingOptions`, which must be forced to
-  `[ ]` for the node to have only `lo` (review, confirmed by eval).
+  `[ ]` for the node to have only `lo` (review, confirmed by eval). In execution a bare `[ ]` turned out to summon QEMU's own default user NIC, and the owner's QEMU boot of the real ISO showed `ens3` as real hardware will; the air-gap property was restated as "every interface except `lo` is DOWN and only `lo` has an address", and the test keeps the SLiRP NIC as the stand-in for hardware.
 - `qemu-vm.nix` defaults `virtualisation.memorySize` to 1024 MiB and
   `test-instrumentation.nix` sets `vm.panic_on_oom = 2`, which is one reason
   the test node carries no desktop (review).
@@ -375,9 +375,10 @@ One node, `machine`, in `testers.runNixOSTest { ... }`:
   which already carries both overlays and therefore `drduh-yubikey-guide`.
 - `users.users.tester = { isNormalUser = true; }`, the user the rehearsal
   runs as; the real ISO logs in `djacu`, which the host file creates.
-- `virtualisation.vlans = [ ]` and
-  `virtualisation.qemu.networkingOptions = lib.mkForce [ ]`, so the VM has
-  only `lo` and the air-gap assertions are real
+- `virtualisation.vlans = [ ]`, so the framework configures no addressed
+  NIC; qemu-vm's SLiRP user NIC stays as the stand-in for the laptop's own
+  hardware, which the air-gap assertions must find present, `DOWN` and
+  unaddressed
 - default memory and cores; the node is a console system with nginx and
   gpg, nothing heavier
 
@@ -388,7 +389,9 @@ The script, in order:
 
 1. `wait_for_unit("multi-user.target")`.
 
-1. Air gap: `ip -br link` lists only `lo`; `systemctl is-active sshd` fails;
+1. Air gap: `ip -br link` lists `lo` plus at least one NIC and every non-`lo`
+   interface is `DOWN`; `ip -br addr` shows addresses on `lo` only;
+   `systemctl is-active sshd` fails;
    `systemctl is-active NetworkManager` fails; `systemctl is-active pcscd`
    succeeds; `systemctl is-active nginx` succeeds.
 
@@ -473,7 +476,9 @@ On ilmenite:
 On the ceremony laptop, booted from the ISO stick with Secure Boot off, in
 `bash` (fish is the login shell):
 
-1. `ip -br link` shows only `lo`; `systemctl is-active pcscd` is `active`.
+1. `ip -br link` shows every non-`lo` interface `DOWN` and `ip -br addr`
+   shows addresses on `lo` only; `systemctl is-active pcscd.socket` is
+   `active`.
    `gpg --card-status` is not needed and the YubiKey can stay at home.
 
 1. Clock: `date` shows today's real date. If the RTC is wrong, `sudo date -s 'YYYY-MM-DD HH:MM'`.

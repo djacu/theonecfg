@@ -52,8 +52,8 @@ Plasma 6, drduh/YubiKey-Guide `a4f662f`, grempe/diceware `9ef886a`.
 - The ISO output path is `result/iso/uraninite.iso`.
 - The VM test node imports `profiles/common` and `profiles/yubikey-live`
   by path from `theonecfgModulesPath`, creates `users.users.tester`, and
-  has `virtualisation.vlans = [ ]` and
-  `virtualisation.qemu.networkingOptions = lib.mkForce [ ]`. No flake
+  has `virtualisation.vlans = [ ]`; qemu-vm's SLiRP NIC stays as the
+  stand-in for hardware and must be found `DOWN` and unaddressed. No flake
   inputs in the package scope, no desktop, default memory.
 - `programs.gnupg.agent.settings` holds exactly
   `{ default-cache-ttl = 60; max-cache-ttl = 300; }`.
@@ -92,10 +92,9 @@ Plasma 6, drduh/YubiKey-Guide `a4f662f`, grempe/diceware `9ef886a`.
    and gpg-agent refuses to start. Pinned to Task 4 step 1
    (`gpgconf --check-options gpg-agent` and the grep for
    `enable-ssh-support`).
-1. qemu-vm's SLiRP NIC survives `virtualisation.vlans = [ ]`, so the VM
-   would show `eth0` and the air-gap check would be a lie if it passed by
-   accident. Pinned to Task 4 step 1 (the interface list must equal
-   `["lo"]`).
+1. Real hardware always has NICs, so an air-gap check that demands "only
+   `lo`" is wrong on the laptop and vacuous in a NIC-less VM. Pinned to
+   Task 4 step 1: the SLiRP NIC must be present, `DOWN` and unaddressed.
 1. The ISO file is `uraninite.iso`, no label suffix; a glob with a dash
    matches nothing and `dd` fails late. Pinned to Task 5 step 5 and the
    runbook's build step.
@@ -643,10 +642,12 @@ let
       gpg -K --with-colons | check_expiry "$want"
 
       # keyid-format 0xlong can only come from /etc/gnupg/gpg.conf; this
-      # GNUPGHOME has no gpg.conf of its own.
-      gpg -k | grep -q 'rsa2048/0x'
+      # GNUPGHOME has no gpg.conf of its own. grep -c rather than -q: -q
+      # closes the pipe on the first match and the writer fails under
+      # pipefail.
+      gpg -k | grep -c 'rsa2048/0x' > /dev/null
       # cert-digest-algo SHA512 shows as digest algo 10 on the self-signatures.
-      gpg --export "$KEY_FP" | gpg --list-packets | grep -q 'digest algo 10'
+      gpg --export "$KEY_FP" | gpg --list-packets | grep -c 'digest algo 10' > /dev/null
 
       # The armored export is what the daily machines import; it must carry
       # the renewal into a fresh keyring.
@@ -663,7 +664,7 @@ testers.runNixOSTest {
   name = "yubikey-live";
 
   nodes.machine =
-    { lib, ... }:
+    { ... }:
     {
       # The flake's default NixOS module sets nixpkgs.overlays, which the test
       # framework makes read-only, and its user modules need the theonecfg
@@ -682,11 +683,11 @@ testers.runNixOSTest {
       # some unprivileged user to run the rehearsal as.
       users.users.tester.isNormalUser = true;
 
-      # vlans = [] removes the per-vlan NICs only. qemu-vm adds a SLiRP user
-      # NIC to every VM unconditionally; without forcing it away the air-gap
-      # check below would see eth0.
+      # vlans = [] removes the per-vlan NICs the framework would configure
+      # with addresses. qemu-vm's unconditional SLiRP user NIC stays: it
+      # stands in for the laptop's own Ethernet and Wi-Fi hardware, which the
+      # air-gap check below must find present, down and unaddressed.
       virtualisation.vlans = [ ];
-      virtualisation.qemu.networkingOptions = lib.mkForce [ ];
 
       environment.systemPackages = [ curl ];
     };
@@ -694,9 +695,18 @@ testers.runNixOSTest {
   testScript = ''
     machine.wait_for_unit("multi-user.target")
 
-    # Air gap: the loopback interface is the only one allowed to exist.
-    links = [line.split()[0] for line in machine.succeed("ip -br link").splitlines() if line.strip()]
-    assert links == ["lo"], f"unexpected interfaces: {links}"
+    # Air gap: hardware NICs exist on any real machine, so the property is
+    # that the configuration leaves every one of them down and without an
+    # address. The SLiRP NIC plays the hardware here.
+    links = [line.split() for line in machine.succeed("ip -br link").splitlines() if line.strip()]
+    names = [fields[0] for fields in links]
+    assert "lo" in names and len(names) >= 2, f"expected lo plus a NIC: {names}"
+    for fields in links:
+        if fields[0] != "lo":
+            assert fields[1] == "DOWN", f"interface is not down: {fields}"
+    # ip -br addr prints only the name and state for an unaddressed interface.
+    addressed = [line.split()[0] for line in machine.succeed("ip -br addr").splitlines() if len(line.split()) > 2]
+    assert addressed == ["lo"], f"addressed interfaces: {addressed}"
     machine.fail("systemctl is-active sshd.service")
     machine.fail("systemctl is-active NetworkManager.service")
     # pcscd is socket-activated; the service only starts on the first client.
@@ -711,7 +721,9 @@ testers.runNixOSTest {
 
     machine.succeed("test -r ${drduh-yubikey-guide}/share/drduh-yubikey-guide/README.md")
     machine.succeed("command -v view-yubikey-guide")
-    machine.succeed("curl -sf http://127.0.0.1:8080/index.html | grep -q -i diceware")
+    # grep -c reads to the end; grep -q would close the pipe on the first
+    # match and curl would fail with a write error under pipefail.
+    machine.succeed("curl -sf http://127.0.0.1:8080/index.html | grep -c -i diceware")
 
     machine.succeed("runuser -u tester -- env HOME=/home/tester ${lib.getExe rehearsal}")
   '';
@@ -1381,7 +1393,9 @@ systemctl is-active pcscd.socket
 date
 ```
 
-`ip -br link` must list only `lo`. The YubiKey is not needed and can stay
+`ip -br link` lists `lo` and the laptop's own network hardware; every
+interface other than `lo` must show `DOWN`. `ip -br addr` must show
+addresses on `lo` only. The YubiKey is not needed and can stay
 at home. If `date` is wrong, set it before going on:
 
 ```bash
@@ -1618,7 +1632,8 @@ Check in order and report each:
 
 1. The boot menu shows an entry ending in `YubiKey Live`.
 1. Plasma comes up logged in as `djacu`, no password prompt.
-1. In a terminal: `ip -br link` lists only `lo`.
+1. In a terminal: `ip -br link` shows every non-`lo` interface `DOWN` and
+   `ip -br addr` shows addresses on `lo` only.
 1. The launcher shows `YubiKey Guide` and opens the README in a window.
 1. The launcher shows `Diceware Passphrase Generator` and Firefox opens
    the page with no first-run tab and no blocking network error.

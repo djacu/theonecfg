@@ -64,11 +64,15 @@ and the commands below are bash.
 ```bash
 bash
 ip -br link
+ip -br addr
 systemctl is-active pcscd.socket
 date
 ```
 
-`ip -br link` must list only `lo`. The YubiKey is not needed and can stay
+`ip -br link` lists `lo` and the laptop's own network hardware; every
+interface other than `lo` must show `DOWN`. `ip -br addr` must show
+addresses on `lo` only. The configuration never brings an interface up;
+the hardware existing is expected. The YubiKey is not needed and can stay
 at home. If `date` is wrong, set it before going on:
 
 ```bash
