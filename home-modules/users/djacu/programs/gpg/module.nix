@@ -73,7 +73,7 @@ in
         enable = true;
         publicKeys = [
           {
-            source = ./8C9CFEF8EE37DA95-2025-10-19.asc;
+            source = ./8C9CFEF8EE37DA95-2026-10-12.asc;
             trust = 5;
           }
         ];
