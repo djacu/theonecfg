@@ -17,6 +17,11 @@ in
 
 mapAttrs (const (pkgs: {
 
+  inherit (pkgs)
+    diceware-page
+    drduh-yubikey-guide
+    ;
+
   inherit (pkgs.theonecfg)
     nom-check
     ;
