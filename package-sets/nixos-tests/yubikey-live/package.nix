@@ -26,14 +26,20 @@ let
       P=throwaway
       IDENTITY='Throwaway <throwaway@example.invalid>'
 
-      gpg --batch --passphrase "$P" --quick-gen-key "$IDENTITY" rsa2048 cert never
+      # The key is created in the past so that the renewal below is a real
+      # one: its subkeys have already expired by the time it runs, as the
+      # YubiKey's would if a ceremony slipped past the date, and the clock
+      # cases further down have room on both sides of the creation time.
+      CREATED=20200101T000000
+      gpg --batch --faked-system-time "$CREATED" --passphrase "$P" \
+        --quick-gen-key "$IDENTITY" rsa2048 cert never
       KEY_FP=$(gpg -k --with-colons "$IDENTITY" | awk -F: '/^fpr:/ { print $10; exit }')
 
       # --batch --passphrase only takes effect together with loopback pinentry
       # (gpg(1), --passphrase: "Since Version 2.1 the --pinentry-mode also
       # needs to be set to loopback").
       for usage in sign encrypt auth; do
-        gpg --batch --pinentry-mode loopback --passphrase "$P" \
+        gpg --batch --faked-system-time "$CREATED" --pinentry-mode loopback --passphrase "$P" \
           --quick-add-key "$KEY_FP" rsa2048 "$usage" 1d
       done
 
@@ -67,16 +73,24 @@ let
           --quick-set-expire "$KEY_FP" "$KEY_EXPIRATION" "$SUB_FP_SIGN" "$SUB_FP_ENCRYPT" "$SUB_FP_AUTH"
       gpg -K --with-colons | check_expiry "$want"
 
-      # gpg keeps the newest binding signature by creation time, so a renewal
-      # made with a clock earlier than the existing signatures changes nothing
-      # and reports nothing. The runbook relies on a gpg -K check to catch
-      # that; prove the check works by renewing to a different date with a
-      # clock set to 2020 and asserting the expiry did not move. gpg may or
-      # may not exit non-zero on the back-dated run; either way the expiry
-      # must be unchanged.
+      # A wrong clock on the ceremony laptop has two faces, and neither
+      # changes the expiry. A clock after the key's creation but before the
+      # newest self-signature is refused outright: "make_keysig_packet
+      # failed: Time conflict", exit 2. A clock before the key's creation is
+      # accepted with "created N days in the future" warnings, but gpg keeps
+      # the newest signature by creation time, so the back-dated one loses
+      # silently. The runbook's gpg -K check after the renewal is what
+      # catches both; prove it by trying both and asserting nothing moved.
+      if printf '%s' "$CERTIFY_PASS" |
+        gpg --batch --pinentry-mode loopback --passphrase-fd 0 --faked-system-time 20210101T000000 \
+          --quick-set-expire "$KEY_FP" "$(date -d '+2 years' +%F)" "$SUB_FP_SIGN" "$SUB_FP_ENCRYPT" "$SUB_FP_AUTH"; then
+        echo "a renewal dated before the newest signature must be refused" >&2
+        exit 1
+      fi
+      gpg -K --with-colons | check_expiry "$want"
       printf '%s' "$CERTIFY_PASS" |
-        gpg --batch --pinentry-mode loopback --passphrase-fd 0 --faked-system-time 20200101T000000 \
-          --quick-set-expire "$KEY_FP" "$(date -d '+2 years' +%F)" "$SUB_FP_SIGN" "$SUB_FP_ENCRYPT" "$SUB_FP_AUTH" || true
+        gpg --batch --pinentry-mode loopback --passphrase-fd 0 --faked-system-time 20190101T000000 \
+          --quick-set-expire "$KEY_FP" "$(date -d '+2 years' +%F)" "$SUB_FP_SIGN" "$SUB_FP_ENCRYPT" "$SUB_FP_AUTH"
       gpg -K --with-colons | check_expiry "$want"
 
       # keyid-format 0xlong can only come from /etc/gnupg/gpg.conf; this
