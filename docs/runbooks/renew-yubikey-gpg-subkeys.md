@@ -12,7 +12,8 @@ the renewal line below against a throwaway key. Keep the two identical.
 
 - A build host with this repo (ilmenite) and three USB sticks: one for the
   ISO (4 GB or more), the backup stick (a single LUKS partition holding a
-  dated `GNUPGHOME` directory), and an empty transfer stick.
+  `GNUPGHOME` directory: `gnupg` from the original provisioning, and a
+  `<date>-renewed` copy after each renewal), and an empty transfer stick.
 - The certify key passphrase.
 - A second laptop that boots x86_64 UEFI media with Secure Boot turned
   off.
@@ -103,11 +104,12 @@ sudo mount /dev/disk/by-label/GPGPUBLIC /mnt/public
 
 ### 5. Copy the certify key into a temporary GNUPGHOME
 
-Pick the newest dated directory from the `ls` above and put its name in
-`BACKUP`:
+Pick the directory from the `ls` above that holds the keyring and put its
+name in `BACKUP`: `gnupg` on the first renewal, the newest
+`<date>-renewed` afterwards:
 
 ```bash
-BACKUP=2025.10.19-XXXXXXXX
+BACKUP=gnupg
 export GNUPGHOME
 GNUPGHOME=$(mktemp -d)
 sudo cp -av "/mnt/encrypted-storage/$BACKUP/." "$GNUPGHOME"/
@@ -149,11 +151,13 @@ still shows no expiry.
 ### 8. Export and update the backup
 
 ```bash
-gpg --armor --export "$KEY_FP" | sudo tee /mnt/public/8C9CFEF8EE37DA95-2025-10-19.asc > /dev/null
+gpg --armor --export "$KEY_FP" | sudo tee "/mnt/public/8C9CFEF8EE37DA95-$(date +%F).asc" > /dev/null
 sudo cp -av "$GNUPGHOME" "/mnt/encrypted-storage/$(date +%Y.%m.%d)-renewed"
 ```
 
-The export contains public material only. The copy gives next year's
+The export is named by its export date, as drduh's guide names it, so the
+file says how fresh its signatures are. It contains public material only.
+The copy gives next year's
 renewal a starting point with the current signatures; the original backup
 directory is never modified.
 
@@ -175,7 +179,7 @@ Plug in the transfer stick:
 ```fish
 sudo mkdir -p /mnt/public
 sudo mount /dev/disk/by-label/GPGPUBLIC /mnt/public
-gpg --import /mnt/public/8C9CFEF8EE37DA95-2025-10-19.asc
+gpg --import /mnt/public/8C9CFEF8EE37DA95-*.asc
 gpg -K
 ```
 
@@ -188,12 +192,15 @@ stubs; insert the YubiKey and run `gpg --card-status`, then look again.
 ```fish
 cd ~/dev/djacu/theonecfg
 git switch -c djacu/gpg-renewal-(date +%Y)
-cp /mnt/public/8C9CFEF8EE37DA95-2025-10-19.asc home-modules/users/djacu/programs/gpg/8C9CFEF8EE37DA95-2025-10-19.asc
+set new (basename /mnt/public/8C9CFEF8EE37DA95-*.asc)
+git rm home-modules/users/djacu/programs/gpg/8C9CFEF8EE37DA95-*.asc
+cp /mnt/public/$new home-modules/users/djacu/programs/gpg/$new
+sed -i "s|source = ./8C9CFEF8EE37DA95-.*\\.asc;|source = ./$new;|" home-modules/users/djacu/programs/gpg/module.nix
 sudo umount /mnt/public
-git diff --stat
+git add home-modules/users/djacu/programs/gpg
+git diff --cached --stat
 home-manager switch --flake .#ilmenite-djacu
 gpg -k 0x8C9CFEF8EE37DA95
-git add home-modules/users/djacu/programs/gpg/8C9CFEF8EE37DA95-2025-10-19.asc
 git commit
 ```
 
