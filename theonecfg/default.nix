@@ -27,6 +27,10 @@ inputs: {
       type = "virtual";
       forwardAgent = false;
     };
+    uraninite = {
+      type = "live";
+      forwardAgent = false;
+    };
   };
 
   knownUsers = {
