@@ -102,7 +102,7 @@ testers.runNixOSTest {
   name = "yubikey-live";
 
   nodes.machine =
-    { lib, ... }:
+    { ... }:
     {
       # The flake's default NixOS module sets nixpkgs.overlays, which the test
       # framework makes read-only, and its user modules need the theonecfg
@@ -121,12 +121,11 @@ testers.runNixOSTest {
       # some unprivileged user to run the rehearsal as.
       users.users.tester.isNormalUser = true;
 
-      # vlans = [] removes the per-vlan NICs only. qemu-vm adds a SLiRP user
-      # NIC to every VM unconditionally, and with no network flag at all QEMU
-      # falls back to its own default user-mode NIC; "-nic none" is the one
-      # way to get a VM with only lo, which the air-gap check below needs.
+      # vlans = [] removes the per-vlan NICs the framework would configure
+      # with addresses. qemu-vm's unconditional SLiRP user NIC stays: it
+      # stands in for the laptop's own Ethernet and Wi-Fi hardware, which the
+      # air-gap check below must find present, down and unaddressed.
       virtualisation.vlans = [ ];
-      virtualisation.qemu.networkingOptions = lib.mkForce [ "-nic none" ];
 
       environment.systemPackages = [ curl ];
     };
@@ -134,9 +133,18 @@ testers.runNixOSTest {
   testScript = ''
     machine.wait_for_unit("multi-user.target")
 
-    # Air gap: the loopback interface is the only one allowed to exist.
-    links = [line.split()[0] for line in machine.succeed("ip -br link").splitlines() if line.strip()]
-    assert links == ["lo"], f"unexpected interfaces: {links}"
+    # Air gap: hardware NICs exist on any real machine, so the property is
+    # that the configuration leaves every one of them down and without an
+    # address. The SLiRP NIC plays the hardware here.
+    links = [line.split() for line in machine.succeed("ip -br link").splitlines() if line.strip()]
+    names = [fields[0] for fields in links]
+    assert "lo" in names and len(names) >= 2, f"expected lo plus a NIC: {names}"
+    for fields in links:
+        if fields[0] != "lo":
+            assert fields[1] == "DOWN", f"interface is not down: {fields}"
+    # ip -br addr prints only the name and state for an unaddressed interface.
+    addressed = [line.split()[0] for line in machine.succeed("ip -br addr").splitlines() if len(line.split()) > 2]
+    assert addressed == ["lo"], f"addressed interfaces: {addressed}"
     machine.fail("systemctl is-active sshd.service")
     machine.fail("systemctl is-active NetworkManager.service")
     # pcscd is socket-activated; the service only starts on the first client.
