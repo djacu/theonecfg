@@ -14,6 +14,7 @@ let
     ;
 
   inherit (lib.filesystem)
+    listFilesRecursive
     packagesFromDirectoryRecursive
     ;
 
@@ -21,41 +22,24 @@ let
     composeManyExtensions
     ;
 
+  inherit (lib.lists)
+    filter
+    ;
+
   inherit (inputs.self.library.path)
     getDirectoryNames
-    joinParentToPaths
     ;
 
   # overlays
 
-  fixes = final: prev: {
-  };
+  # Fixes for upstream nixpkgs packages: every overlay.nix under ./fixes.
+  fixes = composeManyExtensions (
+    map import (filter (path: baseNameOf path == "overlay.nix") (listFilesRecursive ./fixes))
+  );
 
-  toplevelOverlays =
-    final: prev:
-    packagesFromDirectoryRecursive {
-      inherit (final) callPackage;
-      inherit (prev) newScope;
-      directory = ../package-sets/top-level;
-    };
-
-  packageOverrides =
-    (
-      parent:
-      (genAttrs (getDirectoryNames parent) (
-        dir:
-        import (
-          joinParentToPaths parent [
-            dir
-            "overlay.nix"
-          ]
-        )
-      ))
-    )
-      ./package-overrides;
-
-  inputOverlays = genAttrs (getDirectoryNames ../overlays/input-overlays) (
-    dir: import ../overlays/input-overlays/${dir}/overlay.nix inputs
+  # One overlay per flake input that ships packages; each file takes `inputs`.
+  inputOverlays = genAttrs (getDirectoryNames ./inputOverlays) (
+    dir: import ./inputOverlays/${dir}/overlay.nix inputs
   );
 
   misc = _final: _prev: {
@@ -64,29 +48,40 @@ let
     theonecfgModulesPath = ../nixosModules;
   };
 
-  # VM tests, kept out of `default` so legacyPackages and the package jobs
-  # never load nixos/lib. hydra-jobs/vm-tests.nix applies it.
+  # VM tests, nested like nixpkgs' nixosTests.
   nixosTests = final: _prev: {
-    theonecfgTests = recurseIntoAttrs (packagesFromDirectoryRecursive {
+    theonecfgNixosTests = recurseIntoAttrs (packagesFromDirectoryRecursive {
       inherit (final) callPackage;
-      directory = ../package-sets/nixos-tests;
+      directory = ./nixosTests;
     });
   };
 
+  # No newScope: with it the root directory becomes a scope whose bookkeeping
+  # attributes leak into pkgs.
+  topLevel =
+    final: _prev:
+    packagesFromDirectoryRecursive {
+      inherit (final) callPackage;
+      directory = ./topLevel;
+    };
+
 in
-packageOverrides
-// inputOverlays
+inputOverlays
 // {
 
-  inherit nixosTests;
+  inherit
+    fixes
+    nixosTests
+    topLevel
+    ;
 
   default = composeManyExtensions (
-    (attrValues packageOverrides)
-    ++ [
-      inputs.nur.overlays.default
-      toplevelOverlays
-      misc
+    [
       fixes
+      inputs.nur.overlays.default
+      topLevel
+      nixosTests
+      misc
     ]
     ++ (attrValues inputOverlays)
   );
