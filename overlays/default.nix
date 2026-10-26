@@ -61,7 +61,7 @@ let
   misc = _final: _prev: {
     # This repo's counterpart of nixpkgs' modulesPath: lets a VM test import
     # a NixOS module by path without going through the flake outputs.
-    theonecfgModulesPath = ../nixos-modules;
+    theonecfgModulesPath = ../nixosModules;
   };
 
   # VM tests, kept out of `default` so legacyPackages and the package jobs

@@ -6,12 +6,12 @@
 
 Formatter setup to use for the repository.
 
-### home-configurations
+### homeConfigurations
 
 Home-manager configurations for a combination of host and user.
 They are accessed via `homeConfigurations.<host>-<user>` attributes.
 
-### home-modules
+### homeModules
 
 Home-manager modules under `theonecfg` namespace gated behind `enable` options.
 Modules are grouped in directories by `programs`, `services`, or a `<user>`.
@@ -20,16 +20,16 @@ Modules not under a `<user>` directory are available for all users to define.
 See `mkUserModules` for details about how modules are filtered.
 They are accessed via `homeConfigurations.<user>` attributes.
 
-### legacy-packages
+### legacyPackages
 
 A nixpkgs package set with `theonecfg` overlays applied.
 
-### nixos-configurations
+### nixosConfigurations
 
 NixOS configurations for a host.
 They are accessed via `nixosConfigurations.<host>`.
 
-### nixos-modules
+### nixosModules
 
 NixOS modules under `theonecfg` namespace gated behind `enable` options.
 There is currently little structure here except for user specific modules which are in directories.
@@ -39,7 +39,7 @@ There is currently little structure here except for user specific modules which 
 Centralized overlays to be used elsewhere in `theonecfg`.
 Pulls in external overlays from inputs.
 Pulls in internal overlays from directories in the `overlays` directory that have a `package.nix` file.
-Currently used in `legacy-packages`, `nixos-modules`, and `home-configurations`.
+Currently used in `legacyPackages`, `nixosModules`, and `homeConfigurations`.
 
 ### packages
 
@@ -64,7 +64,7 @@ Packages that can be built or run.
 1. Partition the drives.
    This creates a new temporary directory where the drives are mounted.
    For example, `/tmp/tmp.kWXrNPDsDG/`, which is set to `MNT` in the setup script.
-   1. `cd nixos-configurations/scheelite`
+   1. `cd nixosConfigurations/scheelite`
    1. `./setup.sh`
    1. `cd -`
 1. If there have been hardware changes, regenerate the hardware configuration.

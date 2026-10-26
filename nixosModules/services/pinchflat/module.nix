@@ -51,7 +51,7 @@ in
       # Pinchflat uses DynamicUser; StateDirectory creates /var/lib/pinchflat
       # automatically. On hosts that roll back root state (impermanence),
       # the host's impermanence config must list /var/lib/pinchflat among
-      # the persisted directories — see nixos-configurations/<host>/impermanence.nix.
+      # the persisted directories — see nixosConfigurations/<host>/impermanence.nix.
 
       systemd.tmpfiles.rules = [
         "d ${cfg.mediaDir} 0775 root root - -"
