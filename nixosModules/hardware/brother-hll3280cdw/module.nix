@@ -25,7 +25,7 @@ in
 
     services.printing.enable = true;
     services.printing.drivers = [
-      pkgs.theonecfg.cups-brother-hll3280cdw
+      pkgs.theonecfg-cups-brother-hll3280cdw
     ];
     # services.printing.logLevel = "debug";
 

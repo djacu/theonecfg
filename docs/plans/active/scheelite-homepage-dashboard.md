@@ -43,7 +43,7 @@ host-stats UI on `glances.scheelite.dev`.
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Dashboard package        | `homepage-dashboard` (gethomepage), upstream `services.homepage-dashboard`                                                                                                                                                                                                                       |
 | Stats backend            | `glances -w` running headless, exposed both to Homepage's `glances` widget on loopback and as its own UI vhost                                                                                                                                                                                   |
-| Module path              | `nixos-modules/services/homepage/module.nix` + `nixos-modules/services/glances/module.nix`                                                                                                                                                                                                       |
+| Module path              | `nixosModules/services/homepage/module.nix` + `nixosModules/services/glances/module.nix`                                                                                                                                                                                                         |
 | Domain                   | Homepage: `home.scheelite.dev` · Glances: `glances.scheelite.dev`                                                                                                                                                                                                                                |
 | Auth                     | Both vhosts behind `forward_auth_kanidm` — same pattern as every other non-OIDC service                                                                                                                                                                                                          |
 | Bind                     | Homepage: all interfaces on port 8082 (firewall closed; Caddy proxies on loopback) · Glances: `127.0.0.1:61208`                                                                                                                                                                                  |
@@ -60,11 +60,11 @@ host-stats UI on `glances.scheelite.dev`.
 
 ## Module layout
 
-Auto-imported by the existing `nixos-modules/services/module.nix`
+Auto-imported by the existing `nixosModules/services/module.nix`
 `getDirectoryNames` boilerplate — no manual wiring in a parent file.
 
 ```text
-nixos-modules/services/
+nixosModules/services/
 ├── glances/module.nix       NEW — services.glances headless + Caddy vhost
 └── homepage/module.nix      NEW — services.homepage-dashboard, auto-derived tiles + widgets
 ```
@@ -155,7 +155,7 @@ No state. No sops. No impermanence entry.
 
 Auto-derives the service tile / widget list from the existing
 `theonecfg.services.<svc>` modules — same pattern as
-`nixos-modules/services/jellyseerr/module.nix:42-77` builds its
+`nixosModules/services/jellyseerr/module.nix:42-77` builds its
 `arrInstances` list from enabled \*arr modules.
 
 ```nix
@@ -595,7 +595,7 @@ re-create offending secrets without `echo`'s `-n`.
 
 ## Scheelite wiring
 
-`nixos-configurations/scheelite/default.nix` `theonecfg.services` block
+`nixosConfigurations/scheelite/default.nix` `theonecfg.services` block
 gains:
 
 ```nix
@@ -616,9 +616,9 @@ Each phase ends with a clean
 
 **Files:**
 
-- Create `nixos-modules/services/glances/module.nix` — full body in the
+- Create `nixosModules/services/glances/module.nix` — full body in the
   Glances sketch above.
-- `nixos-configurations/scheelite/default.nix`: add
+- `nixosConfigurations/scheelite/default.nix`: add
   `glances.enable = true;` to the `theonecfg.services` block.
 
 **Verify (post-deploy):**
@@ -649,7 +649,7 @@ credentials the Phase 3 Homepage AdGuard widget will use.
 
 **Files:**
 
-- Modify `nixos-modules/services/adguard/module.nix`:
+- Modify `nixosModules/services/adguard/module.nix`:
   - Declare `services.adguardhome.settings.users = [ { name = "admin"; password = "ADGUARD_PASSWORD_PLACEHOLDER"; } ];`. With `mutableSettings = false`, the upstream module will install this on every restart.
   - Add an ExecStartPre script (mirrors `qbtPasswordHashScript` in
     `library/declarative-arr.nix:832-887` but emits bcrypt instead of
@@ -664,7 +664,7 @@ credentials the Phase 3 Homepage AdGuard widget will use.
     running as root is fine).
 - `secrets/scheelite.yaml`: add `adguard.admin-password` (run via the
   bootstrap script or `sops` editor for an existing host).
-- `package-sets/top-level/theonecfg/bootstrap-homelab-secrets/bootstrap.sh`:
+- `overlays/topLevel/theonecfg-bootstrap-homelab-secrets/bootstrap.sh`:
   add `adguard.admin-password: $(gen_password)` in the scheelite
   template.
 
@@ -696,12 +696,12 @@ Bundles three changes that compose into a single working dashboard:
 
 **Files:**
 
-- Modify `nixos-modules/services/jellyseerr/module.nix`:
+- Modify `nixosModules/services/jellyseerr/module.nix`:
   - Add a new oneshot `jellyseerr-api-key.service` ordered `after = [ "jellyseerr-bootstrap.service" ]` and `requires`. Reads
     `/var/lib/private/seerr/settings.json` (Seerr's DynamicUser
     private state), `jq -r '.main.apiKey'` from it, writes to
     `/var/lib/seerr/api-key.txt` mode 0440 root:root via `install -m`. Idempotent: re-runs are no-ops if the file is up to date.
-- Modify `nixos-modules/services/monitoring/grafana/module.nix`:
+- Modify `nixosModules/services/monitoring/grafana/module.nix`:
   - In the `mkIf cfg.enable` block, add `services.grafana.settings.security.admin_user = "admin";`
     and `admin_password = "$__file{${config.sops.secrets."grafana/admin-password".path}}";`
     alongside the existing `secret_key`.
@@ -709,11 +709,11 @@ Bundles three changes that compose into a single working dashboard:
   - Note: the OIDC config stays untouched — humans still log in via
     Kanidm; only the Homepage widget uses the local admin.
 - `secrets/scheelite.yaml`: add `grafana.admin-password`.
-- `package-sets/top-level/theonecfg/bootstrap-homelab-secrets/bootstrap.sh`:
+- `overlays/topLevel/theonecfg-bootstrap-homelab-secrets/bootstrap.sh`:
   add `grafana.admin-password: $(gen_password)`.
-- Create `nixos-modules/services/homepage/module.nix` — full body per
+- Create `nixosModules/services/homepage/module.nix` — full body per
   the Homepage sketch above.
-- `nixos-configurations/scheelite/default.nix`: add `homepage.enable = true;`.
+- `nixosConfigurations/scheelite/default.nix`: add `homepage.enable = true;`.
 
 **Pre-deploy local checks:**
 
@@ -770,7 +770,7 @@ Bundles three changes that compose into a single working dashboard:
 Out of scope this plan. Documented so it isn't lost when scope
 expands.
 
-Extend `nixos-modules/services/jellyfin/module.nix`'s bootstrap unit
+Extend `nixosModules/services/jellyfin/module.nix`'s bootstrap unit
 (or add a follow-up post-bootstrap unit) to obtain a Jellyfin API
 key and persist it to a root-readable file. Two paths:
 
@@ -791,47 +791,47 @@ When this lands, update this plan's per-widget mapping table from
 
 To create:
 
-- `nixos-modules/services/glances/module.nix` (Phase 1)
-- `nixos-modules/services/homepage/module.nix` (Phase 3)
+- `nixosModules/services/glances/module.nix` (Phase 1)
+- `nixosModules/services/homepage/module.nix` (Phase 3)
 
 To modify:
 
-- `nixos-modules/services/adguard/module.nix` (Phase 2) — add `users:`
+- `nixosModules/services/adguard/module.nix` (Phase 2) — add `users:`
   with placeholder, ExecStartPre to bcrypt + inject, sops secret.
-- `nixos-modules/services/jellyseerr/module.nix` (Phase 3) — new
+- `nixosModules/services/jellyseerr/module.nix` (Phase 3) — new
   `jellyseerr-api-key.service` follow-up oneshot.
-- `nixos-modules/services/monitoring/grafana/module.nix` (Phase 3) —
+- `nixosModules/services/monitoring/grafana/module.nix` (Phase 3) —
   add local-admin user, sops secret read via `$__file{}`.
-- `nixos-configurations/scheelite/default.nix` (Phases 1, 3) — add
+- `nixosConfigurations/scheelite/default.nix` (Phases 1, 3) — add
   `glances.enable` and `homepage.enable` to the `theonecfg.services`
   block.
 - `secrets/scheelite.yaml` (Phases 2, 3) — add
   `adguard/admin-password` and `grafana/admin-password`.
-- `package-sets/top-level/theonecfg/bootstrap-homelab-secrets/bootstrap.sh`
+- `overlays/topLevel/theonecfg-bootstrap-homelab-secrets/bootstrap.sh`
   (Phases 2, 3) — generate the two new entries for fresh hosts.
 
 Not touched:
 
-- `nixos-configurations/scheelite/impermanence.nix` — no new persistence
+- `nixosConfigurations/scheelite/impermanence.nix` — no new persistence
   entries (homepage state is ephemeral; glances has none; the
   jellyseerr api-key file lives at `/var/lib/seerr/api-key.txt`,
   re-derived on every boot from the persisted Seerr DB).
 - `flake.nix` — no new inputs; both packages already in nixpkgs.
-- `nixos-modules/services/module.nix` — auto-import handles new dirs.
+- `nixosModules/services/module.nix` — auto-import handles new dirs.
 
 ## Reused functions / patterns
 
 - `library/default.nix` `getDirectoryNames` / auto-import via
-  `nixos-modules/services/module.nix:19-25` — picks up `glances/` and
+  `nixosModules/services/module.nix:19-25` — picks up `glances/` and
   `homepage/` automatically.
-- `home-modules/programs/fish/module.nix:1-29` — `mkEnableOption` +
+- `homeModules/programs/fish/module.nix:1-29` — `mkEnableOption` +
   `config = mkIf cfg.enable` skeleton template.
-- `nixos-modules/services/jellyseerr/module.nix:42-77` — pattern for
+- `nixosModules/services/jellyseerr/module.nix:42-77` — pattern for
   walking enabled `theonecfg.services.<svc>` modules to build a
   derived list.
-- `nixos-modules/services/caddy/module.nix:91-106` — sops-template +
+- `nixosModules/services/caddy/module.nix:91-106` — sops-template +
   `EnvironmentFile=` pattern (for `homepage.env`).
-- `nixos-modules/services/oauth2-proxy/module.nix:117-146` — Caddyfile
+- `nixosModules/services/oauth2-proxy/module.nix:117-146` — Caddyfile
   `forward_auth_kanidm` snippet definition; per-vhost import via
   `import forward_auth_kanidm`.
 - Each existing service module's `domain` / `port` options — read

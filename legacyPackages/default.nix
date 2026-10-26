@@ -4,5 +4,9 @@ inputs.self.library.systems.defaultSystems (
   import inputs.nixpkgs-unstable {
     inherit system;
     overlays = [ inputs.self.overlays.default ];
+    config = {
+      allowAliases = false;
+      allowUnfree = true;
+    };
   }
 )

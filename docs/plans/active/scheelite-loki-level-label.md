@@ -121,7 +121,7 @@ once option 3 lands.
 
 **Files**:
 
-- `nixos-modules/services/monitoring/loki/module.nix`
+- `nixosModules/services/monitoring/loki/module.nix`
 
 **Change**: add inside `services.loki.configuration` block:
 
@@ -154,7 +154,7 @@ ______________________________________________________________________
 
 **Files**:
 
-- `nixos-modules/services/monitoring/alloy/module.nix`
+- `nixosModules/services/monitoring/alloy/module.nix`
 
 **Change**: insert a `loki.process "level"` block between the journal source
 and the writer. The journal source's `forward_to` redirects to the process
@@ -300,7 +300,7 @@ all lines for the selected unit regardless of level.
 
 **Deploy**: dashboards are picked up by Grafana via provisioning on next
 service restart, or via UI re-import. No nixos-rebuild needed if Grafana's
-provisioning watches the file (verify in `nixos-modules/services/monitoring/grafana/module.nix`).
+provisioning watches the file (verify in `nixosModules/services/monitoring/grafana/module.nix`).
 
 **Verify**:
 
@@ -393,9 +393,9 @@ bytes) without re-polluting the dashboard.
 
 **Files**:
 
-- `nixos-modules/services/monitoring/alloy/module.nix` — added
+- `nixosModules/services/monitoring/alloy/module.nix` — added
   `stage.match` drop block (`c7ff1be`).
-- `nixos-modules/services/monitoring/loki/module.nix` — removed
+- `nixosModules/services/monitoring/loki/module.nix` — removed
   `log_level = "warn"` (`4f34c7e`).
 
 **Verified**:

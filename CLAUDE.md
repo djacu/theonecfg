@@ -7,16 +7,24 @@
 - Match the existing namespacing:
   - `theonecfg.programs.*` — shared programs (claude, fd, fish, tmux, zellij, nixvimcfg, ...).
   - `theonecfg.packages.*` — shared package bundles (admin, developer, networking, nix, ...).
-  - `theonecfg.users.djacu.*` — user-specific overrides and extensions. Modules under `home-modules/users/djacu/programs/<name>/` override or extend the shared `theonecfg.programs.<name>` module.
+  - `theonecfg.users.djacu.*` — user-specific overrides and extensions. Modules under `homeModules/users/djacu/programs/<name>/` override or extend the shared `theonecfg.programs.<name>` module.
 - Standard module skeleton: declare `options.theonecfg.<path>.enable = mkEnableOption "..."`, then `config = mkIf cfg.enable { ... }`. Inherit `mkEnableOption` from `lib.options` and `mkIf` / `mkMerge` from `lib.modules` in a `let` block at the top.
-- Auto-import: `home-modules/{programs,packages,services}/module.nix` and `home-modules/users/djacu/{programs,profiles}/module.nix` import every `<dir>/module.nix` under them automatically. New modules just need a `module.nix` at the right depth — no manual wiring in a parent file.
+- Auto-import: `homeModules/{programs,packages,services}/module.nix` and `homeModules/users/djacu/{programs,profiles}/module.nix` import every `<dir>/module.nix` under them automatically. New modules just need a `module.nix` at the right depth — no manual wiring in a parent file.
+
+## Naming
+
+- A directory that produces a flake output or an overlay attribute is spelled exactly like that attribute: `nixosConfigurations/`, `overlays/topLevel/`. Directories that produce no attribute stay kebab-case: `hydra-jobs/`.
+- Repo-owned packages are flat top-level attributes prefixed `theonecfg-` (`pkgs.theonecfg-nom-check`); third-party software keeps its upstream name (`pkgs.namer`). Never create a scope in `pkgs`; do not pass `newScope` to `packagesFromDirectoryRecursive`.
+- VM tests live under `overlays/nixosTests/<name>/package.nix` and are exposed as `pkgs.theonecfgNixosTests.<name>`, like nixpkgs' `nixosTests`.
 
 ## Running nix commands inside the repo
 
 Prefer the local flake's `legacyPackages` over going directly to `nixpkgs` for one-off `nix shell` / `nix run` / `nix build` invocations:
 
 - ✅ `nix shell .#ripgrep -c rg ...`
-- ✅ `nix run .#theonecfg.bootstrap-homelab-secrets -- scheelite`
+- ✅ `nix run .#theonecfg-bootstrap-homelab-secrets -- scheelite`
 - ❌ `nix shell --inputs-from . nixpkgs#ripgrep -c rg ...`
 
 The `legacyPackages` output applies overlays (patches, overrides, custom packages) that the flake configures; going straight to `nixpkgs#` bypasses those. Only fall back to `--inputs-from . nixpkgs#<attr>` if a package isn't surfaced via `legacyPackages` (rare).
+
+`legacyPackages` sets `allowAliases = false`. If `nix shell .#<name>` fails because `<name>` is an alias, use the canonical attribute name. Do not fall back to `--inputs-from . nixpkgs#` for this; that bypasses the overlays.

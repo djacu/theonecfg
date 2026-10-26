@@ -10,7 +10,7 @@
 # function and a matching case in the dispatcher below.
 #
 # Usage:
-#   nix run .#theonecfg.bootstrap-homelab-secrets -- <hostname>
+#   nix run .#theonecfg-bootstrap-homelab-secrets -- <hostname>
 #
 # Currently supported hosts: scheelite.
 

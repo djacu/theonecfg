@@ -232,8 +232,8 @@ Whisparr (verified at deployed commit `437da72`; clone kept at
 
 Repo (verified):
 
-- Auto-import: `nixos-modules/default.nix:30-33` +
-  `nixos-modules/services/module.nix:18-26` import every
+- Auto-import: `nixosModules/default.nix:30-33` +
+  `nixosModules/services/module.nix:18-26` import every
   `services/<dir>/module.nix` — a new module needs no manual wiring.
 - sops-nix supports `sops.secrets.<name>.key` aliasing — a second
   secret entry can reuse the single `whisparr/api-key` yaml value with
@@ -261,7 +261,7 @@ Repo (verified):
   `isSystemUser` + dedicated primary group + `extraGroups = [ "media" ]`.
   Homepage tiles are a hardcoded `knownTiles` list — a namer tile is a
   one-line addition (in scope).
-- The staged `package-sets/top-level/namer/package.nix` still carries
+- The staged `overlays/topLevel/namer/package.nix` still carries
   `patches = [ ./jav-auto-lookup.patch ]` — commit 1 edits the file
   (drop the line, delete the patch), not commit-as-is. New module dirs
   must be `git add`ed before nix can evaluate them.
@@ -361,7 +361,7 @@ Deletion ownership:
 
 ## Components
 
-New module `nixos-modules/services/namer/module.nix` (auto-imported),
+New module `nixosModules/services/namer/module.nix` (auto-imported),
 namespace `theonecfg.services.namer`, owning two units. Both secrets
 (`namer/tpdb-token`, the `whisparr/api-key` alias) are declared in the
 module; the scheelite commit only populates `secrets/scheelite.yaml`.

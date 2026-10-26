@@ -4,7 +4,7 @@ Date: 2026-05-10. Host: `argentite`. Plasma 6.6.4 on NixOS, standalone home-mana
 
 ## What surfaced
 
-Added `pkgs.fluffychat` to `home-modules/packages/messaging/module.nix`,
+Added `pkgs.fluffychat` to `homeModules/packages/messaging/module.nix`,
 rebuilt nixos + home-manager. FluffyChat did not appear in either:
 
 - KRunner (Alt+Space)

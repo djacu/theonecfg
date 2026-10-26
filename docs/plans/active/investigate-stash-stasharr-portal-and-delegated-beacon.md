@@ -61,10 +61,10 @@ without them.
 ### Phase 1 — `theonecfg.services.stash`
 
 Thin wrapper around upstream `services.stash`, mirroring the patterns in
-`nixos-modules/services/whisparr/module.nix:1-230` (sops, Caddy,
+`nixosModules/services/whisparr/module.nix:1-230` (sops, Caddy,
 RequiresMountsFor, media-group membership, ExecStartPre placeholder splice).
 
-**New file:** `nixos-modules/services/stash/module.nix`
+**New file:** `nixosModules/services/stash/module.nix`
 
 **Module options:**
 
@@ -184,7 +184,7 @@ theonecfg.services.stash = {
    read-only bind via `systemd.services.stash.serviceConfig.BindReadOnlyPaths = lib.mkForce [ ];` and add the paths under `BindPaths` (read-write)
    instead. Out of scope for v1.
 
-**Scheelite wiring** (`nixos-configurations/scheelite/default.nix`):
+**Scheelite wiring** (`nixosConfigurations/scheelite/default.nix`):
 
 ```nix
 theonecfg.services.stash = {
@@ -205,7 +205,7 @@ theonecfg.services.stash = {
 sops.secrets."stashdb/api-key".owner = "stash";
 ```
 
-**ZFS dataset** (`nixos-configurations/scheelite/disko.nix`):
+**ZFS dataset** (`nixosConfigurations/scheelite/disko.nix`):
 
 ```nix
 "tank0/services/stash" = {
@@ -257,10 +257,10 @@ License GPL-3.0, no blockers.
 - Latest tag: `v0.1.0`. HEAD has two newer commits but no tag yet.
   Pin to v0.1.0 for reproducibility.
 
-**New file:** `package-sets/top-level/stasharr-portal/default.nix`
+**New file:** `overlays/topLevel/stasharr-portal/default.nix`
 
 (NOT `pkgs/stasharr-portal/` — this repo's custom packages live at
-`package-sets/top-level/<name>/default.nix` and are auto-imported into
+`overlays/topLevel/<name>/default.nix` and are auto-imported into
 the overlay via `packagesFromDirectoryRecursive` in
 `overlays/default.nix:48-54`.)
 
@@ -390,15 +390,15 @@ stdenv.mkDerivation (finalAttrs: {
   Pin to exact tags; expect to re-vendor on each upgrade.
 
 **Overlay wiring:** automatic. `overlays/default.nix:48-54` calls
-`packagesFromDirectoryRecursive { directory = ../package-sets/top-level; }`
+`packagesFromDirectoryRecursive { directory = ../overlays/topLevel; }`
 which exposes every top-level dir under `pkgs.<name>`. Adding
-`package-sets/top-level/stasharr-portal/` is the only step.
+`overlays/topLevel/stasharr-portal/` is the only step.
 
 ### Phase 3 — `theonecfg.services.stasharr` (Stasharr Portal NixOS module)
 
 Wraps the Phase-2 package + per-service Postgres + Caddy + sops.
 
-**New file:** `nixos-modules/services/stasharr/module.nix`
+**New file:** `nixosModules/services/stasharr/module.nix`
 
 **Module options:**
 
@@ -532,7 +532,7 @@ theonecfg.services.stasharr = {
 sops.secrets."stasharr/postgres-password".owner = "stasharr";
 ```
 
-**ZFS datasets** (`nixos-configurations/scheelite/disko.nix`):
+**ZFS datasets** (`nixosConfigurations/scheelite/disko.nix`):
 
 ```nix
 # tank0 service-state dataset
@@ -593,14 +593,14 @@ in Phase 3 only applies to server-side fetches).
 
 **To create:**
 
-- `nixos-modules/services/stash/module.nix` (Phase 1)
-- `package-sets/top-level/stasharr-portal/default.nix` (Phase 2)
-- `nixos-modules/services/stasharr/module.nix` (Phase 3)
+- `nixosModules/services/stash/module.nix` (Phase 1)
+- `overlays/topLevel/stasharr-portal/default.nix` (Phase 2)
+- `nixosModules/services/stasharr/module.nix` (Phase 3)
 
 **To modify:**
 
-- `nixos-configurations/scheelite/default.nix` — enable both services + sops secret declarations
-- `nixos-configurations/scheelite/disko.nix` — add `tank0/services/stash`,
+- `nixosConfigurations/scheelite/default.nix` — enable both services + sops secret declarations
+- `nixosConfigurations/scheelite/disko.nix` — add `tank0/services/stash`,
   `tank0/services/stasharr`, `safe/persist/postgres/stasharr`
 - `secrets/scheelite.yaml` — add `stashdb/api-key`,
   `stash/jwt-secret`, `stash/session-store-key`,
@@ -608,18 +608,18 @@ in Phase 3 only applies to server-side fetches).
 
 **To reference (read-only patterns to mirror):**
 
-- `nixos-modules/services/whisparr/module.nix:1-230` — \*arr module
+- `nixosModules/services/whisparr/module.nix:1-230` — \*arr module
   skeleton (sops, Caddy, RequiresMountsFor, ExecStartPre config-sync via
   `lib.mkAfter`)
-- `nixos-modules/services/postgres/module.nix` — per-service postgres
+- `nixosModules/services/postgres/module.nix` — per-service postgres
   helper. Notable: `pgInstance.host` returns the container veth IP
   (10.233.<idx>.2 with idx = port - 5432); Stasharr's
   `DATABASE_HOST` reads from this. Container unit name:
   `container@postgres-<name>.service`.
-- `nixos-modules/services/oauth2-proxy/module.nix:117-145` — definition
+- `nixosModules/services/oauth2-proxy/module.nix:117-145` — definition
   of the `forward_auth_kanidm` Caddy snippet imported by per-service
   vhosts.
-- `nixos-modules/services/caddy/module.nix:81-87` — definition of the
+- `nixosModules/services/caddy/module.nix:81-87` — definition of the
   `acme_resolvers` snippet (handles Porkbun DNS-01 ACME walk-up
   through public resolvers, bypassing local AdGuard).
 
@@ -760,13 +760,13 @@ git commit -m "secrets/scheelite: add stashdb api-key and stash session secrets"
 
 **Files:**
 
-- Create: `nixos-modules/services/stash/module.nix`
+- Create: `nixosModules/services/stash/module.nix`
 
 **Steps:**
 
 - [ ] **Step 1: Create the module file**
 
-Write `nixos-modules/services/stash/module.nix` matching the design in
+Write `nixosModules/services/stash/module.nix` matching the design in
 Phase 1 above (option block + `services.stash` config + sops secrets +
 `users.users.stash.extraGroups` + Caddy vhost + RequiresMountsFor).
 Include the `apikey = "@APIKEY_${b.name}@"` placeholder in the
@@ -850,7 +850,7 @@ in
 - [ ] **Step 2: Track the new file with git**
 
 ```bash
-git add -N nixos-modules/services/stash/module.nix
+git add -N nixosModules/services/stash/module.nix
 ```
 
 - [ ] **Step 3: Run flake check**
@@ -860,22 +860,22 @@ nix flake check
 ```
 
 Expected: passes. The module is auto-imported via
-`nixos-modules/services/module.nix` (per repo convention; see
-`nixos-modules/services/whisparr/` etc. — no manual wiring needed).
+`nixosModules/services/module.nix` (per repo convention; see
+`nixosModules/services/whisparr/` etc. — no manual wiring needed).
 Module isn't enabled on any host yet, so it just adds an option.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add nixos-modules/services/stash/module.nix
-git commit -m "nixos-modules/services/stash: new module — Stash media organizer"
+git add nixosModules/services/stash/module.nix
+git commit -m "nixosModules/services/stash: new module — Stash media organizer"
 ```
 
 #### Task 1.2 — Stash apikey splice ExecStartPre
 
 **Files:**
 
-- Modify: `nixos-modules/services/stash/module.nix`
+- Modify: `nixosModules/services/stash/module.nix`
 
 **Steps:**
 
@@ -940,15 +940,15 @@ Expected: passes.
 - [ ] **Step 4: Commit**
 
 ```bash
-git commit -am "nixos-modules/services/stash: splice runtime apikey into stash_boxes"
+git commit -am "nixosModules/services/stash: splice runtime apikey into stash_boxes"
 ```
 
 #### Task 1.3 — Enable Stash on scheelite (declarative)
 
 **Files:**
 
-- Modify: `nixos-configurations/scheelite/default.nix`
-- Modify: `nixos-configurations/scheelite/disko.nix`
+- Modify: `nixosConfigurations/scheelite/default.nix`
+- Modify: `nixosConfigurations/scheelite/disko.nix`
 
 **Steps:**
 
@@ -983,7 +983,7 @@ sops.secrets."stashdb/api-key".owner = "stash";
 
 - [ ] **Step 2: Add the disko dataset**
 
-In `nixos-configurations/scheelite/disko.nix`, inside
+In `nixosConfigurations/scheelite/disko.nix`, inside
 `scheelite-tank0.datasets`, add:
 
 ```nix
@@ -1010,8 +1010,8 @@ it just produces a system closure.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add nixos-configurations/scheelite/default.nix nixos-configurations/scheelite/disko.nix
-git commit -m "nixos-configurations/scheelite: enable Stash on /tank0/media/adult"
+git add nixosConfigurations/scheelite/default.nix nixosConfigurations/scheelite/disko.nix
+git commit -m "nixosConfigurations/scheelite: enable Stash on /tank0/media/adult"
 ```
 
 #### Task 1.4 — Create dataset on live scheelite + deploy + verify
@@ -1073,13 +1073,13 @@ filename parsing alone misses.
 
 **Files:**
 
-- Create: `package-sets/top-level/stasharr-portal/default.nix`
+- Create: `overlays/topLevel/stasharr-portal/default.nix`
 
 **Steps:**
 
 - [ ] **Step 1: Create the derivation file**
 
-Write `package-sets/top-level/stasharr-portal/default.nix` with the
+Write `overlays/topLevel/stasharr-portal/default.nix` with the
 shape from the Phase 2 design above. Set `hash = lib.fakeHash;` for
 both `src` and `pnpmDeps`. Include `pnpm rebuild argon2` in
 buildPhase, the start-app.sh `/app/` → `./` substitution in
@@ -1088,7 +1088,7 @@ installPhase, and the `mainProgram = "stasharr-portal"` meta entry.
 - [ ] **Step 2: Track the new file**
 
 ```bash
-git add -N package-sets/top-level/stasharr-portal/default.nix
+git add -N overlays/topLevel/stasharr-portal/default.nix
 ```
 
 - [ ] **Step 3: Build and capture src hash**
@@ -1152,8 +1152,8 @@ verify the binary is reachable.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add package-sets/top-level/stasharr-portal/default.nix
-git commit -m "package-sets/top-level/stasharr-portal: package v0.1.0"
+git add overlays/topLevel/stasharr-portal/default.nix
+git commit -m "overlays/topLevel/stasharr-portal: package v0.1.0"
 ```
 
 ### Phase 3 — `theonecfg.services.stasharr`
@@ -1162,13 +1162,13 @@ git commit -m "package-sets/top-level/stasharr-portal: package v0.1.0"
 
 **Files:**
 
-- Create: `nixos-modules/services/stasharr/module.nix`
+- Create: `nixosModules/services/stasharr/module.nix`
 
 **Steps:**
 
 - [ ] **Step 1: Create the module file**
 
-Write `nixos-modules/services/stasharr/module.nix` per the design in
+Write `nixosModules/services/stasharr/module.nix` per the design in
 Phase 3 above. Include the `pgInstance` let-binding (this is the line
 the design phase didn't show explicitly):
 
@@ -1192,7 +1192,7 @@ under `mkIf config.theonecfg.services.caddy.enable`.
 - [ ] **Step 2: Track the new file**
 
 ```bash
-git add -N nixos-modules/services/stasharr/module.nix
+git add -N nixosModules/services/stasharr/module.nix
 ```
 
 - [ ] **Step 3: Run flake check**
@@ -1206,16 +1206,16 @@ Expected: passes (module not enabled anywhere yet).
 - [ ] **Step 4: Commit**
 
 ```bash
-git add nixos-modules/services/stasharr/module.nix
-git commit -m "nixos-modules/services/stasharr: new module — Stasharr Portal"
+git add nixosModules/services/stasharr/module.nix
+git commit -m "nixosModules/services/stasharr: new module — Stasharr Portal"
 ```
 
 #### Task 3.2 — Enable Stasharr on scheelite (declarative)
 
 **Files:**
 
-- Modify: `nixos-configurations/scheelite/default.nix`
-- Modify: `nixos-configurations/scheelite/disko.nix`
+- Modify: `nixosConfigurations/scheelite/default.nix`
+- Modify: `nixosConfigurations/scheelite/disko.nix`
 
 **Steps:**
 
@@ -1292,10 +1292,10 @@ Expected: succeeds.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add nixos-configurations/scheelite/default.nix \
-        nixos-configurations/scheelite/disko.nix \
+git add nixosConfigurations/scheelite/default.nix \
+        nixosConfigurations/scheelite/disko.nix \
         secrets/scheelite.yaml
-git commit -m "nixos-configurations/scheelite: enable Stasharr Portal"
+git commit -m "nixosConfigurations/scheelite: enable Stasharr Portal"
 ```
 
 #### Task 3.3 — Create datasets on live scheelite + deploy + verify

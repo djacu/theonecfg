@@ -144,7 +144,7 @@ fix (finalLibrary: {
       ## `lib.path.getDirectoryNames` usage example
 
       ```nix
-      getDirectoryNames ./home-modules
+      getDirectoryNames ./homeModules
       => [
         "djacu"
         "programs"
@@ -177,7 +177,7 @@ fix (finalLibrary: {
       ## `lib.path.getDirectories` usage example
 
       ```nix
-      getDirectories ./home-modules
+      getDirectories ./homeModules
       => {
         djacu = "directory";
         programs = "directory";
@@ -214,10 +214,10 @@ fix (finalLibrary: {
       ## `lib.path.joinParentToPaths` usage example
 
       ```nix
-      joinParentToPaths ./home-modules "users"
-      => /home/djacu/dev/djacu/theonecfg/home-modules/users
-      joinParentToPaths ./home-modules [ "users" djacu" "module.nix" "]
-      => /home/djacu/dev/djacu/theonecfg/home-modules/users/djacu/module.nix
+      joinParentToPaths ./homeModules "users"
+      => /home/djacu/dev/djacu/theonecfg/homeModules/users
+      joinParentToPaths ./homeModules [ "users" djacu" "module.nix" "]
+      => /home/djacu/dev/djacu/theonecfg/homeModules/users/djacu/module.nix
       ```
 
       :::
@@ -254,24 +254,24 @@ fix (finalLibrary: {
       ## `lib.modules.mkUserModules` usage example
 
       ```nix
-      mkUserModules ./home-modules "users"
+      mkUserModules ./homeModules "users"
       => {
            djacu = {
              _module = { ... };
              imports = [
-               "/nix/store/...-home-modules/users/djacu/module.nix"
-               "/nix/store/...-home-modules/packages/module.nix"
-               "/nix/store/...-home-modules/programs/module.nix"
-               "/nix/store/...-home-modules/services/module.nix"
+               "/nix/store/...-homeModules/users/djacu/module.nix"
+               "/nix/store/...-homeModules/packages/module.nix"
+               "/nix/store/...-homeModules/programs/module.nix"
+               "/nix/store/...-homeModules/services/module.nix"
              ];
            };
            ucajd = {
              _module = { ... };
              imports = [
-               "/nix/store/...-home-modules/users/ucajd/module.nix"
-               "/nix/store/...-home-modules/packages/module.nix"
-               "/nix/store/...-home-modules/programs/module.nix"
-               "/nix/store/...-home-modules/services/module.nix"
+               "/nix/store/...-homeModules/users/ucajd/module.nix"
+               "/nix/store/...-homeModules/packages/module.nix"
+               "/nix/store/...-homeModules/programs/module.nix"
+               "/nix/store/...-homeModules/services/module.nix"
              ];
            };
          }

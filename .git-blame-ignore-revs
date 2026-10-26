@@ -32,3 +32,6 @@
 
 # formatter-module: enable mdformat-gfm
 20f6a4847e0f8c46612afa8f36f5d06ef83149c5
+
+# docs: update paths and attribute names for the keywright architecture refactor
+d44dfdbf5e15f3a103aebf59722d58efbada708b

@@ -19,13 +19,13 @@ HBA, ZFS root with impermanence). Currently runs only system-level services
 (openssh, pcscd, zfs autoscrub) — no user-facing services.
 
 This plan adds a curated set of homelab services as new NixOS modules under
-`nixos-modules/services/`, following the repo's existing conventions:
+`nixosModules/services/`, following the repo's existing conventions:
 
-- Auto-import via `getDirectoryNames` (same pattern as `home-modules/services/module.nix:19-25`)
+- Auto-import via `getDirectoryNames` (same pattern as `homeModules/services/module.nix:19-25`)
 - Namespace `theonecfg.services.<name>`
 - `mkEnableOption` + `mkIf cfg.enable` skeleton (template at
-  `home-modules/programs/fish/module.nix:1-29` and
-  `nixos-modules/profiles/server/module.nix:1-34`)
+  `homeModules/programs/fish/module.nix:1-29` and
+  `nixosModules/profiles/server/module.nix:1-34`)
 - Prefer upstream NixOS modules; layer thin opinionated wrappers, don't reimplement.
   Always check what the upstream module already does (tmpfiles, RequiresMountsFor,
   StateDirectory, etc.) before duplicating it in the wrapper.
@@ -45,33 +45,33 @@ Initial in-scope services:
 
 ## Locked decisions
 
-| Topic                             | Decision                                                                                                                                                                                                                                                              |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Service isolation                 | Native systemd services on scheelite; postgres backings run in NixOS containers (per-service instance)                                                                                                                                                                |
-| Per-service postgres              | One `containers.postgres-<svc>` per service that needs a DB; bind-mounted to a dedicated ZFS dataset at `/persist/postgres/<svc>` (recordsize=8K)                                                                                                                     |
-| Local routing                     | Subdomain-based on `*.scheelite.lan`, served by Caddy                                                                                                                                                                                                                 |
-| Local DNS                         | AdGuard Home with wildcard rewrite `*.scheelite.lan → <scheelite IP>`; router DHCP advertises (scheelite, 1.1.1.1) so reboots fall back                                                                                                                               |
-| Identity                          | Kanidm as IdP. OIDC-aware services integrate natively. Non-OIDC services sit behind oauth2-proxy as forward-auth, validating Kanidm tokens                                                                                                                            |
-| Secrets                           | sops-nix. Encrypted to scheelite's persisted host SSH key + user's age key for editing                                                                                                                                                                                |
-| Storage layout                    | Hierarchical via disko: boot pool emits root + per-instance postgres datasets; tank0 emits `/tank0/media/{tv,anime,movies,adult,music,audiobooks,books,photos,youtube}`, `/tank0/downloads`, `/tank0/services/<svc>`. See `nixos-configurations/scheelite/disko.nix`. |
-| Disko import                      | `disko.nix` in repo but not yet imported in `scheelite/default.nix` (conflicts with existing `hardware.nix` filesystem entries). Import after a clean nixos-anywhere reinstall.                                                                                       |
-| Declarative \*arr/Jellyfin config | Four layers: upstream `services.<svc>` + env-var injection from sops + Recyclarr + custom REST one-shots. **Goal: zero web-UI clicks after deploy.** See `scheelite-declarative-arr.md`.                                                                              |
-| Recyclarr quality default         | 4K (UHD): `web-2160p-v4` for Sonarr, `anime-sonarr-v4` for sonarr-anime, `sqp/sqp-1-web-2160p` for Radarr                                                                                                                                                             |
-| qBittorrent password (B-lite)     | Localhost auth bypass for the loopback path (Caddy + our one-shots); PBKDF2 password seeded into `qBittorrent.conf` at preStart from sops plaintext, as defense in depth against accidental LAN-binding                                                               |
-| Log shipping                      | Grafana Alloy (replaces deprecated promtail; `services.alloy` config in `/etc/alloy/config.alloy`)                                                                                                                                                                    |
-| External access                   | **POSTPONED** — captured in `scheelite-external-access-options.md`                                                                                                                                                                                                    |
-| Backups                           | **DEFERRED** — captured in `scheelite-backup-options.md`                                                                                                                                                                                                              |
-| Vaultwarden                       | **DEFERRED** — depends on backup design landing first                                                                                                                                                                                                                 |
-| Reverse proxy                     | Caddy (over nginx) for simpler config and automatic ACME                                                                                                                                                                                                              |
-| VPN namespace for downloads       | Out of scope this iteration                                                                                                                                                                                                                                           |
-| Usenet (SABnzbd, NZBGet)          | Out of scope — torrents only                                                                                                                                                                                                                                          |
+| Topic                             | Decision                                                                                                                                                                                                                                                             |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Service isolation                 | Native systemd services on scheelite; postgres backings run in NixOS containers (per-service instance)                                                                                                                                                               |
+| Per-service postgres              | One `containers.postgres-<svc>` per service that needs a DB; bind-mounted to a dedicated ZFS dataset at `/persist/postgres/<svc>` (recordsize=8K)                                                                                                                    |
+| Local routing                     | Subdomain-based on `*.scheelite.lan`, served by Caddy                                                                                                                                                                                                                |
+| Local DNS                         | AdGuard Home with wildcard rewrite `*.scheelite.lan → <scheelite IP>`; router DHCP advertises (scheelite, 1.1.1.1) so reboots fall back                                                                                                                              |
+| Identity                          | Kanidm as IdP. OIDC-aware services integrate natively. Non-OIDC services sit behind oauth2-proxy as forward-auth, validating Kanidm tokens                                                                                                                           |
+| Secrets                           | sops-nix. Encrypted to scheelite's persisted host SSH key + user's age key for editing                                                                                                                                                                               |
+| Storage layout                    | Hierarchical via disko: boot pool emits root + per-instance postgres datasets; tank0 emits `/tank0/media/{tv,anime,movies,adult,music,audiobooks,books,photos,youtube}`, `/tank0/downloads`, `/tank0/services/<svc>`. See `nixosConfigurations/scheelite/disko.nix`. |
+| Disko import                      | `disko.nix` in repo but not yet imported in `scheelite/default.nix` (conflicts with existing `hardware.nix` filesystem entries). Import after a clean nixos-anywhere reinstall.                                                                                      |
+| Declarative \*arr/Jellyfin config | Four layers: upstream `services.<svc>` + env-var injection from sops + Recyclarr + custom REST one-shots. **Goal: zero web-UI clicks after deploy.** See `scheelite-declarative-arr.md`.                                                                             |
+| Recyclarr quality default         | 4K (UHD): `web-2160p-v4` for Sonarr, `anime-sonarr-v4` for sonarr-anime, `sqp/sqp-1-web-2160p` for Radarr                                                                                                                                                            |
+| qBittorrent password (B-lite)     | Localhost auth bypass for the loopback path (Caddy + our one-shots); PBKDF2 password seeded into `qBittorrent.conf` at preStart from sops plaintext, as defense in depth against accidental LAN-binding                                                              |
+| Log shipping                      | Grafana Alloy (replaces deprecated promtail; `services.alloy` config in `/etc/alloy/config.alloy`)                                                                                                                                                                   |
+| External access                   | **POSTPONED** — captured in `scheelite-external-access-options.md`                                                                                                                                                                                                   |
+| Backups                           | **DEFERRED** — captured in `scheelite-backup-options.md`                                                                                                                                                                                                             |
+| Vaultwarden                       | **DEFERRED** — depends on backup design landing first                                                                                                                                                                                                                |
+| Reverse proxy                     | Caddy (over nginx) for simpler config and automatic ACME                                                                                                                                                                                                             |
+| VPN namespace for downloads       | Out of scope this iteration                                                                                                                                                                                                                                          |
+| Usenet (SABnzbd, NZBGet)          | Out of scope — torrents only                                                                                                                                                                                                                                         |
 
 ## Module layout
 
 All auto-imported by an existing `getDirectoryNames` pattern (no manual wiring):
 
 ```text
-nixos-modules/services/
+nixosModules/services/
 ├── module.nix                  # auto-import boilerplate
 ├── caddy/module.nix            # reverse proxy
 ├── adguard/module.nix          # LAN DNS + ad blocking
@@ -129,7 +129,7 @@ in {
 
 ### Disko-managed (target state)
 
-`nixos-configurations/scheelite/disko.nix` declares both pools and the
+`nixosConfigurations/scheelite/disko.nix` declares both pools and the
 complete dataset hierarchy with per-dataset properties (recordsize,
 compression, atime, mountpoint). It is **not yet imported** in
 `scheelite/default.nix` because importing it conflicts with the
@@ -195,7 +195,7 @@ scheelite-tank0             POOL on HGST ×8 raidz3 via LSI HBA
         └── loki
 ```
 
-### Persistence (`nixos-configurations/scheelite/impermanence.nix`)
+### Persistence (`nixosConfigurations/scheelite/impermanence.nix`)
 
 Add to `environment.persistence."/persist".directories`:
 
@@ -221,7 +221,7 @@ boot pool's `safe` branch.
 
 ## Foundational modules — sketches
 
-### sops-nix wiring (`nixos-modules/services/sops/module.nix`)
+### sops-nix wiring (`nixosModules/services/sops/module.nix`)
 
 ```nix
 imports = [ inputs.sops-nix.nixosModules.sops ];
@@ -249,14 +249,14 @@ Initial secrets needed (full list grew with declarative-config layer):
 - `immich/db-password`
 - `paperless/admin-password`, `paperless/db-password`
 
-### Caddy (`nixos-modules/services/caddy/module.nix`)
+### Caddy (`nixosModules/services/caddy/module.nix`)
 
 Enables `services.caddy`, opens 80/443 firewall, accepts vhost registrations from
 other modules. Each service registers its own LAN vhost; Caddy uses internal CA
 for local TLS. External-access modules will later add public vhosts on the same
 Caddy.
 
-### AdGuard Home (`nixos-modules/services/adguard/module.nix`)
+### AdGuard Home (`nixosModules/services/adguard/module.nix`)
 
 ```nix
 services.adguardhome = {
@@ -276,7 +276,7 @@ services.adguardhome = {
 
 One-time user action: set router DHCP DNS to `(scheelite IP, 1.1.1.1)`.
 
-### Per-service postgres helper (`nixos-modules/services/postgres/module.nix`)
+### Per-service postgres helper (`nixosModules/services/postgres/module.nix`)
 
 Provides `theonecfg.services.postgres.instances.<name>` as `attrsOf submodule`.
 Each entry produces a `containers."postgres-<name>"` with its own NixOS, its
@@ -299,7 +299,7 @@ from port (`10.233.<port-5432>.0/24`). Host-side directory pre-created by
 Service modules reference postgres via env vars (`<APP>__POSTGRES__HOST=127.0.0.1`,
 `<APP>__POSTGRES__PORT=<port>`, etc.).
 
-### Kanidm (`nixos-modules/services/kanidm/module.nix`)
+### Kanidm (`nixosModules/services/kanidm/module.nix`)
 
 ```nix
 services.kanidm = {
@@ -436,7 +436,7 @@ Audited per-module to avoid duplicating what upstream NixOS modules already do:
 LAN-only. Grafana is the most likely to want public access later — opt-in
 via a `publicDomain` option once external access is decided.
 
-## Scheelite wiring (`nixos-configurations/scheelite/default.nix`)
+## Scheelite wiring (`nixosConfigurations/scheelite/default.nix`)
 
 The full wiring block is committed with all enables set to `false`. Real
 deployment fills in:
@@ -504,7 +504,7 @@ The `192.168.x.y` placeholder must be resolved to scheelite's actual LAN IP.
 Each phase ends with a clean `nixos-rebuild build .#scheelite`.
 
 1. **Phase 0 — Repo bootstrap** *(done at module-level).* `sops-nix` flake input,
-   `nixos-modules/services/module.nix`, `secrets/.sops.yaml` placeholder.
+   `nixosModules/services/module.nix`, `secrets/.sops.yaml` placeholder.
    *Deployment prerequisites*: generate user age key, derive scheelite host
    age key, populate `secrets/.sops.yaml` and `secrets/scheelite.yaml`,
    apply disko via `nixos-anywhere`.
@@ -555,35 +555,35 @@ Each phase ends with a clean `nixos-rebuild build .#scheelite`.
 
 To create:
 
-- `nixos-modules/services/module.nix` (auto-import)
-- `nixos-modules/services/<name>/module.nix` for each module listed above,
+- `nixosModules/services/module.nix` (auto-import)
+- `nixosModules/services/<name>/module.nix` for each module listed above,
   including `sonarr-anime`, `recyclarr`, `jellyseerr`
-- `nixos-modules/services/monitoring/module.nix` (auto-import for the subdir)
+- `nixosModules/services/monitoring/module.nix` (auto-import for the subdir)
 - `library/declarative-arr.nix` — REST one-shot helpers
 - `library/arr-types.nix` — shared option types
-- `nixos-configurations/scheelite/disko.nix` — declarative pool + dataset config
+- `nixosConfigurations/scheelite/disko.nix` — declarative pool + dataset config
 - `secrets/.sops.yaml` (recipients)
 - `secrets/scheelite.yaml` (sops-encrypted)
 
 To modify:
 
 - `flake.nix` — add `sops-nix` flake input
-- `nixos-modules/default.nix` — import `inputs.sops-nix.nixosModules.sops`
+- `nixosModules/default.nix` — import `inputs.sops-nix.nixosModules.sops`
 - `library/default.nix` — re-export `declarative` and `arrTypes`
-- `nixos-configurations/scheelite/impermanence.nix` — add new persistence directories
-- `nixos-configurations/scheelite/default.nix` — enable `theonecfg.services.*`
+- `nixosConfigurations/scheelite/impermanence.nix` — add new persistence directories
+- `nixosConfigurations/scheelite/default.nix` — enable `theonecfg.services.*`
   block (currently committed with all enables = `false`)
-- `nixos-configurations/scheelite/hardware.nix` — to be cleaned up after
+- `nixosConfigurations/scheelite/hardware.nix` — to be cleaned up after
   the disko reinstall (drop the `fileSystems` and `swapDevices` entries
   that disko emits)
 
 ## Reused functions / patterns
 
 - `library/default.nix` `getDirectoryNames` and `joinParentToPaths` —
-  for module auto-import boilerplate (mirror `home-modules/services/module.nix:19-25`).
-- `home-modules/programs/fish/module.nix:1-29` — module skeleton template.
-- `nixos-modules/profiles/server/module.nix:1-34` — option/`mkIf cfg.enable` pattern.
-- `nixos-configurations/scheelite/impermanence.nix` — extend the existing persistence
+  for module auto-import boilerplate (mirror `homeModules/services/module.nix:19-25`).
+- `homeModules/programs/fish/module.nix:1-29` — module skeleton template.
+- `nixosModules/profiles/server/module.nix:1-34` — option/`mkIf cfg.enable` pattern.
+- `nixosConfigurations/scheelite/impermanence.nix` — extend the existing persistence
   block; don't add a parallel one.
 - `config.ids.uids.<name>` and `config.ids.gids.<name>` — for stable system uids/gids
   in tmpfiles ownership.

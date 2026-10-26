@@ -177,7 +177,7 @@ by-path → still gets named `A10`.
 
 ### NixOS wiring
 
-Add to `nixos-configurations/scheelite/default.nix`:
+Add to `nixosConfigurations/scheelite/default.nix`:
 
 ```nix
 environment.etc."zfs/vdev_id.conf".text = ''
@@ -267,7 +267,7 @@ override needed.
    (find the one not yet known to the pool).
 1. `zpool replace scheelite-tank0 wwn-0x<old> /dev/disk/by-id/wwn-0x<new>`.
 1. Wait for resilver.
-1. Edit `nixos-configurations/scheelite/disko.nix` — change the
+1. Edit `nixosConfigurations/scheelite/disko.nix` — change the
    matching `tank0_dN.device` from the old WWN to the new one.
 1. Commit.
 
@@ -318,6 +318,6 @@ the install with the now-missing old WWN and fail.
 - nixpkgs ZFS module: `nixos/modules/tasks/filesystems/zfs.nix`
   (lines 86–87 for per-pool import, 412–429 for the per-pool option).
 - disko: `lib/types/disk.nix`, `lib/types/zfs.nix`, `lib/types/zpool.nix`.
-- This repo: `nixos-configurations/scheelite/disko.nix` (current by-id
-  config), `nixos-configurations/scheelite/default.nix` (current
+- This repo: `nixosConfigurations/scheelite/disko.nix` (current by-id
+  config), `nixosConfigurations/scheelite/default.nix` (current
   `boot.zfs.devNodes` setting).

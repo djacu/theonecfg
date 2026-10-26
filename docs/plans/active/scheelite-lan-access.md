@@ -227,12 +227,12 @@ When a domain is picked and Path B is chosen, here's what changes:
      ```
 
 1. **`theonecfg.networking.lanDomain`** — change from `"literallyhell"`
-   to the chosen domain in `nixos-configurations/scheelite/default.nix`.
+   to the chosen domain in `nixosConfigurations/scheelite/default.nix`.
    AdGuard rewrites and all Caddy vhost defaults
    (`<service>.${lanDomain}`) cascade automatically.
 
 1. **Caddy with the Porkbun DNS plugin** —
-   `nixos-modules/services/caddy/module.nix`:
+   `nixosModules/services/caddy/module.nix`:
 
    ```nix
    services.caddy = {

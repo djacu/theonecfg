@@ -7,7 +7,7 @@
 ## Context
 
 Paperless-ngx is configured with native OIDC against Kanidm (via
-django-allauth, see `nixos-modules/services/paperless/module.nix`).
+django-allauth, see `nixosModules/services/paperless/module.nix`).
 First time you sign in via Kanidm, django-allauth auto-creates a
 Django user matching your Kanidm identity (e.g. `djacu`) — but with
 **zero permissions**. The Paperless web UI then immediately throws:

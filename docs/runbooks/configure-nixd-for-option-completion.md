@@ -48,7 +48,7 @@ Drop the `nixos` entry if not needed; substitute a real host name if you do want
 
 After dropping the file, in `claude` inside this repo:
 
-- Open any `.nix` file (e.g. `home-modules/programs/claude/module.nix`).
+- Open any `.nix` file (e.g. `homeModules/programs/claude/module.nix`).
 - Ask: *"use nixd to show the type and default of `programs.claude-code.enable`"* (home-manager options) or *"...of `services.openssh.enable`"* (nixos options, requires the `nixos` entry).
 - Should now resolve to the real option type and default. If you still get `Found 0 hover info`, check `~/.claude/debug/` for nixd init errors and confirm `pgrep -af nixd` shows the process running.
 
@@ -78,5 +78,5 @@ To check: set this in the module, rebuild + activate, and tail `~/.claude/debug/
 
 ## Related
 
-- `home-modules/programs/claude/module.nix` — where `lspServers.nix` is wired.
+- `homeModules/programs/claude/module.nix` — where `lspServers.nix` is wired.
 - nixd upstream docs: https://github.com/nix-community/nixd/blob/main/docs/configuration.md

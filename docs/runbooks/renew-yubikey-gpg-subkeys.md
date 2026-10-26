@@ -5,7 +5,7 @@ offline certify key, on an air-gapped laptop booted from the `uraninite`
 live ISO. Nothing is written to the YubiKey; subkey expiry lives in
 self-signatures on the public key.
 
-The VM test `theonecfgTests.yubikey-live` (`hydra-jobs/vm-tests.nix`) runs
+The VM test `theonecfgNixosTests.yubikey-live` (`hydra-jobs/vm-tests.nix`) runs
 the renewal line below against a throwaway key. Keep the two identical.
 
 ## Prerequisites
@@ -203,11 +203,11 @@ cd ~/dev/djacu/theonecfg
 git switch -c djacu/gpg-renewal-(date +%Y)
 set new 8C9CFEF8EE37DA95-YYYY-MM-DD.asc
 test -f /mnt/public/$new; or echo "no such file on the transfer stick"
-git rm home-modules/users/djacu/programs/gpg/8C9CFEF8EE37DA95-*.asc
-cp /mnt/public/$new home-modules/users/djacu/programs/gpg/$new
-sed -i "s|source = ./8C9CFEF8EE37DA95-.*\\.asc;|source = ./$new;|" home-modules/users/djacu/programs/gpg/module.nix
+git rm homeModules/users/djacu/programs/gpg/8C9CFEF8EE37DA95-*.asc
+cp /mnt/public/$new homeModules/users/djacu/programs/gpg/$new
+sed -i "s|source = ./8C9CFEF8EE37DA95-.*\\.asc;|source = ./$new;|" homeModules/users/djacu/programs/gpg/module.nix
 sudo umount /mnt/public
-git add home-modules/users/djacu/programs/gpg
+git add homeModules/users/djacu/programs/gpg
 git diff --cached --stat
 home-manager switch --flake .#ilmenite-djacu
 gpg -k 0x8C9CFEF8EE37DA95

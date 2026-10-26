@@ -6,12 +6,12 @@
 
 Formatter setup to use for the repository.
 
-### home-configurations
+### homeConfigurations
 
 Home-manager configurations for a combination of host and user.
 They are accessed via `homeConfigurations.<host>-<user>` attributes.
 
-### home-modules
+### homeModules
 
 Home-manager modules under `theonecfg` namespace gated behind `enable` options.
 Modules are grouped in directories by `programs`, `services`, or a `<user>`.
@@ -20,16 +20,40 @@ Modules not under a `<user>` directory are available for all users to define.
 See `mkUserModules` for details about how modules are filtered.
 They are accessed via `homeConfigurations.<user>` attributes.
 
-### legacy-packages
+### hydra-jobs
+
+Jobset files for Hydra, in nixpkgs' release-lib style.
+Each file is a function producing `<job>.<system>` attributes and is evaluated by path, not through a flake output.
+
+| file                       | jobs                                                                                          |
+| -------------------------- | --------------------------------------------------------------------------------------------- |
+| `packages.nix`             | every package under `overlays/topLevel/`                                                      |
+| `vm-tests.nix`             | every VM test under `overlays/nixosTests/`, as `theonecfgNixosTests.<test>`                   |
+| `nixos-configurations.nix` | every host in `nixosConfigurations`: the toplevel, VM, or ISO its `knownHosts` type calls for |
+| `home-configurations.nix`  | every `homeConfigurations.<host>-<user>` activation package                                   |
+
+`theonecfg-verify-hydra-jobset` evaluates a jobset file and builds every job:
+
+```sh
+nix run .#theonecfg-verify-hydra-jobset -- ./hydra-jobs/packages.nix
+```
+
+CI runs `packages.nix` and `vm-tests.nix`.
+The configuration jobsets do not fit a free runner; run them locally before merging a change to a host or a user.
+
+The jobset files see the flake through `builtins.getFlake "git+file://..."`, which only sees git-tracked files.
+A new directory must be `git add`ed before any jobset sees it.
+
+### legacyPackages
 
 A nixpkgs package set with `theonecfg` overlays applied.
 
-### nixos-configurations
+### nixosConfigurations
 
 NixOS configurations for a host.
 They are accessed via `nixosConfigurations.<host>`.
 
-### nixos-modules
+### nixosModules
 
 NixOS modules under `theonecfg` namespace gated behind `enable` options.
 There is currently little structure here except for user specific modules which are in directories.
@@ -37,13 +61,12 @@ There is currently little structure here except for user specific modules which 
 ### overlays
 
 Centralized overlays to be used elsewhere in `theonecfg`.
-Pulls in external overlays from inputs.
-Pulls in internal overlays from directories in the `overlays` directory that have a `package.nix` file.
-Currently used in `legacy-packages`, `nixos-modules`, and `home-configurations`.
-
-### packages
-
-Packages that can be built or run.
+Package sources live here, one subdirectory per overlay, each spelled like the overlay attribute it produces:
+`topLevel/` holds one `package.nix` per package, exposed as `pkgs.<name>`;
+`nixosTests/` holds the VM tests, exposed as `pkgs.theonecfgNixosTests.<name>`;
+`fixes/` holds `overlay.nix` files amending upstream packages;
+`inputOverlays/` holds one `overlay.nix` per flake input that ships packages.
+Currently used in `legacyPackages`, `nixosModules`, `homeConfigurations`, and `hydra-jobs/common.nix`.
 
 ## hosts
 
@@ -64,7 +87,7 @@ Packages that can be built or run.
 1. Partition the drives.
    This creates a new temporary directory where the drives are mounted.
    For example, `/tmp/tmp.kWXrNPDsDG/`, which is set to `MNT` in the setup script.
-   1. `cd nixos-configurations/scheelite`
+   1. `cd nixosConfigurations/scheelite`
    1. `./setup.sh`
    1. `cd -`
 1. If there have been hardware changes, regenerate the hardware configuration.

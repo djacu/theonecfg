@@ -166,7 +166,7 @@ User confirmed audible result: "much quieter."
 
 5. **Persist `nct6775` and `sg` kernel modules in scheelite config.**
 
-   Add to `nixos-configurations/scheelite/default.nix` (or a new `nixos-modules/hardware/sensors/module.nix` wrapping it):
+   Add to `nixosConfigurations/scheelite/default.nix` (or a new `nixosModules/hardware/sensors/module.nix` wrapping it):
 
    ```nix
    boot.kernelModules = [ "nct6775" "sg" ];
@@ -185,7 +185,7 @@ User confirmed audible result: "much quieter."
    - Once HBA fan is installed and verified working.
    - Run `pwmconfig` interactively on scheelite to map PWM channels to fans (the tool sweeps each PWM channel and asks which fan stops).
    - Generate `/etc/fancontrol` (or pass via `services.fancontrol.config`).
-   - Wrap in a NixOS module: `nixos-modules/hardware/fancontrol/module.nix`.
+   - Wrap in a NixOS module: `nixosModules/hardware/fancontrol/module.nix`.
    - **Cannot control:** the 3 backplane fans (autonomous, not motherboard-visible).
    - **Can control:** CPU_FAN, CHA_FAN2 (rear NF-A8 chain), CHA_FAN1 (planned HBA fan), CHA_FAN3 (potential expander fan).
    - Drive curves off the appropriate sensor: `k10temp` Tctl for CPU fan, motherboard / `AUXTIN0` (PCH) for chassis fans.

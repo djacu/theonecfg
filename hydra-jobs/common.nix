@@ -11,9 +11,6 @@
   # Whether to apply hydraJob to each derivation.
   scrubJobs ? true,
 
-  # Additional overlays to apply to the package set.
-  extraOverlays ? [ ],
-
   # The path to Nixpkgs.
   nixpkgs ? null,
 }@args:
@@ -59,8 +56,7 @@ in
       };
       overlays = [
         self.overlays.default
-      ]
-      ++ extraOverlays;
+      ];
     };
   };
 
