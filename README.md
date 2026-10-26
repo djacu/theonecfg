@@ -66,7 +66,7 @@ Package sources live here, one subdirectory per overlay, each spelled like the o
 `nixosTests/` holds the VM tests, exposed as `pkgs.theonecfgNixosTests.<name>`;
 `fixes/` holds `overlay.nix` files amending upstream packages;
 `inputOverlays/` holds one `overlay.nix` per flake input that ships packages.
-Currently used in `legacyPackages`, `nixosModules`, and `homeConfigurations`.
+Currently used in `legacyPackages`, `nixosModules`, `homeConfigurations`, and `hydra-jobs/common.nix`.
 
 ## hosts
 
