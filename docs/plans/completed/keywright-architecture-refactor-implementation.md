@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 Date: 2026-10-25
-Status: active
+Status: implemented 2026-10-25
 
 **Goal:** Rename the flake-output directories, move package sources under `overlays/`, flatten the `theonecfg` package scope, replace the `hydraJobs` and `packages` flake outputs with release-lib jobset files plus one generic verify tool, and point CI at the two jobsets a free runner can finish, without changing what any host or home builds.
 

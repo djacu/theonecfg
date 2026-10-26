@@ -1,7 +1,7 @@
 # Keywright architecture refactor
 
 Date: 2026-10-25
-Status: approved 2026-10-25. Implementation plan: `docs/plans/active/keywright-architecture-refactor-implementation.md`.
+Status: implemented 2026-10-25. Implementation plan: `docs/plans/completed/keywright-architecture-refactor-implementation.md`. Every configuration drvPath matched the baseline through the refactor commits; scheelite's toplevel differs only by the paperless-ngx fix committed afterwards.
 
 ## Intent
 
