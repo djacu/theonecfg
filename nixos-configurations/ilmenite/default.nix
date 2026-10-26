@@ -24,8 +24,9 @@ inputs: {
         nixpkgs.hostPlatform = "x86_64-linux";
         system.stateVersion = "26.05";
 
-        # On a kernel bump, run the udevadm monitor check described above the
-        # ACAD udev rule in hibernation.nix.
+        # On a kernel bump, revisit the two workarounds in hibernation.nix:
+        # whether the kernel now carries the btintel_pcie sleep fix, and the
+        # udevadm monitor check described above the ACAD udev rule.
         boot.kernelPackages = pkgs.linuxPackages_6_18;
         boot.loader.systemd-boot.enable = true;
         boot.loader.efi.canTouchEfiVariables = true;
