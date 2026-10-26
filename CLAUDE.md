@@ -26,3 +26,5 @@ Prefer the local flake's `legacyPackages` over going directly to `nixpkgs` for o
 - ❌ `nix shell --inputs-from . nixpkgs#ripgrep -c rg ...`
 
 The `legacyPackages` output applies overlays (patches, overrides, custom packages) that the flake configures; going straight to `nixpkgs#` bypasses those. Only fall back to `--inputs-from . nixpkgs#<attr>` if a package isn't surfaced via `legacyPackages` (rare).
+
+`legacyPackages` sets `allowAliases = false`. If `nix shell .#<name>` fails because `<name>` is an alias, use the canonical attribute name. Do not fall back to `--inputs-from . nixpkgs#` for this; that bypasses the overlays.
