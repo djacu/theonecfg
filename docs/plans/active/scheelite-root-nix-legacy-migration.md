@@ -67,7 +67,7 @@ gating applies to the initrd path, then revisit.
 
 ### F3 — Disko config change
 
-`nixos-configurations/scheelite/disko.nix`: change `local/root` and
+`nixosConfigurations/scheelite/disko.nix`: change `local/root` and
 `local/nix`'s `options.mountpoint` from path values to `"legacy"`.
 Single commit. Same shape as commit `58ae74e`'s 40-dataset change.
 
@@ -86,7 +86,7 @@ sudo /run/current-system/bin/switch-to-configuration boot
 
 ### F5 — Rollback-root initrd service interaction
 
-`nixos-configurations/scheelite/default.nix:34-45` runs `zfs rollback -r zroot/local/root@empty` before `sysroot.mount`. Verify the unit
+`nixosConfigurations/scheelite/default.nix:34-45` runs `zfs rollback -r zroot/local/root@empty` before `sysroot.mount`. Verify the unit
 name and ordering still hold after the flip:
 
 ```fish

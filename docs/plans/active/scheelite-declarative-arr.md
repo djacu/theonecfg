@@ -148,7 +148,7 @@ options.
 ## Sonarr-anime: second Sonarr instance
 
 NixOS' upstream `services.sonarr` is a singleton. The anime instance is
-built from scratch in `nixos-modules/services/sonarr-anime/module.nix`:
+built from scratch in `nixosModules/services/sonarr-anime/module.nix`:
 
 - A separate `systemd.services.sonarr-anime` unit using `pkgs.sonarr` as
   the binary, with hardening cloned from upstream.
@@ -209,7 +209,7 @@ and Prowlarr's inline applications one-shot.
 - **Jellyseerr first-run wizard** is a multi-step OAuth-against-Jellyfin
   flow. Doable but not yet implemented. Currently Jellyseerr is shipped
   as "click-through-once" — the only manual step in the entire stack.
-  Tracked in `nixos-modules/services/jellyseerr/module.nix` as a TODO.
+  Tracked in `nixosModules/services/jellyseerr/module.nix` as a TODO.
 
 - **Custom Jellyfin branding** (logo, custom CSS) — would use
   `/Branding/Configuration` POST. Helper not yet written.
@@ -269,7 +269,7 @@ and Prowlarr's inline applications one-shot.
 
   1. Sops: add `empornium/totp-secret` with the base32 TOTP seed (same
      string the authenticator app uses).
-  1. Nix: in `nixos-configurations/scheelite/default.nix`, change
+  1. Nix: in `nixosConfigurations/scheelite/default.nix`, change
      `definitionFile = "empornium"` → `"empornium2fa"`, add a third
      `_<field>File` marker for the TOTP secret (exact field name from
      `/api/v1/indexer/schema` for the `empornium2fa` definition —
@@ -282,16 +282,16 @@ Created:
 
 - `library/declarative-arr.nix`
 - `library/arr-types.nix`
-- `nixos-modules/services/sonarr-anime/module.nix`
-- `nixos-modules/services/recyclarr/module.nix`
-- `nixos-modules/services/jellyseerr/module.nix`
-- `nixos-configurations/scheelite/disko.nix`
+- `nixosModules/services/sonarr-anime/module.nix`
+- `nixosModules/services/recyclarr/module.nix`
+- `nixosModules/services/jellyseerr/module.nix`
+- `nixosConfigurations/scheelite/disko.nix`
 
 Modified:
 
 - `library/default.nix` (re-exports declarative + arrTypes)
-- `nixos-modules/services/{sonarr,radarr,whisparr,prowlarr,jellyfin,qbittorrent}/module.nix`
-- `nixos-configurations/scheelite/{default,impermanence}.nix`
+- `nixosModules/services/{sonarr,radarr,whisparr,prowlarr,jellyfin,qbittorrent}/module.nix`
+- `nixosConfigurations/scheelite/{default,impermanence}.nix`
 
 ## Verification (per service, after deployment)
 

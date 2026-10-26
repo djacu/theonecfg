@@ -114,7 +114,7 @@ networking.firewall.trustedInterfaces = [ "tailscale0" ];
 Two pieces:
 
 1. New nixosConfiguration for the VPS (headscale runs there). Joins the existing
-   `nixos-configurations/` pattern.
+   `nixosConfigurations/` pattern.
 1. New `theonecfg.services.headscale.enable` module on the VPS;
    `theonecfg.services.tailscale.enable` on scheelite, configured to use the
    self-hosted control plane.
@@ -308,7 +308,7 @@ services.cloudflared = {
 
 **How it slots into the plan**
 
-- New nixosConfiguration for the VPS (joins existing `nixos-configurations/` pattern).
+- New nixosConfiguration for the VPS (joins existing `nixosConfigurations/` pattern).
 - New `theonecfg.services.nebula` module with two roles — `lighthouse` (runs on VPS;
   has public IP) and `peer` (joins mesh; gets a private Nebula IP).
 - VPS host enables `nebula.lighthouse` + Caddy public vhosts that `reverse_proxy` to

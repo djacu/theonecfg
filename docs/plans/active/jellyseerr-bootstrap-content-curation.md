@@ -2,7 +2,7 @@
 
 ## Context
 
-`nixos-modules/services/jellyseerr/module.nix` runs a one-shot
+`nixosModules/services/jellyseerr/module.nix` runs a one-shot
 `jellyseerr-bootstrap.service` on first deploy that:
 
 1. Logs into Seerr via Jellyfin auth (creating the Seerr admin user).
@@ -39,7 +39,7 @@ profile Seerr was pointing at. Seerr is now holding a stale
 profile ID.
 
 **Where it lives**:
-`nixos-modules/services/jellyseerr/module.nix` lines ~213-215
+`nixosModules/services/jellyseerr/module.nix` lines ~213-215
 (the `profileId` / `profileName` jq filters).
 
 ## Gap 2 — Root folder doesn't show selected in v3.2.0 UI

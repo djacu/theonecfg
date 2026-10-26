@@ -77,4 +77,4 @@ Known issues and their solutions. Use this directory to document problems that h
 - All documents are Markdown files (`.md`).
 - Use descriptive filenames in kebab-case (e.g., `zfs-rollback-migration.md`).
 - Include a date and status at the top of reports, investigations, and plans.
-- When a document references specific files in the repository, use paths relative to the repository root (e.g., `nixos-configurations/scheelite/default.nix`).
+- When a document references specific files in the repository, use paths relative to the repository root (e.g., `nixosConfigurations/scheelite/default.nix`).

@@ -14,7 +14,7 @@
 
 - **Branch/PR:** create branch `djacu/whisparr-namer-rescue` in Task 1; all commits land there. Push and open a PR after Task 9 (CI must be green). Task 10 deploys from the local branch checkout; merge the PR after Task 10's supervised verification.
 - **Formatter gate:** CI runs the repo formatter over the whole tree (`nixfmt` for .nix, `mdformat` for .md). Before EVERY commit: `nix fmt <files you touched>`. A commit that skips this fails CI.
-- Repo conventions (CLAUDE.md): module skeleton `options.theonecfg.services.namer.enable = mkEnableOption ...` + `config = mkIf cfg.enable (mkMerge [...])`; inherit `mkEnableOption` from `lib.options`, `mkIf`/`mkMerge` from `lib.modules` in a `let` block. Auto-import handles new `nixos-modules/services/<name>/module.nix` — no manual wiring.
+- Repo conventions (CLAUDE.md): module skeleton `options.theonecfg.services.namer.enable = mkEnableOption ...` + `config = mkIf cfg.enable (mkMerge [...])`; inherit `mkEnableOption` from `lib.options`, `mkIf`/`mkMerge` from `lib.modules` in a `let` block. Auto-import handles new `nixosModules/services/<name>/module.nix` — no manual wiring.
 - **`git add -N <new files>` immediately after creating any new file** — nix cannot see untracked files.
 - Validation command is `nix build .#nixosConfigurations.scheelite.config.system.build.toplevel` (never `nix flake check` locally — too slow). Parse-only checks: `nix eval`.
 - Commit subjects use nix attr paths for nix-reachable things (`pkgs.namer`, `nixosModules.theonecfg.services.namer`, `nixosConfigurations.scheelite`); file paths for docs. NO `Co-Authored-By` trailers. Commits describe what is true at that point in history.
@@ -28,17 +28,17 @@
 ## File Structure
 
 ```
-package-sets/top-level/namer/package.nix        # MODIFY: drop JAV patch
-package-sets/top-level/namer/jav-auto-lookup.patch  # DELETE
-nixos-modules/services/namer/module.nix          # CREATE: options, namer.service,
+overlays/topLevel/namer/package.nix        # MODIFY: drop JAV patch
+overlays/topLevel/namer/jav-auto-lookup.patch  # DELETE
+nixosModules/services/namer/module.nix          # CREATE: options, namer.service,
                                                  #   config template, caddy, users,
                                                  #   secrets, tmpfiles, shuttle units
-nixos-modules/services/namer/shuttle.py          # CREATE: the shuttle (feed/harvest/
+nixosModules/services/namer/shuttle.py          # CREATE: the shuttle (feed/harvest/
                                                  #   reconcile), pure-stdlib
-nixos-modules/services/namer/shuttle_test.py     # CREATE: unittest suite for shuttle
-nixos-modules/services/homepage/module.nix       # MODIFY: one knownTiles entry
-nixos-configurations/scheelite/disko.nix         # MODIFY: tank0/services/namer dataset
-nixos-configurations/scheelite/default.nix       # MODIFY: enable + host paths + qBt UMask
+nixosModules/services/namer/shuttle_test.py     # CREATE: unittest suite for shuttle
+nixosModules/services/homepage/module.nix       # MODIFY: one knownTiles entry
+nixosConfigurations/scheelite/disko.nix         # MODIFY: tank0/services/namer dataset
+nixosConfigurations/scheelite/default.nix       # MODIFY: enable + host paths + qBt UMask
 secrets/scheelite.yaml                           # MODIFY (user runs sops): namer/tpdb-token
 ```
 
@@ -80,8 +80,8 @@ ______________________________________________________________________
 
 **Files:**
 
-- Modify: `package-sets/top-level/namer/package.nix` (intent-to-add in the index; Step 4's `git add` stages the real content)
-- Delete: `package-sets/top-level/namer/jav-auto-lookup.patch`
+- Modify: `overlays/topLevel/namer/package.nix` (intent-to-add in the index; Step 4's `git add` stages the real content)
+- Delete: `overlays/topLevel/namer/jav-auto-lookup.patch`
 
 **Interfaces:**
 
@@ -89,7 +89,7 @@ ______________________________________________________________________
 
 - [ ] **Step 1: Remove the patch reference**
 
-In `package-sets/top-level/namer/package.nix`, delete lines 118-123 —
+In `overlays/topLevel/namer/package.nix`, delete lines 118-123 —
 the blank line ABOVE the comment block, the comment block, and the
 `patches` attribute (leaving exactly one blank line between
 `build-system = ...` and `dependencies = ...`; leaving two fails
@@ -107,15 +107,15 @@ nixfmt):
 - [ ] **Step 2: Delete the patch file**
 
 ```bash
-git rm --cached package-sets/top-level/namer/jav-auto-lookup.patch 2>/dev/null || true
-rm -f package-sets/top-level/namer/jav-auto-lookup.patch
+git rm --cached overlays/topLevel/namer/jav-auto-lookup.patch 2>/dev/null || true
+rm -f overlays/topLevel/namer/jav-auto-lookup.patch
 ```
 
 - [ ] **Step 3: Build and format-check**
 
 ```bash
 nix build --no-link .#legacyPackages.x86_64-linux.namer
-nix fmt package-sets/top-level/namer/package.nix
+nix fmt overlays/topLevel/namer/package.nix
 ```
 
 Expected: build succeeds; `nix fmt` reports no changes (if it changed
@@ -124,7 +124,7 @@ the file, re-check Step 1's blank-line handling).
 - [ ] **Step 4: Commit**
 
 ```bash
-git add package-sets/top-level/namer/
+git add overlays/topLevel/namer/
 git commit -m "pkgs.namer: package namer 1.19.20 with videohashes and web UI"
 ```
 
@@ -134,7 +134,7 @@ ______________________________________________________________________
 
 **Files:**
 
-- Create: `nixos-modules/services/namer/module.nix`
+- Create: `nixosModules/services/namer/module.nix`
 
 **Interfaces:**
 
@@ -144,7 +144,7 @@ ______________________________________________________________________
 
 - [ ] **Step 1: Write the module**
 
-Create `nixos-modules/services/namer/module.nix`:
+Create `nixosModules/services/namer/module.nix`:
 
 ```nix
 {
@@ -472,8 +472,8 @@ not warn on unused let bindings, so keep it.
 - [ ] **Step 2: Make it visible to nix, format, and check evaluation**
 
 ```bash
-git add -N nixos-modules/services/namer/module.nix
-nix fmt nixos-modules/services/namer/module.nix
+git add -N nixosModules/services/namer/module.nix
+nix fmt nixosModules/services/namer/module.nix
 nix eval .#nixosConfigurations.scheelite.config.theonecfg.services.namer.enable
 ```
 
@@ -491,7 +491,7 @@ Expected: builds (namer disabled → no behavior change).
 - [ ] **Step 4: Commit**
 
 ```bash
-git add nixos-modules/services/namer/module.nix
+git add nixosModules/services/namer/module.nix
 git commit -m "nixosModules.theonecfg.services.namer: namer watchdog service with pinned config"
 ```
 
@@ -501,7 +501,7 @@ ______________________________________________________________________
 
 **Files:**
 
-- Modify: `nixos-modules/services/homepage/module.nix` (the `knownTiles` list, Media group — after the Whisparr tile, ~line 116)
+- Modify: `nixosModules/services/homepage/module.nix` (the `knownTiles` list, Media group — after the Whisparr tile, ~line 116)
 
 **Interfaces:**
 
@@ -529,7 +529,7 @@ supports `mdi-*` icon strings.)
 - [ ] **Step 2: Format and build**
 
 ```bash
-nix fmt nixos-modules/services/homepage/module.nix
+nix fmt nixosModules/services/homepage/module.nix
 nix build --no-link .#nixosConfigurations.scheelite.config.system.build.toplevel
 ```
 
@@ -538,7 +538,7 @@ Expected: no format changes; builds.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add nixos-modules/services/homepage/module.nix
+git add nixosModules/services/homepage/module.nix
 git commit -m "nixosModules.theonecfg.services.homepage: namer tile"
 ```
 
@@ -548,8 +548,8 @@ ______________________________________________________________________
 
 **Files:**
 
-- Create: `nixos-modules/services/namer/shuttle.py`
-- Create: `nixos-modules/services/namer/shuttle_test.py`
+- Create: `nixosModules/services/namer/shuttle.py`
+- Create: `nixosModules/services/namer/shuttle_test.py`
 
 **Interfaces:**
 
@@ -572,7 +572,7 @@ ______________________________________________________________________
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `nixos-modules/services/namer/shuttle_test.py`:
+Create `nixosModules/services/namer/shuttle_test.py`:
 
 ```python
 import os
@@ -760,20 +760,20 @@ if __name__ == "__main__":
 ```
 
 ```bash
-git add -N nixos-modules/services/namer/shuttle_test.py
+git add -N nixosModules/services/namer/shuttle_test.py
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd nixos-modules/services/namer && nix shell ../../..#python3 -c python3 -m unittest shuttle_test -v; cd -
+cd nixosModules/services/namer && nix shell ../../..#python3 -c python3 -m unittest shuttle_test -v; cd -
 ```
 
 Expected: FAIL / ERROR with `ModuleNotFoundError: No module named 'shuttle'`.
 
 - [ ] **Step 3: Write the implementation**
 
-Create `nixos-modules/services/namer/shuttle.py`:
+Create `nixosModules/services/namer/shuttle.py`:
 
 ```python
 """Whisparr <-> namer shuttle.
@@ -1013,8 +1013,8 @@ if __name__ == "__main__":
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-git add -N nixos-modules/services/namer/shuttle.py
-cd nixos-modules/services/namer && nix shell ../../..#python3 -c python3 -m unittest shuttle_test -v; cd -
+git add -N nixosModules/services/namer/shuttle.py
+cd nixosModules/services/namer && nix shell ../../..#python3 -c python3 -m unittest shuttle_test -v; cd -
 ```
 
 Expected: all tests PASS.
@@ -1022,7 +1022,7 @@ Expected: all tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add nixos-modules/services/namer/shuttle.py nixos-modules/services/namer/shuttle_test.py
+git add nixosModules/services/namer/shuttle.py nixosModules/services/namer/shuttle_test.py
 git commit -m "nixosModules.theonecfg.services.namer: shuttle feed phase"
 ```
 
@@ -1032,8 +1032,8 @@ ______________________________________________________________________
 
 **Files:**
 
-- Modify: `nixos-modules/services/namer/shuttle.py`
-- Modify: `nixos-modules/services/namer/shuttle_test.py`
+- Modify: `nixosModules/services/namer/shuttle.py`
+- Modify: `nixosModules/services/namer/shuttle_test.py`
 
 **Interfaces:**
 
@@ -1250,7 +1250,7 @@ class TestHarvest(unittest.TestCase):
 - [ ] **Step 2: Run tests to verify the new ones fail**
 
 ```bash
-cd nixos-modules/services/namer && nix shell ../../..#python3 -c python3 -m unittest shuttle_test -v; cd -
+cd nixosModules/services/namer && nix shell ../../..#python3 -c python3 -m unittest shuttle_test -v; cd -
 ```
 
 Expected: Task 5 tests PASS; new tests ERROR (`AttributeError: module 'shuttle' has no attribute 'harvest'` etc.).
@@ -1522,7 +1522,7 @@ numeric `eventType` serializations (STJson uses JsonStringEnumConverter
 - [ ] **Step 4: Run all tests**
 
 ```bash
-cd nixos-modules/services/namer && nix shell ../../..#python3 -c python3 -m unittest shuttle_test -v; cd -
+cd nixosModules/services/namer && nix shell ../../..#python3 -c python3 -m unittest shuttle_test -v; cd -
 ```
 
 Expected: all PASS.
@@ -1530,7 +1530,7 @@ Expected: all PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add nixos-modules/services/namer/shuttle.py nixos-modules/services/namer/shuttle_test.py
+git add nixosModules/services/namer/shuttle.py nixosModules/services/namer/shuttle_test.py
 git commit -m "nixosModules.theonecfg.services.namer: shuttle tracked harvest"
 ```
 
@@ -1540,8 +1540,8 @@ ______________________________________________________________________
 
 **Files:**
 
-- Modify: `nixos-modules/services/namer/shuttle.py`
-- Modify: `nixos-modules/services/namer/shuttle_test.py`
+- Modify: `nixosModules/services/namer/shuttle.py`
+- Modify: `nixosModules/services/namer/shuttle_test.py`
 
 **Interfaces:**
 
@@ -1686,7 +1686,7 @@ class TestOrphansAndReconcile(unittest.TestCase):
 - [ ] **Step 2: Run tests to verify the new ones fail**
 
 ```bash
-cd nixos-modules/services/namer && nix shell ../../..#python3 -c python3 -m unittest shuttle_test -v; cd -
+cd nixosModules/services/namer && nix shell ../../..#python3 -c python3 -m unittest shuttle_test -v; cd -
 ```
 
 Expected: new tests ERROR (`no attribute 'import_untracked'` / `'reconcile'` / `'orphan_imports'`).
@@ -1850,7 +1850,7 @@ def main():
 - [ ] **Step 4: Run the full suite**
 
 ```bash
-cd nixos-modules/services/namer && nix shell ../../..#python3 -c python3 -m unittest shuttle_test -v; cd -
+cd nixosModules/services/namer && nix shell ../../..#python3 -c python3 -m unittest shuttle_test -v; cd -
 ```
 
 Expected: all PASS.
@@ -1858,7 +1858,7 @@ Expected: all PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add nixos-modules/services/namer/shuttle.py nixos-modules/services/namer/shuttle_test.py
+git add nixosModules/services/namer/shuttle.py nixosModules/services/namer/shuttle_test.py
 git commit -m "nixosModules.theonecfg.services.namer: shuttle orphan import and reconciliation"
 ```
 
@@ -1868,7 +1868,7 @@ ______________________________________________________________________
 
 **Files:**
 
-- Modify: `nixos-modules/services/namer/module.nix`
+- Modify: `nixosModules/services/namer/module.nix`
 
 **Interfaces:**
 
@@ -1940,7 +1940,7 @@ Append to the `mkMerge` list (after the caddy block):
 - [ ] **Step 3: Format and build (flake8 runs inside writePython3Bin here)**
 
 ```bash
-nix fmt nixos-modules/services/namer/module.nix
+nix fmt nixosModules/services/namer/module.nix
 nix build --no-link .#nixosConfigurations.scheelite.config.system.build.toplevel
 ```
 
@@ -1948,7 +1948,7 @@ namer is still disabled on scheelite, so also force the shuttle
 derivation explicitly (this IS the flake8 gate):
 
 ```bash
-nix build --no-link --impure --expr 'let f = builtins.getFlake (toString ./.); pkgs = f.legacyPackages.x86_64-linux; in pkgs.writers.writePython3Bin "whisparr-namer-shuttle" { flakeIgnore = [ "E501" ]; } (builtins.readFile ./nixos-modules/services/namer/shuttle.py)'
+nix build --no-link --impure --expr 'let f = builtins.getFlake (toString ./.); pkgs = f.legacyPackages.x86_64-linux; in pkgs.writers.writePython3Bin "whisparr-namer-shuttle" { flakeIgnore = [ "E501" ]; } (builtins.readFile ./nixosModules/services/namer/shuttle.py)'
 ```
 
 Expected: both build. A flake8 failure means shuttle.py has a style
@@ -1958,7 +1958,7 @@ the unit tests, then rebuild.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add nixos-modules/services/namer/module.nix
+git add nixosModules/services/namer/module.nix
 git commit -m "nixosModules.theonecfg.services.namer: whisparr shuttle service and timer"
 ```
 
@@ -1968,8 +1968,8 @@ ______________________________________________________________________
 
 **Files:**
 
-- Modify: `nixos-configurations/scheelite/disko.nix` (services datasets block)
-- Modify: `nixos-configurations/scheelite/default.nix` (services block; a top-level `systemd` attr)
+- Modify: `nixosConfigurations/scheelite/disko.nix` (services datasets block)
+- Modify: `nixosConfigurations/scheelite/default.nix` (services block; a top-level `systemd` attr)
 - Modify (USER runs sops): `secrets/scheelite.yaml`
 
 **Interfaces:**
@@ -1980,7 +1980,7 @@ ______________________________________________________________________
 
 - [ ] **Step 1: Add the disko dataset entry**
 
-In `nixos-configurations/scheelite/disko.nix`, the `tank0/services/*`
+In `nixosConfigurations/scheelite/disko.nix`, the `tank0/services/*`
 block is insertion-ordered (not alphabetical) — append after the LAST
 entry (`tank0/services/loki`):
 
@@ -2045,7 +2045,7 @@ declaration, so it is NOT a gate.)
 - [ ] **Step 5: Format and build**
 
 ```bash
-nix fmt nixos-configurations/scheelite/disko.nix nixos-configurations/scheelite/default.nix
+nix fmt nixosConfigurations/scheelite/disko.nix nixosConfigurations/scheelite/default.nix
 nix build --no-link .#nixosConfigurations.scheelite.config.system.build.toplevel
 ```
 
@@ -2058,7 +2058,7 @@ Expected: builds with namer enabled (this forces the shuttle derivation
 * [ ] **Step 6: Commit, push, open the PR**
 
 ```bash
-git add nixos-configurations/scheelite/disko.nix nixos-configurations/scheelite/default.nix secrets/scheelite.yaml
+git add nixosConfigurations/scheelite/disko.nix nixosConfigurations/scheelite/default.nix secrets/scheelite.yaml
 git commit -m "nixosConfigurations.scheelite: enable namer import rescue"
 git push -u origin djacu/whisparr-namer-rescue
 gh pr create --title "Whisparr import rescue via namer (phash)" --body "Implements docs/plans/active/whisparr-namer-import-rescue.md

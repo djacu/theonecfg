@@ -112,7 +112,7 @@ services.postgresql.package = pkgs.postgresql_16.override {
 ### Stage 3: postgres-side ZFS-friendly settings
 
 These are added to **every** `services.postgresql.settings` block in
-`nixos-modules/services/postgres/module.nix`:
+`nixosModules/services/postgres/module.nix`:
 
 | Setting            | Default | We use | Reason                                                                                              |
 | ------------------ | ------: | -----: | --------------------------------------------------------------------------------------------------- |
@@ -255,15 +255,15 @@ measure `compressratio`, `compressed`, `referenced`, `logicalused`.
 
 ## Applied changes (this round)
 
-1. `nixos-configurations/scheelite/disko.nix`:
+1. `nixosConfigurations/scheelite/disko.nix`:
    - Root pool + tank0 pool: `compression=lz4 → zstd`.
    - All `safe/persist/postgres/*` datasets: `recordsize=8K → 16K`.
    - Comment block on each pool's `rootFsOptions` documenting the
      choice rationale (compression / checksum / dedup).
-1. `nixos-modules/services/postgres/module.nix`:
+1. `nixosModules/services/postgres/module.nix`:
    - Per-instance `services.postgresql.settings` adds
      `full_page_writes=false`, `wal_init_zero=false`, `wal_recycle=false`.
-1. `nixos-configurations/scheelite/default.nix`:
+1. `nixosConfigurations/scheelite/default.nix`:
    - `nix.settings.auto-optimise-store = true`.
 
 ## Not applied (flagged for revisit)

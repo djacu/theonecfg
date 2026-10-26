@@ -60,7 +60,7 @@ from `statx` on such a path is plausibly the kernel signaling
 
 ## Confounder: impermanence on scheelite
 
-`nixos-configurations/scheelite/impermanence.nix:33` adds
+`nixosConfigurations/scheelite/impermanence.nix:33` adds
 `/var/lib/systemd/coredump` to the persistence list. That means at
 runtime, scheelite has a bind from `/persist/var/lib/systemd/coredump`
 to `/var/lib/systemd/coredump`. Stacked mounts + namespace
@@ -133,9 +133,9 @@ end
    clean) for that path.
 1. **Volume justifies suppression**: drop the warning class at the
    shipper. Repo uses alloy
-   (`nixos-configurations/scheelite/default.nix:370`); the right
+   (`nixosConfigurations/scheelite/default.nix:370`); the right
    place is a `stage.drop` in
-   `nixos-modules/services/monitoring/alloy/module.nix`'s
+   `nixosModules/services/monitoring/alloy/module.nix`'s
    `loki.process` pipeline matching the line pattern. journald
    itself has no message-level regex filter.
 

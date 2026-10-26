@@ -4,7 +4,7 @@
 
 The repo's NixOS hosts use ZFS with a `<pool>/local/root@empty` snapshot for impermanence-style root rollback. `scheelite` defines a `boot.initrd.systemd.services.rollback-root` service that actually performs the rollback at boot. `malachite`, `argentite`, and `cassiterite` originally lacked this service — their `/` accumulated state across boots, which eventually broke impermanence on a rebuild (a regenerated `/etc/machine-id` blocked the bind-mount).
 
-The commits on branch `treewide-impermenance-udpate` (`2a168e1`, `c30778f`, `620825b`) added the rollback service plus an expanded persistence list to all three hosts. The list (see `nixos-configurations/<host>/impermanence.nix`) covers ssh host keys, full `/var/lib/systemd`, NetworkManager, bluetooth, fwupd, upower, fprint, AccountsService, sddm, power-profiles-daemon, udisks2, `/var/lib/private`, and CUPS mutable subpaths.
+The commits on branch `treewide-impermenance-udpate` (`2a168e1`, `c30778f`, `620825b`) added the rollback service plus an expanded persistence list to all three hosts. The list (see `nixosConfigurations/<host>/impermanence.nix`) covers ssh host keys, full `/var/lib/systemd`, NetworkManager, bluetooth, fwupd, upower, fprint, AccountsService, sddm, power-profiles-daemon, udisks2, `/var/lib/private`, and CUPS mutable subpaths.
 
 **First deploy of this change on each existing host requires hands-on recovery**, because:
 
@@ -23,7 +23,7 @@ This runbook is the procedure that worked end-to-end on `malachite` on 2026-05-1
 - The branch with rollback-root + the expanded persistence list is merged or checked out on the target host.
 - You're physically/remotely on the host being migrated and have sudo.
 - The host's `/persist` dataset is healthy and writable.
-- Identify the ZFS pool name (`zpool list` or check `nixos-configurations/<host>/disko.nix`). `malachite`/`argentite`/`cassiterite` use `zroot`; `scheelite` uses `scheelite-root`. Substitute `<POOL>` below.
+- Identify the ZFS pool name (`zpool list` or check `nixosConfigurations/<host>/disko.nix`). `malachite`/`argentite`/`cassiterite` use `zroot`; `scheelite` uses `scheelite-root`. Substitute `<POOL>` below.
 
 ## Procedure
 
@@ -153,13 +153,13 @@ Expected:
 - **Don't reboot before step 4 verification passes.** Once the system reboots and rollback fires, the snapshot is gone (you destroyed it) and the underlying `/` state is wiped. If you skipped a path in step 3, that path's pre-migration data is unrecoverable.
 - **Fish + multi-line scripts.** Pasting a multi-line `for ... end` loop from Claude Code's chat into fish frequently splits at the soft-wrap, leaving the second half of the iterable as a separate command. Default to one command per line.
 - **Per-host snapshot scope.** The recovery snapshot only covers the host you're on. If you migrate a host while logged in over SSH from a different host, the snapshot still has to be taken locally on the target.
-- **Persist list drift.** This runbook documents the persist list as of the initial rollout. If `nixos-configurations/<host>/impermanence.nix` has gained new entries since, add corresponding rsync lines in step 3.
+- **Persist list drift.** This runbook documents the persist list as of the initial rollout. If `nixosConfigurations/<host>/impermanence.nix` has gained new entries since, add corresponding rsync lines in step 3.
 - **Atomic-rename-incompatible files.** Do not add a file to the persist `files = [ ... ]` list if the application that owns it writes via `rename(tmp, target)` (logrotate, pacman/dpkg-style updaters, many config writers including CUPS). The kernel returns `EBUSY` on a `rename()` whose destination is a bind-mounted file, and a symlink target gets clobbered. `/var/lib/logrotate.status` was tried during initial rollout and removed in `4b4114d`/`91bb2ab`/`79f3f57` for this reason. If you need that kind of state persisted, either persist its parent *directory* (the rename happens inside a bind-mounted dir, which is fine) or reconfigure the app to write to a path inside an already-persisted dir.
 - **Applications that prune their own state directory.** Some services run an `ExecStartPre` that removes files (typically symlinks) from the directory they expect to own. `cupsd` cleans all symlinks under `/var/lib/cups` on every start, then re-creates only the 5 nix-store-managed config symlinks. If you persist individual files under such a directory, impermanence's `auto` mode creates dangling symlinks for non-existing targets — which the service's pre-start then deletes. Persist the *parent directory* instead, so impermanence uses a bind mount and the service's pre-start operates on `/persist` contents. Initial rollout persisted `/var/lib/cups/{ppd,ssl,subscriptions.conf,printers.conf,classes.conf}` individually; changed to `/var/lib/cups` wholesale in `2671390`/`81e22cc`/`99fcdcd`.
 
 ## Related
 
-- `nixos-configurations/<host>/impermanence.nix` — canonical persist list per host.
-- `nixos-configurations/<host>/default.nix` — `boot.initrd.systemd.services.rollback-root` lives here.
-- `nixos-configurations/scheelite/default.nix` — reference implementation of the rollback service.
+- `nixosConfigurations/<host>/impermanence.nix` — canonical persist list per host.
+- `nixosConfigurations/<host>/default.nix` — `boot.initrd.systemd.services.rollback-root` lives here.
+- `nixosConfigurations/scheelite/default.nix` — reference implementation of the rollback service.
 - impermanence's `mount-file` script source: `nix-community/impermanence` on GitHub (look for `mount-file.bash`).
