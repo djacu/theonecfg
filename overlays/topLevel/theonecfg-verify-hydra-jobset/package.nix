@@ -26,13 +26,13 @@ writeShellApplication {
   text = ''
     usage() {
       cat <<USAGE
-    Usage: verify-hydra-jobset JOBFILE [OPTIONS] [-- NOM_ARGS...]
+    Usage: theonecfg-verify-hydra-jobset JOBFILE [OPTIONS] [-- NOM_ARGS...]
 
     Evaluate a hydra jobset nix file and build all resulting derivations.
     Exits non-zero on evaluation errors or build failures.
 
     Arguments:
-      JOBFILE                Nix file to evaluate (e.g. ./nix/hydra-jobs/packages.nix)
+      JOBFILE                Nix file to evaluate (e.g. ./hydra-jobs/packages.nix)
 
     Options:
       --max-memory-size MB   Max memory per nix-eval-jobs worker in MB (default: 4096)
