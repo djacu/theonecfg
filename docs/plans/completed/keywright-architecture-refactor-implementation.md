@@ -27,7 +27,7 @@ Status: implemented 2026-10-25
 
 ## Review Focus
 
-1. A module that references a renamed package behind a disabled `enable` option, such as the Brother driver, is evaluated by no host in `nix flake check`; a wrong name surfaces only when someone enables it. Task 3 evaluates that package's `drvPath` directly and greps modules for the old path.
+1. The Brother driver module references a renamed package behind an `enable` option. `nixosModules/profiles/desktop` enables it, so argentite's toplevel evaluates `pkgs.theonecfg-cups-brother-hll3280cdw` and the drvPath comparison covers the rename; Task 3 also evaluates the package directly and greps modules for the old path.
 1. A new directory under `overlays/topLevel/` that is not yet `git add`ed is silently absent from `packages.nix`, because `common.nix` sees the flake through `git+file://`. Task 4 compares the jobset's job names to the directory listing, and the README says so.
 1. `allowAliases = false` in `legacyPackages` rejects any alias a local package or the NUR overlay still uses, breaking `nix shell .#`. Task 5 evaluates every top-level package and the formatter under the new config.
 1. `nix build .#<package>` must keep working after the `packages` output is gone, by falling through to `legacyPackages`. Task 2 exercises the fallthrough.
