@@ -24,6 +24,8 @@ inputs: {
         nixpkgs.hostPlatform = "x86_64-linux";
         system.stateVersion = "26.05";
 
+        # On a kernel bump, run the udevadm monitor check described above the
+        # ACAD udev rule in hibernation.nix.
         boot.kernelPackages = pkgs.linuxPackages_6_18;
         boot.loader.systemd-boot.enable = true;
         boot.loader.efi.canTouchEfiVariables = true;

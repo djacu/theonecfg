@@ -129,6 +129,12 @@
   # change event instead: that looped once a second, with a battery event
   # following each re-emitted adapter event; the cause was not identified.
   # Observed with udevadm monitor 2026-10-25.
+  #
+  # Keep the rule through kernel and firmware bumps; it is a no-op once the
+  # kernel's own event carries the settled value. To check whether that has
+  # happened, run `udevadm monitor -u -p -s power_supply` through a few
+  # unplugs. The rule can go once the first ACAD event of every unplug
+  # carries POWER_SUPPLY_ONLINE=0.
   services.udev.extraRules = ''
     SUBSYSTEM=="power_supply", KERNEL=="BAT1", ATTR{alarm}="0"
     SUBSYSTEM=="power_supply", KERNEL=="ACAD", ACTION=="change", RUN+="${pkgs.writeShellScript "acad-reread" ''
