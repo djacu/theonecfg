@@ -22,13 +22,11 @@
     formatterModule = import ./formatterModule inputs;
     homeConfigurations = import ./homeConfigurations inputs;
     homeModules = import ./homeModules inputs;
-    hydraJobs = import ./hydra-jobs inputs;
     legacyPackages = import ./legacyPackages inputs;
     library = import ./library inputs;
     nixosConfigurations = import ./nixosConfigurations inputs;
     nixosModules = import ./nixosModules inputs;
     overlays = import ./overlays inputs;
-    packages = import ./packages inputs;
     theonecfg = import ./theonecfg inputs;
   };
 }
