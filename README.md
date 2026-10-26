@@ -20,6 +20,30 @@ Modules not under a `<user>` directory are available for all users to define.
 See `mkUserModules` for details about how modules are filtered.
 They are accessed via `homeConfigurations.<user>` attributes.
 
+### hydra-jobs
+
+Jobset files for Hydra, in nixpkgs' release-lib style.
+Each file is a function producing `<job>.<system>` attributes and is evaluated by path, not through a flake output.
+
+| file                       | jobs                                                                                          |
+| -------------------------- | --------------------------------------------------------------------------------------------- |
+| `packages.nix`             | every package under `overlays/topLevel/`                                                      |
+| `vm-tests.nix`             | every VM test under `overlays/nixosTests/`, as `theonecfgNixosTests.<test>`                   |
+| `nixos-configurations.nix` | every host in `nixosConfigurations`: the toplevel, VM, or ISO its `knownHosts` type calls for |
+| `home-configurations.nix`  | every `homeConfigurations.<host>-<user>` activation package                                   |
+
+`theonecfg-verify-hydra-jobset` evaluates a jobset file and builds every job:
+
+```sh
+nix run .#theonecfg-verify-hydra-jobset -- ./hydra-jobs/packages.nix
+```
+
+CI runs `packages.nix` and `vm-tests.nix`.
+The configuration jobsets do not fit a free runner; run them locally before merging a change to a host or a user.
+
+The jobset files see the flake through `builtins.getFlake "git+file://..."`, which only sees git-tracked files.
+A new directory must be `git add`ed before any jobset sees it.
+
 ### legacyPackages
 
 A nixpkgs package set with `theonecfg` overlays applied.
@@ -37,13 +61,12 @@ There is currently little structure here except for user specific modules which 
 ### overlays
 
 Centralized overlays to be used elsewhere in `theonecfg`.
-Pulls in external overlays from inputs.
-Pulls in internal overlays from directories in the `overlays` directory that have a `package.nix` file.
+Package sources live here, one subdirectory per overlay, each spelled like the overlay attribute it produces:
+`topLevel/` holds one `package.nix` per package, exposed as `pkgs.<name>`;
+`nixosTests/` holds the VM tests, exposed as `pkgs.theonecfgNixosTests.<name>`;
+`fixes/` holds `overlay.nix` files amending upstream packages;
+`inputOverlays/` holds one `overlay.nix` per flake input that ships packages.
 Currently used in `legacyPackages`, `nixosModules`, and `homeConfigurations`.
-
-### packages
-
-Packages that can be built or run.
 
 ## hosts
 
