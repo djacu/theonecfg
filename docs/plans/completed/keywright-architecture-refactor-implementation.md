@@ -46,7 +46,7 @@ ______________________________________________________________________
 
 - Produces: `$SCRATCH/drvpaths.nix`, an expression every later drvPath check evaluates; `$SCRATCH/baseline.json`, the reference output.
 
-- [ ] **Step 1: Create the worktree and branch, from the clean tip of `main`**
+- [x] **Step 1: Create the worktree and branch, from the clean tip of `main`**
 
 ```bash
 git worktree add -b djacu/keywright-architecture-refactor ../theonecfg-refactor main
@@ -54,7 +54,7 @@ cd ../theonecfg-refactor
 git status --short   # expected: no output
 ```
 
-- [ ] **Step 2: Write the drvPath expression**
+- [x] **Step 2: Write the drvPath expression**
 
 Save as `$SCRATCH/drvpaths.nix`. It picks the ISO for live hosts, the VM for virtual hosts, and the toplevel otherwise, matching the spec's anti-goal.
 
@@ -81,7 +81,7 @@ in
 }
 ```
 
-- [ ] **Step 3: Record the baseline**
+- [x] **Step 3: Record the baseline**
 
 Run, from the worktree root:
 
@@ -112,12 +112,12 @@ ______________________________________________________________________
 
 - Produces: the six camelCase directories every later task references.
 
-- [ ] **Step 1: Confirm the old paths are what the tree uses today**
+- [x] **Step 1: Confirm the old paths are what the tree uses today**
 
 Run: `grep -rn -E 'formatter-module|home-configurations|home-modules|legacy-packages|nixos-configurations|nixos-modules' --include=*.nix . | grep -v '^./docs/'`
 Expected: hits in `flake.nix`, `overlays/default.nix`, `nixos-modules/services/pinchflat/module.nix`, `library/default.nix`, and nowhere else.
 
-- [ ] **Step 2: Move the directories**
+- [x] **Step 2: Move the directories**
 
 ```bash
 git mv formatter-module formatterModule
@@ -128,20 +128,20 @@ git mv nixos-configurations nixosConfigurations
 git mv nixos-modules nixosModules
 ```
 
-- [ ] **Step 3: Update the import paths and the three in-tree references**
+- [x] **Step 3: Update the import paths and the three in-tree references**
 
 In `flake.nix`, each `import ./<old> inputs` becomes `import ./<new> inputs`; leave the `hydraJobs` and `packages` lines for Task 2. In `overlays/default.nix`, `theonecfgModulesPath = ../nixosModules;`. In the pinchflat comment, `nixosConfigurations/<host>/impermanence.nix`. In `library/default.nix`, replace `home-modules` with `homeModules` in the doc comments only.
 
-- [ ] **Step 4: Update CLAUDE.md and README.md**
+- [x] **Step 4: Update CLAUDE.md and README.md**
 
 CLAUDE.md: `homeModules/{programs,packages,services}/module.nix`, `homeModules/users/djacu/{programs,profiles}/module.nix`, `homeModules/users/djacu/programs/<name>/`. README.md: the six `###` headers take the new names, the "Currently used in" sentence and the `cd` step take the new names.
 
-- [ ] **Step 5: Format and check**
+- [x] **Step 5: Format and check**
 
 Run: `nix fmt && nix flake check`
 Expected: exits 0.
 
-- [ ] **Step 6: Verify the moved module path still resolves for the VM test**
+- [x] **Step 6: Verify the moved module path still resolves for the VM test**
 
 Run:
 
@@ -151,12 +151,12 @@ nix eval --raw --impure --expr 'let f = builtins.getFlake (toString ./.); in (f.
 
 Expected: a `/nix/store/...drv` path, no error.
 
-- [ ] **Step 7: Verify configurations are unchanged**
+- [x] **Step 7: Verify configurations are unchanged**
 
 Run the Task 0 eval into `$SCRATCH/after-task1.json`; `diff` against the baseline.
 Expected: no output.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add -A
@@ -177,7 +177,7 @@ ______________________________________________________________________
 
 - Produces: a flake with no `packages` or `hydraJobs` output; CI that runs only `nix flake check` until Task 4.
 
-- [ ] **Step 1: Delete and edit**
+- [x] **Step 1: Delete and edit**
 
 ```bash
 git rm -r packages hydra-jobs/default.nix package-sets/top-level/theonecfg/verify-hydra-system-configs package-sets/top-level/theonecfg/verify-hydra-home-configs
@@ -185,7 +185,7 @@ git rm -r packages hydra-jobs/default.nix package-sets/top-level/theonecfg/verif
 
 Remove the two lines from `flake.nix`. Remove the `nix-verify-hydra-system-configs` and `nix-verify-hydra-home-configs` jobs from the workflow.
 
-- [ ] **Step 2: Verify the outputs are gone and the fallthrough works**
+- [x] **Step 2: Verify the outputs are gone and the fallthrough works**
 
 Run: `nix eval .#packages 2>&1 | tail -1`
 Expected: an error saying the flake does not provide attribute `packages`.
@@ -196,12 +196,12 @@ Expected: the same kind of error for `hydraJobs`.
 Run: `nix build --dry-run .#drduh-yubikey-guide`
 Expected: exits 0, reporting what would be built or fetched (falls through to `legacyPackages`).
 
-- [ ] **Step 3: Format and check**
+- [x] **Step 3: Format and check**
 
 Run: `nix fmt && nix flake check && nix shell .#actionlint -c actionlint .github/workflows/pull-request.yml`
 Expected: exits 0, actionlint prints nothing.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A
@@ -229,7 +229,7 @@ ______________________________________________________________________
 
 - Produces: `pkgs.theonecfg-bootstrap-homelab-secrets`, `pkgs.theonecfg-cups-brother-hll3280cdw`, `pkgs.theonecfg-nom-check`, `pkgs.theonecfg-nixvimcfg`, `pkgs.theonecfgNixosTests.yubikey-live`; overlay outputs `default`, `fixes`, `nixosTests`, `nixvimcfg`, `topLevel`; `overlays/topLevel/` as the directory Task 4's `packages.nix` lists.
 
-- [ ] **Step 1: Move**
+- [x] **Step 1: Move**
 
 ```bash
 git mv package-sets/top-level overlays/topLevel
@@ -242,7 +242,7 @@ done
 rmdir overlays/topLevel/theonecfg package-sets
 ```
 
-- [ ] **Step 2: Rewrite `overlays/default.nix`**
+- [x] **Step 2: Rewrite `overlays/default.nix`**
 
 The spec fixes every name here, so the file is given in full. Composition order is today's with `nixosTests` inserted after `topLevel`.
 
@@ -338,7 +338,7 @@ inputOverlays
 }
 ```
 
-- [ ] **Step 3: Rewrite the nixvimcfg input overlay**
+- [x] **Step 3: Rewrite the nixvimcfg input overlay**
 
 `overlays/inputOverlays/nixvimcfg/overlay.nix`:
 
@@ -348,7 +348,7 @@ inputs: final: _prev: {
 }
 ```
 
-- [ ] **Step 4: Update the two module consumers, the bootstrap usage comment, and CLAUDE.md**
+- [x] **Step 4: Update the two module consumers, the bootstrap usage comment, and CLAUDE.md**
 
 `pkgs.theonecfg-cups-brother-hll3280cdw` in the Brother module; `pkgs.theonecfg-nixvimcfg` in the nixvimcfg home module; `nix run .#theonecfg-bootstrap-homelab-secrets -- <hostname>` in `bootstrap.sh` and `nix run .#theonecfg-bootstrap-homelab-secrets -- scheelite` in CLAUDE.md. Add to CLAUDE.md, after the "Nix module style" section:
 
@@ -360,11 +360,11 @@ inputs: final: _prev: {
 - VM tests live under `overlays/nixosTests/<name>/package.nix` and are exposed as `pkgs.theonecfgNixosTests.<name>`, like nixpkgs' `nixosTests`.
 ```
 
-- [ ] **Step 5: Fold the tests overlay out of the jobset plumbing**
+- [x] **Step 5: Fold the tests overlay out of the jobset plumbing**
 
 `hydra-jobs/common.nix`: delete the `extraOverlays ? [ ]` argument with its comment and the `++ extraOverlays` so `overlays = [ self.overlays.default ];`. `hydra-jobs/vm-tests.nix`: the `import ./common.nix (args // { inherit supportedSystems; extraOverlays = ...; })` keeps only `inherit supportedSystems;` and its comment; the final expression becomes `mapTestOn (packagePlatforms { inherit (pkgs) theonecfgNixosTests; })`.
 
-- [ ] **Step 6: Verify the new attribute set**
+- [x] **Step 6: Verify the new attribute set**
 
 Run:
 
@@ -384,7 +384,7 @@ nix eval .#overlays --apply builtins.attrNames
 
 Expected: `leak` is `false`, `tests` is `["recurseForDerivations","yubikey-live"]`, the five drvPaths are store paths; the overlay names are `["default","fixes","nixosTests","nixvimcfg","topLevel"]`.
 
-- [ ] **Step 7: Verify the old paths fail and nothing references them**
+- [x] **Step 7: Verify the old paths fail and nothing references them**
 
 Run: `nix eval .#legacyPackages.x86_64-linux.theonecfg 2>&1 | tail -1`
 Expected: an error that attribute `theonecfg` is missing.
@@ -392,17 +392,17 @@ Expected: an error that attribute `theonecfg` is missing.
 Run: `grep -rn -E 'pkgs\.theonecfg\.|theonecfgTests|package-sets|extraOverlays|overrideScope' --include=*.nix --include=*.sh --include=*.yml . ; grep -nF '.#theonecfg.' CLAUDE.md`
 Expected: no output. (`theonecfg.programs.*` and the other option namespaces in CLAUDE.md are not matched by the fixed string `.#theonecfg.`.)
 
-- [ ] **Step 8: Verify the binary names are unchanged**
+- [x] **Step 8: Verify the binary names are unchanged**
 
 Run: `ls "$(nix build --no-link --print-out-paths .#theonecfg-nom-check)/bin" "$(nix build --no-link --print-out-paths .#theonecfg-bootstrap-homelab-secrets)/bin"`
 Expected: `nom-check` and `bootstrap-homelab-secrets`.
 
-- [ ] **Step 9: Format, check, and compare**
+- [x] **Step 9: Format, check, and compare**
 
 Run: `nix fmt && nix flake check`, then the Task 0 eval into `$SCRATCH/after-task3.json` and `diff` against the baseline.
 Expected: exit 0; no diff output.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add -A
@@ -427,7 +427,7 @@ ______________________________________________________________________
 
 - Produces: jobs `<package>.<system>`, `<host>.<system>`, `<host>-<user>.<system>`, `theonecfgNixosTests.<test>.x86_64-linux`; the command `nix run .#theonecfg-verify-hydra-jobset -- ./hydra-jobs/<file>.nix`.
 
-- [ ] **Step 1: Write `hydra-jobs/packages.nix`**
+- [x] **Step 1: Write `hydra-jobs/packages.nix`**
 
 Same argument header as `vm-tests.nix` but with both default systems, like `common.nix`:
 
@@ -472,7 +472,7 @@ in
 mapTestOn (packagePlatforms (getAttrs (getDirectoryNames ../overlays/topLevel) pkgs))
 ```
 
-- [ ] **Step 2: Write `hydra-jobs/nixos-configurations.nix`**
+- [x] **Step 2: Write `hydra-jobs/nixos-configurations.nix`**
 
 Model it on `images.nix`, which this file replaces: same header with both default systems, `inherit (import ./common.nix args) lib self;`, `hydraJob` from `lib.customisation`, `knownHosts` from `self.theonecfg`. The two bindings that matter:
 
@@ -502,11 +502,11 @@ Body: `mapAttrs (name: value: { ${value.config.nixpkgs.buildPlatform.system} = h
 
 Then `git rm hydra-jobs/images.nix`.
 
-- [ ] **Step 3: Write `hydra-jobs/home-configurations.nix`**
+- [x] **Step 3: Write `hydra-jobs/home-configurations.nix`**
 
 Same shape. Filter `self.homeConfigurations` on `elem value.config.nixpkgs.system supportedSystems`; body `mapAttrs (_: value: { ${value.config.nixpkgs.system} = hydraJob value.activationPackage; })`.
 
-- [ ] **Step 4: Add the verify tool**
+- [x] **Step 4: Add the verify tool**
 
 ```bash
 mkdir -p overlays/topLevel/theonecfg-verify-hydra-jobset
@@ -515,7 +515,7 @@ cp ../keywright/overlays/verification/verify-hydra-jobset/package.nix overlays/t
 
 The copy is verbatim. Its `name = baseNameOf ./.` now yields `theonecfg-verify-hydra-jobset`, which is the intended binary name.
 
-- [ ] **Step 5: Verify every jobset's job list by evaluation**
+- [x] **Step 5: Verify every jobset's job list by evaluation**
 
 Run, after `git add -A`:
 
@@ -529,7 +529,7 @@ jobs ./hydra-jobs/vm-tests.nix
 
 Expected: the first `diff` prints nothing (nine packages, including `theonecfg-verify-hydra-jobset`). The second prints all seven hosts, `argentite cassiterite ilmenite malachite scheelite test-vm uraninite`, each suffixed `.x86_64-linux`. The third prints five `<host>-djacu.x86_64-linux`. The fourth prints `theonecfgNixosTests.yubikey-live.x86_64-linux`. Evaluation of the configurations takes minutes.
 
-- [ ] **Step 6: Run the verify tool on the two CI jobsets**
+- [x] **Step 6: Run the verify tool on the two CI jobsets**
 
 Run: `nix run .#theonecfg-verify-hydra-jobset -- ./hydra-jobs/packages.nix`
 Expected: exits 0 after building the packages.
@@ -540,7 +540,7 @@ Expected: exits 0 after the VM test runs (needs `/dev/kvm`).
 Run: `ls "$(nix build --no-link --print-out-paths .#theonecfg-verify-hydra-jobset)/bin"`
 Expected: `theonecfg-verify-hydra-jobset`.
 
-- [ ] **Step 7: Rewrite the workflow**
+- [x] **Step 7: Rewrite the workflow**
 
 ```yaml
 name: pull request checks
@@ -587,7 +587,7 @@ jobs:
       - run: nix run .#theonecfg-verify-hydra-jobset -- ./hydra-jobs/vm-tests.nix --max-memory-size 6144
 ```
 
-- [ ] **Step 8: Add the README section**
+- [x] **Step 8: Add the README section**
 
 Under `## architecture`, alphabetically among the existing `###` headers:
 
@@ -617,12 +617,12 @@ The jobset files see the flake through `builtins.getFlake "git+file://..."`, whi
 A new directory must be `git add`ed before any jobset sees it.
 ````
 
-- [ ] **Step 9: Format and check**
+- [x] **Step 9: Format and check**
 
 Run: `nix fmt && nix flake check && nix shell .#actionlint -c actionlint .github/workflows/pull-request.yml`
 Expected: exits 0, actionlint prints nothing.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 Three commits, in this order:
 
@@ -647,16 +647,16 @@ ______________________________________________________________________
 
 - Produces: `legacyPackages.<system>.config` with `allowAliases = false; allowUnfree = true;`.
 
-- [ ] **Step 1: Confirm today's values**
+- [x] **Step 1: Confirm today's values**
 
 Run: `nix eval --json .#legacyPackages.x86_64-linux --apply 'p: { aliases = p.config.allowAliases; unfree = p.config.allowUnfree; }'`
 Expected: `{"aliases":true,"unfree":false}`.
 
-- [ ] **Step 2: Add the config**
+- [x] **Step 2: Add the config**
 
 In the `import inputs.nixpkgs-unstable { ... }` call, add `config = { allowAliases = false; allowUnfree = true; };` after `overlays`, as `legacyPackages/default.nix` in keywright does.
 
-- [ ] **Step 3: Verify the values and that everything still evaluates**
+- [x] **Step 3: Verify the values and that everything still evaluates**
 
 Run the Step 1 command again.
 Expected: `{"aliases":false,"unfree":true}`.
@@ -671,7 +671,7 @@ nix eval --raw .#legacyPackages.x86_64-linux.theonecfgNixosTests.yubikey-live.dr
 
 Expected: nine drvPaths, then two more; no error mentioning an alias.
 
-- [ ] **Step 4: Format, check, commit**
+- [x] **Step 4: Format, check, commit**
 
 Run: `nix fmt && nix flake check`
 Expected: exits 0.
@@ -693,7 +693,7 @@ ______________________________________________________________________
 
 - Produces: zero references to old paths or attribute names outside history and the two refactor documents.
 
-- [ ] **Step 1: Count what the sweep will touch**
+- [x] **Step 1: Count what the sweep will touch**
 
 Run:
 
@@ -704,7 +704,7 @@ grep -rlE "$pattern" docs/runbooks docs/README.md docs/plans/active | grep -v ke
 
 Expected: about 20 files (the reviewer counted 17 active plans plus runbooks and `docs/README.md`).
 
-- [ ] **Step 2: Apply the substitutions**
+- [x] **Step 2: Apply the substitutions**
 
 Over the same file list, in this order so the longer `package-sets` paths rewrite before the shorter one:
 
@@ -728,7 +728,7 @@ sed -i -E \
 
 Then read `git diff --stat` and skim `git diff docs/runbooks` to confirm only paths changed. `nix eval .#theonecfg.knownHosts`-style commands in docs refer to the `theonecfg` flake output and are correct as they stand; the patterns above do not touch them.
 
-- [ ] **Step 3: Verify the spec's grep**
+- [x] **Step 3: Verify the spec's grep**
 
 Run:
 
@@ -740,7 +740,7 @@ grep -rnF '.#theonecfg.' . | grep -v -E '^\./(\.git/|docs/plans/completed/|docs/
 
 Expected: no output from either.
 
-- [ ] **Step 4: Format, check, commit**
+- [x] **Step 4: Format, check, commit**
 
 Run: `nix fmt && nix flake check`
 Expected: exits 0 (mdformat may reflow the edited documents; that is fine).
@@ -763,12 +763,12 @@ ______________________________________________________________________
 
 - Consumes: everything above.
 
-- [ ] **Step 1: Final drvPath comparison**
+- [x] **Step 1: Final drvPath comparison**
 
 Run the Task 0 eval into `$SCRATCH/after-final.json`; `diff` against the baseline.
 Expected: no output.
 
-- [ ] **Step 2: Build the configuration jobsets locally**
+- [x] **Step 2: Build the configuration jobsets locally**
 
 Run, one at a time; these build full system and home closures and can take a long time:
 
@@ -779,7 +779,7 @@ nix run .#theonecfg-verify-hydra-jobset -- ./hydra-jobs/nixos-configurations.nix
 
 Expected: each exits 0. The second builds the uraninite ISO along with the six systems. If `nixos-configurations.nix` fails on an upstream package build (the CI history shows paperless-ngx's test suite failing on runners), report the failing derivation and whether `main` fails on it the same way; such a failure is not caused by this refactor if the drvPath comparison in Step 1 is clean.
 
-- [ ] **Step 3: The spec's remaining checks**
+- [x] **Step 3: The spec's remaining checks**
 
 Run:
 
@@ -791,7 +791,7 @@ nix eval .#legacyPackages.x86_64-linux.theonecfg 2>&1 | tail -1
 
 Expected: exit 0; `false`; a missing-attribute error.
 
-- [ ] **Step 4: Complete the plan**
+- [x] **Step 4: Complete the plan**
 
 Set `Status: implemented 2026-MM-DD` (today's date) in both documents, then:
 
@@ -802,6 +802,6 @@ git add -A
 git commit -m "docs/plans: complete keywright architecture refactor" -m "Assisted-by: Claude Code (claude-fable-5-1)"
 ```
 
-- [ ] **Step 5: Report**
+- [x] **Step 5: Report**
 
 State: what changed (commit list), what is still open (CI results on the pull request are not visible until it is opened; the configuration jobsets' local build result from Step 2), and what was not verified (anything in Step 2 that did not finish).
