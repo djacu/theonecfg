@@ -18,7 +18,7 @@ Modules are grouped in directories by `programs`, `services`, or a `<user>`.
 Modules created for one user are not available to another user to enable.
 Modules not under a `<user>` directory are available for all users to define.
 See `mkUserModules` for details about how modules are filtered.
-They are accessed via `homeConfigurations.<user>` attributes.
+They are accessed via `homeModules.<user>` attributes.
 
 ### hydra-jobs
 
