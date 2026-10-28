@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories:
+      - "/"
+      # Also scan composite actions under .github/actions/*. A plain
+      # "/" does not cover action.yml files, so their pinned actions
+      # would otherwise never be updated.
+      # https://github.com/dependabot/dependabot-core/issues/6704
+      - "/.github/actions/*"
+    schedule:
+      interval: weekly
+    cooldown:
+      # Wait this many days before opening an update PR for a freshly
+      # published release, so a compromised release has time to be caught
+      # and yanked before it is auto-adopted (zizmor dependabot-cooldown).
+      default-days: 7
