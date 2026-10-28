@@ -5,38 +5,75 @@ on:
     branches:
       - main
   workflow_dispatch:
+
+concurrency:
+  # One run per pull request, or per ref for push and dispatch events.
+  group: pull-request-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   nix-checks:
     name: nix flake check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup-nix
       - run: nix flake check -L
         # monitor and bind-master uses IFD
   nix-verify-packages:
     name: nix verify packages jobset
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup-nix
       - run: nix run .#theonecfg-verify-hydra-jobset -- ./hydra-jobs/packages.nix
   nix-verify-vm-tests:
     name: nix verify vm-tests jobset
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup-nix
+      # GitHub's documented rule for making /dev/kvm usable by the runner
+      # user. The nix daemon runs as root and detects the device on its own;
+      # this is for the assertion below and for the client-side feature list.
+      - name: Make /dev/kvm accessible
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
       # Green must mean the VM tests ran. KVM on free public runners is an
       # undocumented perk; if it is absent, fail visibly rather than skip.
       - name: Assert KVM is available
         run: |
-          echo "DETERMINATE_NIX_KVM=${DETERMINATE_NIX_KVM:-<unset>}"
-          if [ "${DETERMINATE_NIX_KVM:-0}" != "1" ] || [ ! -w /dev/kvm ]; then
+          ls -l /dev/kvm
+          nix config show system-features
+          if [ ! -w /dev/kvm ] || ! nix config show system-features | grep -qw kvm; then
             echo "::error::No usable /dev/kvm; VM tests cannot run on this runner."
             exit 1
           fi
       - run: nix run .#theonecfg-verify-hydra-jobset -- ./hydra-jobs/vm-tests.nix --max-memory-size 6144
+  workflow-security:
+    name: workflow security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup-nix
+      - name: Audit workflows with zizmor
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: nix run .#zizmor -- .github/
+      - name: Verify action pins and version comments with pinact
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: nix run .#pinact -- run --check
