@@ -829,6 +829,96 @@ lib.fix (self: {
     };
 
   /**
+    Reconcile an *arr's naming config.
+
+    `config/naming` is a singleton, not a collection, so mkArrApiPushService
+    does not apply: the controller is RestController<NamingConfigResource>
+    with [HttpGet] to read and [RestPutById] ("{id:int?}") to write, and
+    UpdateNamingConfig maps the whole resource through ToModel(). A partial
+    PUT therefore blanks every field it omits — bools to false, strings to
+    null. Read the live config, merge the declared keys over it, and PUT only
+    when that changes something.
+
+    Whisparr only, deliberately. Recyclarr owns Sonarr's and Radarr's naming
+    through its own `media_naming` section; a second writer for the same
+    setting is a conflict waiting to happen. Recyclarr has no Whisparr
+    support, which is why Whisparr needs this at all.
+
+    Field names and their constraints come from NamingConfigResource and the
+    controller's SharedValidator: MultiEpisodeStyle is 0-5, StandardEpisodeFormat
+    must satisfy ValidEpisodeFormat, SeriesFolderFormat must contain the site
+    title, and JavEpisodeFormat must be blank (which makes jav-typed series
+    fall back to StandardEpisodeFormat) or contain {External Id} or
+    {Original Title}. A violation is a 400, which curl-<name> turns into a
+    unit failure with the API's message on stderr.
+
+    Args:
+      name       : systemd unit name (e.g. "whisparr-naming")
+      after      : list of units to order after
+      baseUrl    : http://127.0.0.1:6969
+      apiKeyFile : sops-resolved path
+      settings   : attrset of NamingConfigResource fields to enforce; keys
+                   left out keep whatever the app already has
+  */
+  mkArrNamingSync =
+    {
+      name,
+      after,
+      baseUrl,
+      apiKeyFile,
+      settings,
+    }:
+    let
+      settingsFile = pkgs.writeText "${name}-settings.json" (builtins.toJSON settings);
+      curlPkg = self.mkSecureCurl {
+        inherit name apiKeyFile;
+      };
+      endpoint = "${baseUrl}/api/v3/config/naming";
+    in
+    {
+      systemd.services.${name} = {
+        description = "Reconcile naming config against declarative state";
+        inherit after;
+        requires = after;
+        wantedBy = [ "multi-user.target" ];
+        path = [
+          pkgs.curl
+          pkgs.jq
+          pkgs.coreutils
+          curlPkg
+        ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          set -euo pipefail
+
+          ${self.waitForApiScript {
+            url = endpoint;
+            inherit apiKeyFile;
+          }}
+
+          curl_cmd=curl-${name}
+
+          live=$($curl_cmd "${endpoint}")
+
+          # Sort keys on both sides so the comparison reflects content rather
+          # than the order the API happened to serialize in.
+          normalized=$(jq -cS . <<< "$live")
+          merged=$(jq -cS --slurpfile d ${settingsFile} '. * $d[0]' <<< "$live")
+
+          if [ "$merged" = "$normalized" ]; then
+            exit 0
+          fi
+
+          echo "Updating naming config"
+          $curl_cmd -X PUT "${endpoint}/$(jq -r '.id' <<< "$live")" -d "$merged" >/dev/null
+        '';
+      };
+    };
+
+  /**
     Push qBittorrent preferences and categories.
     Assumes qBittorrent is reachable on baseUrl from localhost (so the
     AuthSubnetWhitelist=127.0.0.1/32 bypass is in effect — no login needed).
