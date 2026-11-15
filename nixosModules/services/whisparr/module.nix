@@ -18,6 +18,8 @@ let
     ;
 
   inherit (lib.types)
+    anything
+    attrsOf
     bool
     int
     listOf
@@ -132,6 +134,25 @@ in
       description = ''
         Tags carried on this *arr's Prowlarr application entry. See
         sonarr.prowlarrTags for routing semantics.
+      '';
+    };
+    naming = mkOption {
+      type = attrsOf anything;
+      default = { };
+      example = {
+        renameEpisodes = true;
+        javEpisodeFormat = "";
+      };
+      description = ''
+        Fields of Whisparr's naming config (`/api/v3/config/naming`) to
+        enforce on every switch. Keys left out keep whatever is already
+        stored; the reconciler merges these over the live config and only
+        PUTs when that changes something.
+
+        Leaving ``javEpisodeFormat`` empty is meaningful rather than absent:
+        FileNameBuilder falls back to ``standardEpisodeFormat`` for
+        jav-typed series when the JAV format is blank, which is what keeps
+        JAV scenes named like every other scene.
       '';
     };
     nfoSidecars = {
@@ -261,6 +282,16 @@ in
         items = cfg.rootFolders;
         comparator = "path";
         noUpdate = true;
+      }
+    ))
+
+    (mkIf (cfg.naming != { }) (
+      declarative.mkArrNamingSync {
+        name = "whisparr-naming";
+        after = [ "whisparr.service" ];
+        baseUrl = "http://127.0.0.1:${toString cfg.port}";
+        apiKeyFile = config.sops.secrets."whisparr/api-key".path;
+        settings = cfg.naming;
       }
     ))
 
