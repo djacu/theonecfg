@@ -79,6 +79,10 @@ let
     '';
   };
 
+  nfoSidecarsBin = pkgs.writers.writePython3Bin "whisparr-nfo-sidecars" {
+    flakeIgnore = [ "E501" ];
+  } (builtins.readFile ./nfo_sidecars.py);
+
 in
 {
   options.theonecfg.services.whisparr = {
@@ -129,6 +133,20 @@ in
         Tags carried on this *arr's Prowlarr application entry. See
         sonarr.prowlarrTags for routing semantics.
       '';
+    };
+    nfoSidecars = {
+      enable = mkEnableOption ''
+        periodic `.nfo` sidecars carrying the title and date parsed out of
+        Whisparr's own filenames'';
+      schedule = mkOption {
+        type = str;
+        default = "hourly";
+        description = ''
+          systemd OnCalendar expression for the sidecar sweep. Whisparr
+          imports continuously, so this is how long a fresh import can sit
+          mislabelled in Jellyfin.
+        '';
+      };
     };
   };
 
@@ -190,6 +208,37 @@ in
       # Each rootFolder is sgid 2775 owned by whisparr:media so *arr/qbittorrent/jellyfin
       # cross-access works (see media-storage).
       systemd.tmpfiles.rules = map (r: "d ${r.path} 2775 whisparr media - -") cfg.rootFolders;
+
+      # Jellyfin's movie resolver names a folder holding exactly one video
+      # after the FOLDER, not the file (MovieResolver.FindMovie ends with
+      # `movie.Name = Path.GetFileName(movie.ContainingFolderPath)`), so a
+      # studio folder with a single scene enters the library as the studio
+      # name and whichever metadata provider is enabled answers a query
+      # built from that. The sidecar pins the title ahead of every remote
+      # provider; see nfo_sidecars.py for the merge-order reasoning.
+      #
+      # Runs as whisparr: the root folders are 2775 whisparr:media, and the
+      # sgid bit puts the sidecars in the media group for Jellyfin to read.
+      systemd.services.whisparr-nfo-sidecars = mkIf cfg.nfoSidecars.enable {
+        description = "Write .nfo sidecars next to Whisparr's imported files";
+        unitConfig.RequiresMountsFor = map (r: r.path) cfg.rootFolders;
+        serviceConfig = {
+          Type = "oneshot";
+          User = "whisparr";
+          ExecStart = "${nfoSidecarsBin}/bin/whisparr-nfo-sidecars ${
+            lib.escapeShellArgs (map (r: r.path) cfg.rootFolders)
+          }";
+        };
+      };
+
+      systemd.timers.whisparr-nfo-sidecars = mkIf cfg.nfoSidecars.enable {
+        description = "Periodic .nfo sidecar sweep over Whisparr's root folders";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnCalendar = cfg.nfoSidecars.schedule;
+          Persistent = true;
+        };
+      };
 
       theonecfg.services.postgres.instances.whisparr = {
         version = "16";
