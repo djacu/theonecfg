@@ -258,6 +258,18 @@ inputs: {
             # filename carries the full title. The sidecars make Whisparr's
             # filename the authority for both.
             nfoSidecars.enable = true;
+            # javEpisodeFormat ships as "{External Id}", which renders the bare
+            # TPDb slug ("scop-931.mp4") for any site typed `jav` — one of 472
+            # here. Blank makes FileNameBuilder fall back to the standard
+            # format. Not "{External Id} {Episode CleanTitle}": TPDb JAV titles
+            # already start with the code, so that duplicates it and the
+            # redundant prefix eats into maxEpisodeTitleLength.
+            naming = {
+              renameEpisodes = true;
+              standardEpisodeFormat = "{Release-Date} - {Site Title} - {Episode CleanTitle} [{Quality Full}]";
+              javEpisodeFormat = "";
+              seriesFolderFormat = "{Site Title}";
+            };
           };
           namer = {
             enable = true;
