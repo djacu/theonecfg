@@ -789,6 +789,41 @@ lib.fix (self: {
                 "''${auth[@]}" >/dev/null
             fi
           done <<< "$existing_names"
+
+          # Reconcile options on libraries that already existed. The POST
+          # above only applies `options` at creation time, so without this a
+          # declared change never reaches a library that is already there.
+          #
+          # /Library/VirtualFolders/LibraryOptions REPLACES the whole
+          # LibraryOptions object (and dereferences PathInfos unconditionally),
+          # so send the live object with the declared keys merged over it
+          # rather than the declared keys alone. jq's `*` recurses into
+          # objects and replaces arrays wholesale, which is what TypeOptions
+          # wants — a half-merged fetcher list would be meaningless.
+          current=$(curl -fsS "${baseUrl}/Library/VirtualFolders" "''${auth[@]}")
+
+          while IFS= read -r name; do
+            [ -z "$name" ] && continue
+            declared=$(jq -c --arg n "$name" '.[$n].options.LibraryOptions // {}' <<< "$desired")
+            [ "$declared" = "{}" ] && continue
+
+            folder=$(jq -c --arg n "$name" 'map(select(.Name == $n)) | first // empty' <<< "$current")
+            [ -z "$folder" ] && continue
+
+            live=$(jq -c '.LibraryOptions' <<< "$folder")
+            merged=$(jq -c --argjson d "$declared" '. * $d' <<< "$live")
+
+            # Skip the POST when nothing moved: Jellyfin treats an options
+            # update as a library change, and this service runs every switch.
+            if [ "$merged" != "$live" ]; then
+              echo "Updating Jellyfin library options: $name"
+              curl -fsS -X POST "${baseUrl}/Library/VirtualFolders/LibraryOptions" \
+                "''${auth[@]}" \
+                -H "Content-Type: application/json" \
+                -d "$(jq -nc --arg id "$(jq -r '.ItemId' <<< "$folder")" --argjson o "$merged" \
+                      '{Id: $id, LibraryOptions: $o}')" >/dev/null
+            fi
+          done <<< "$desired_names"
         '';
       };
     };
