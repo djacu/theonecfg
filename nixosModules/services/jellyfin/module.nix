@@ -164,6 +164,15 @@ in
         Plugin configuration (per-plugin settings, secrets) is set in the
         Jellyfin UI after install; that state persists in the same config
         directory.
+
+        That state is NOT managed here, which matters when a secret it
+        holds is rotated. The Stash plugin keeps its own copy of Stash's
+        API key in `plugins/configurations/Jellyfin.Plugin.Stash.xml`, so
+        rotating `stash/api-key` in sops updates Stash's own config.yml
+        and silently leaves the plugin authenticating with the old key.
+        The symptom is the Adult library losing performers, tags and
+        artwork with nothing logged. Re-point the plugin by hand in the
+        Jellyfin UI as part of any such rotation.
       '';
     };
   };
