@@ -65,6 +65,33 @@ let
       "Adult" = {
         paths = map (r: r.path) whisparrCfg.rootFolders;
         type = "movies";
+        # A studio folder holding a single scene resolves to an item named
+        # after the folder (see whisparr.nfoSidecars), and TheMovieDb then
+        # answers that: "Scoop" came back as the 2024 film, poster and all.
+        # Stash is the only provider that identifies by file path rather
+        # than by title, so it is the only one this library may ask.
+        #
+        # Leaving MetadataFetchers unset is NOT equivalent to listing every
+        # provider: BaseItemManager.IsMetadataFetcherEnabled treats a null
+        # TypeOptions as "everything enabled". It has to be an explicit list.
+        # The NFO reader is a *local* provider and is unaffected by it.
+        options.LibraryOptions.TypeOptions = [
+          {
+            Type = "Movie";
+            MetadataFetchers = [ "Stash" ];
+            MetadataFetcherOrder = [ "Stash" ];
+            ImageFetchers = [
+              "Stash"
+              "Embedded Image Extractor"
+              "Screen Grabber"
+            ];
+            ImageFetcherOrder = [
+              "Stash"
+              "Embedded Image Extractor"
+              "Screen Grabber"
+            ];
+          }
+        ];
       };
     }
     // lib.optionalAttrs pinchflatCfg.enable {

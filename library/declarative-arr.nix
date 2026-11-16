@@ -789,6 +789,131 @@ lib.fix (self: {
                 "''${auth[@]}" >/dev/null
             fi
           done <<< "$existing_names"
+
+          # Reconcile options on libraries that already existed. The POST
+          # above only applies `options` at creation time, so without this a
+          # declared change never reaches a library that is already there.
+          #
+          # /Library/VirtualFolders/LibraryOptions REPLACES the whole
+          # LibraryOptions object (and dereferences PathInfos unconditionally),
+          # so send the live object with the declared keys merged over it
+          # rather than the declared keys alone. jq's `*` recurses into
+          # objects and replaces arrays wholesale, which is what TypeOptions
+          # wants — a half-merged fetcher list would be meaningless.
+          current=$(curl -fsS "${baseUrl}/Library/VirtualFolders" "''${auth[@]}")
+
+          while IFS= read -r name; do
+            [ -z "$name" ] && continue
+            declared=$(jq -c --arg n "$name" '.[$n].options.LibraryOptions // {}' <<< "$desired")
+            [ "$declared" = "{}" ] && continue
+
+            folder=$(jq -c --arg n "$name" 'map(select(.Name == $n)) | first // empty' <<< "$current")
+            [ -z "$folder" ] && continue
+
+            live=$(jq -c '.LibraryOptions' <<< "$folder")
+            merged=$(jq -c --argjson d "$declared" '. * $d' <<< "$live")
+
+            # Skip the POST when nothing moved: Jellyfin treats an options
+            # update as a library change, and this service runs every switch.
+            if [ "$merged" != "$live" ]; then
+              echo "Updating Jellyfin library options: $name"
+              curl -fsS -X POST "${baseUrl}/Library/VirtualFolders/LibraryOptions" \
+                "''${auth[@]}" \
+                -H "Content-Type: application/json" \
+                -d "$(jq -nc --arg id "$(jq -r '.ItemId' <<< "$folder")" --argjson o "$merged" \
+                      '{Id: $id, LibraryOptions: $o}')" >/dev/null
+            fi
+          done <<< "$desired_names"
+        '';
+      };
+    };
+
+  /**
+    Reconcile an *arr's naming config.
+
+    `config/naming` is a singleton, not a collection, so mkArrApiPushService
+    does not apply: the controller is RestController<NamingConfigResource>
+    with [HttpGet] to read and [RestPutById] ("{id:int?}") to write, and
+    UpdateNamingConfig maps the whole resource through ToModel(). A partial
+    PUT therefore blanks every field it omits — bools to false, strings to
+    null. Read the live config, merge the declared keys over it, and PUT only
+    when that changes something.
+
+    Whisparr only, deliberately. Recyclarr owns Sonarr's and Radarr's naming
+    through its own `media_naming` section; a second writer for the same
+    setting is a conflict waiting to happen. Recyclarr has no Whisparr
+    support, which is why Whisparr needs this at all.
+
+    Field names and their constraints come from NamingConfigResource and the
+    controller's SharedValidator: MultiEpisodeStyle is 0-5, StandardEpisodeFormat
+    must satisfy ValidEpisodeFormat, SeriesFolderFormat must contain the site
+    title, and JavEpisodeFormat must be blank (which makes jav-typed series
+    fall back to StandardEpisodeFormat) or contain {External Id} or
+    {Original Title}. A violation is a 400, which curl-<name> turns into a
+    unit failure with the API's message on stderr.
+
+    Args:
+      name       : systemd unit name (e.g. "whisparr-naming")
+      after      : list of units to order after
+      baseUrl    : http://127.0.0.1:6969
+      apiKeyFile : sops-resolved path
+      settings   : attrset of NamingConfigResource fields to enforce; keys
+                   left out keep whatever the app already has
+  */
+  mkArrNamingSync =
+    {
+      name,
+      after,
+      baseUrl,
+      apiKeyFile,
+      settings,
+    }:
+    let
+      settingsFile = pkgs.writeText "${name}-settings.json" (builtins.toJSON settings);
+      curlPkg = self.mkSecureCurl {
+        inherit name apiKeyFile;
+      };
+      endpoint = "${baseUrl}/api/v3/config/naming";
+    in
+    {
+      systemd.services.${name} = {
+        description = "Reconcile naming config against declarative state";
+        inherit after;
+        requires = after;
+        wantedBy = [ "multi-user.target" ];
+        path = [
+          pkgs.curl
+          pkgs.jq
+          pkgs.coreutils
+          curlPkg
+        ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          set -euo pipefail
+
+          ${self.waitForApiScript {
+            url = endpoint;
+            inherit apiKeyFile;
+          }}
+
+          curl_cmd=curl-${name}
+
+          live=$($curl_cmd "${endpoint}")
+
+          # Sort keys on both sides so the comparison reflects content rather
+          # than the order the API happened to serialize in.
+          normalized=$(jq -cS . <<< "$live")
+          merged=$(jq -cS --slurpfile d ${settingsFile} '. * $d[0]' <<< "$live")
+
+          if [ "$merged" = "$normalized" ]; then
+            exit 0
+          fi
+
+          echo "Updating naming config"
+          $curl_cmd -X PUT "${endpoint}/$(jq -r '.id' <<< "$live")" -d "$merged" >/dev/null
         '';
       };
     };

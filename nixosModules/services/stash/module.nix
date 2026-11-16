@@ -73,9 +73,21 @@ let
       query = "mutation { ${mutation} }";
     };
 
-  scanBody = simpleBody "metadataScan(input: {})";
+  # Every generate flag on ScanMetadataInput/GenerateMetadataInput is a
+  # nullable Boolean with no schema default, and Stash's manager structs
+  # take plain bools -- an omitted flag arrives as false. `input: {}` is
+  # therefore not "Stash's defaults", it is "generate nothing", and a scene
+  # scanned that way is created with no cover. Jellyfin's Stash plugin asks
+  # for the scene's screenshot, Stash answers a coverless scene with its
+  # placeholder SVG, and the library ends up with poster.svg cards that
+  # render blank.
+  #
+  # metadataGenerate skips scenes that already have a cover unless
+  # `overwrite` is set (GenerateCoverTask.required -> !hasCover), so the
+  # generate pass backfills the gap without redoing existing covers.
+  scanBody = simpleBody "metadataScan(input: { scanGenerateCovers: true })";
   autoTagBody = simpleBody "metadataAutoTag(input: {})";
-  generateBody = simpleBody "metadataGenerate(input: {})";
+  generateBody = simpleBody "metadataGenerate(input: { covers: true })";
   cleanBody = simpleBody "metadataClean(input: { dryRun: false })";
 
   stashMaintenance = pkgs.writeShellApplication {
