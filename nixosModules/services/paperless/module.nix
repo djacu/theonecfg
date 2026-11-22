@@ -140,6 +140,14 @@ in
       # as the origin). Paperless uses this to derive ALLOWED_HOSTS,
       # CSRF_TRUSTED_ORIGINS, and OIDC redirect URLs. No trailing slash.
       services.paperless.settings.PAPERLESS_URL = "https://${cfg.domain}";
+
+      # Since 3.5 the derived ALLOWED_HOSTS is only the public hostname plus
+      # `localhost`, so local clients that address the loopback IP (the
+      # homepage widget polls http://127.0.0.1:<port>) get Django's 400
+      # DisallowedHost. Upstream adds the loopback IPs to the default in a
+      # later release (paperless-ngx PR 14846); until then list them here.
+      # `localhost` is still appended automatically.
+      services.paperless.settings.PAPERLESS_ALLOWED_HOSTS = "${cfg.domain},127.0.0.1";
     })
   ]);
 }
