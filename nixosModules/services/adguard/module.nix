@@ -113,10 +113,9 @@ in
       services.adguardhome = {
         enable = true;
         mutableSettings = false;
-        host = "127.0.0.1";
-        port = cfg.port;
         openFirewall = false;
         settings = {
+          http.address = "127.0.0.1:${toString cfg.port}";
           users = [
             {
               name = "admin";
