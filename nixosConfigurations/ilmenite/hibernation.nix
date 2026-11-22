@@ -81,7 +81,7 @@
   # D3 from its sleep callbacks on this controller; the kernel then rolls a
   # hibernate back after the image is written and the laptop stays on
   # (verification test 2a). The upstream fix was merged to bluetooth-next on
-  # 2026-09-29 and is not in 6.18.49. Until the pin carries it, unload the
+  # 2026-09-29 and is not in 6.18.64 either. Until the pin carries it, unload the
   # module before every sleep and reload it after. The unit follows
   # sleep.target's documented pattern: started before the target, stopped
   # when the target is torn down after resume, so ExecStop is the reload.
