@@ -52,7 +52,10 @@ stdenv.mkDerivation (finalAttrs: {
     # --frozen-lockfile`, which skips argon2's postinstall native
     # build. Force the rebuild explicitly so the runtime closure
     # has the compiled .node binary.
-    pnpm rebuild argon2
+    # pnpm 12 refuses build scripts for packages missing from upstream's
+    # pnpm-workspace.yaml allowBuilds list (only @nestjs/core is there), so
+    # permit them for this one explicit rebuild.
+    pnpm_config_dangerously_allow_all_builds=true pnpm rebuild argon2
 
     # Prisma 7 client generation; needs DATABASE_URL set even just
     # to generate (validated against upstream Dockerfile lines 13-14
