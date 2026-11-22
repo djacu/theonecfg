@@ -24,6 +24,7 @@ let
 
   inherit (lib.lists)
     filter
+    optionals
     ;
 
   inherit (inputs.self.library.path)
@@ -32,9 +33,12 @@ let
 
   # overlays
 
-  # Fixes for upstream nixpkgs packages: every overlay.nix under ./fixes.
+  # Fixes for upstream nixpkgs packages: every overlay.nix under ./fixes. The
+  # directory only exists while at least one fix is pending.
   fixes = composeManyExtensions (
-    map import (filter (path: baseNameOf path == "overlay.nix") (listFilesRecursive ./fixes))
+    optionals (builtins.pathExists ./fixes) (
+      map import (filter (path: baseNameOf path == "overlay.nix") (listFilesRecursive ./fixes))
+    )
   );
 
   # One overlay per flake input that ships packages; each file takes `inputs`.

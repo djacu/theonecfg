@@ -205,6 +205,9 @@ in
       # disabled. Copy plugin files into a writable directory instead. Negligible
       # disk cost (~hundreds of KB per plugin); plugin updates pick up on every
       # nixos-rebuild because the script body changes when the store paths do.
+      # Earlier versions of the same plugin are removed first: Jellyfin keys
+      # plugins by GUID and two copies with the same assembly version leave it
+      # to chance which one loads.
       systemd.services.jellyfin-plugins-install = mkIf (cfg.plugins != [ ]) {
         description = "Install Jellyfin plugins into ${cfg.dataDir}/plugins";
         before = [ "jellyfin.service" ];
@@ -219,7 +222,7 @@ in
           install -d -m 0700 -o ${config.services.jellyfin.user} -g ${config.services.jellyfin.group} "$pluginsDir"
           ${lib.concatMapStringsSep "\n" (plugin: ''
             dest="$pluginsDir/${plugin.pname}_${plugin.version}"
-            rm -rf "$dest"
+            rm -rf "$pluginsDir/${plugin.pname}_"*
             cp -r ${plugin}/share/${plugin.pname} "$dest"
             chmod -R u+w "$dest"
             chown -R ${config.services.jellyfin.user}:${config.services.jellyfin.group} "$dest"

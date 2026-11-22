@@ -735,9 +735,10 @@ lib.fix (self: {
 
           adminpass="$(tr -d '\n' < "${adminPasswordFile}")"
 
-          # Authenticate as admin and capture token
+          # Authenticate as admin and capture token. Jellyfin 12 disables the
+          # legacy X-Emby-* headers by default, so use the Authorization header.
           token=$(curl -fsS -X POST "${baseUrl}/Users/AuthenticateByName" \
-            -H 'X-Emby-Authorization: MediaBrowser Client="theonecfg-bootstrap", Device="scheelite", DeviceId="bootstrap", Version="1"' \
+            -H 'Authorization: MediaBrowser Client="theonecfg-bootstrap", Device="scheelite", DeviceId="bootstrap", Version="1"' \
             -H "Content-Type: application/json" \
             -d "$(jq -nc --arg u "${adminUser}" --arg p "$adminpass" '{Username:$u, Pw:$p}')" \
             | jq -r '.AccessToken')
@@ -747,7 +748,7 @@ lib.fix (self: {
             exit 1
           fi
 
-          auth=("-H" "X-Emby-Token: $token")
+          auth=("-H" "Authorization: MediaBrowser Client=\"theonecfg-bootstrap\", Device=\"scheelite\", DeviceId=\"bootstrap\", Version=\"1\", Token=\"$token\"")
 
           desired=$(cat ${librariesFile})
           current=$(curl -fsS "${baseUrl}/Library/VirtualFolders" "''${auth[@]}")
