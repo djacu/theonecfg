@@ -52,6 +52,19 @@ inputs: {
 
         services.zfs.autoScrub.enable = true;
 
+        # The KVM exposes its built-in C-Media sound chip (0d8c:0016) behind
+        # its own "Virtual HUB" (09ea:0130). After every host reboot the chip
+        # enumerates but answers no audio-class control request (-110
+        # timeouts), which leaves wireplumber in uninterruptible sleep and
+        # stalls everything that enumerates audio, Firefox first. Neither a
+        # re-enumeration nor cutting power to the hub port clears it; only a
+        # power cut to the KVM itself does. The passthrough is unused, so keep
+        # the kernel from configuring the device at all. The keyboard, mouse
+        # and virtual HID behind the same hub are unaffected. Issue #24.
+        services.udev.extraRules = ''
+          ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="0d8c", ATTR{idProduct}=="0016", ATTRS{idVendor}=="09ea", ATTRS{idProduct}=="0130", ATTR{authorized}="0"
+        '';
+
         time.timeZone = "America/Los_Angeles";
 
         users.mutableUsers = false;
