@@ -14,7 +14,7 @@
       "/var/lib/fprint"
       "/var/lib/private"
       "/var/lib/AccountsService"
-      "/var/lib/sddm"
+      "/var/lib/noctalia-greeter"
       "/var/lib/power-profiles-daemon"
       "/var/lib/udisks2"
       "/var/lib/cups"

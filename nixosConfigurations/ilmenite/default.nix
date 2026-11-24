@@ -72,6 +72,8 @@ inputs: {
 
         theonecfg.profiles.common.enable = true;
         theonecfg.profiles.desktop.enable = true;
+        theonecfg.desktops.plasma.enable = false;
+        theonecfg.desktops.niri.enable = true;
 
         theonecfg.users.djacu.enable = true;
         users.users.djacu.hashedPassword = "$6$2rwKYZ9BS2cMhZgH$8gq493fkRqJbunY3BnnGTe9Xq4VTEV5u9acyeAEpFZ6yZ1IM9bIkIsHQm3E2l7oHj0NzZw9FdlEEGGK25YMan/";

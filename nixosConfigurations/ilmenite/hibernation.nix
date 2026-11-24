@@ -38,45 +38,12 @@
     SuspendEstimationSec = "30min";
   };
 
-  # Lid handling when no desktop session is running (SDDM screen). Plasma
-  # takes the lid over while a session runs. On AC the lid does nothing.
+  # Lid handling. logind acts on the lid at the login screen and in the niri
+  # session alike, since nothing there takes the lid over. On AC the lid does
+  # nothing. The power profile, the power button and idle sleep are in
+  # power.nix and the Noctalia home module.
   services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
   services.logind.settings.Login.HandleLidSwitchExternalPower = "ignore";
-
-  # Plasma's lid, idle and power-profile policy. SleepMode 3 =
-  # suspend-then-hibernate; LidAction/AutoSuspendAction 0 = do nothing, 2 =
-  # hibernate at once. On AC the laptop never sleeps on its own and runs the
-  # power-profiles-daemon performance profile; on battery it keeps Plasma's
-  # defaults and the balanced profile. LowBattery sets balanced too: an
-  # unplug at or below 10% loads it straight from AC, and a profile with no
-  # PowerProfile leaves the previous one active. Powerdevil acts on lid
-  # changes only, so an unplug with the lid already closed stays awake until
-  # the Battery profile's idle timeout (10 min default) sleeps it; logind
-  # rechecks a closed lid by itself. /etc/xdg is in XDG_CONFIG_DIRS (after
-  # ~/.config/kdedefaults on Plasma, which ships no powerdevilrc), so this
-  # is a system default that the user's own powerdevilrc overrides.
-  environment.etc."xdg/powerdevilrc".text = ''
-    [AC][SuspendAndShutdown]
-    AutoSuspendAction=0
-    LidAction=0
-    SleepMode=3
-
-    [AC][Performance]
-    PowerProfile=performance
-
-    [Battery][SuspendAndShutdown]
-    SleepMode=3
-
-    [Battery][Performance]
-    PowerProfile=balanced
-
-    [LowBattery][SuspendAndShutdown]
-    LidAction=2
-    SleepMode=3
-
-    [LowBattery][Performance]
-    PowerProfile=balanced
-  '';
 
   # Intel Bluetooth over PCIe (btintel_pcie) intermittently refuses to enter
   # D3 from its sleep callbacks on this controller; the kernel then rolls a
@@ -123,9 +90,10 @@
   # DMI table of two other machines), so on an unplug the change uevent still
   # carried ONLINE=1. upower reads sysfs a few milliseconds later and
   # sometimes loses the race, then reports AC until the next plug event, and
-  # powerdevil keeps the AC profile and performance on battery. So a second
-  # after every adapter event, re-read the state and re-emit the event if the
-  # original carried a stale value. The re-emitted event carries the fresh
+  # anything that follows UPower stays on the AC state while on battery.
+  # (power-profile-ac.service in power.nix also runs on these events.) So a
+  # second after every adapter event, re-read the state and re-emit the event
+  # if the original carried a stale value. The re-emitted event carries the fresh
   # value, so it does not re-emit again. Do not re-emit from the battery's
   # change event instead: that looped once a second, with a battery event
   # following each re-emitted adapter event; the cause was not identified.

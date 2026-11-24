@@ -562,6 +562,35 @@ login of 2026-11-22 after a cold boot, read from the journal on 2026-11-23:
   by `security.pam.services.login.fprintAuth = false` regardless of desktop.
 - Owner's impression of Plasma's start-up: not yet recorded.
 
+## Service diff
+
+The Plasma system (generation 9) against the niri system built on
+2026-11-24, from `nix store diff-closures` and the unit, udev and PAM
+directories of the two builds. Closure size goes from 9.9 GiB to 6.6 GiB;
+405 packages leave and 51 arrive.
+
+Still present, checked by name: pipewire, wireplumber, NetworkManager,
+bluez, udisks2, fwupd, UPower, power-profiles-daemon, fprintd, polkit, CUPS,
+the fonts, libinput and its two udev rule files, librsvg.
+
+Removed and not KDE's own:
+
+| Removed                                                          | Came from                          | Under niri                                                                 |
+| ---------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------- |
+| geoclue service and agent                                        | Plasma module                      | dropped; Noctalia's night light can take a fixed location if wanted        |
+| `at-spi-dbus-bus` (accessibility bus), Orca, brltty              | Plasma module                      | dropped; GTK apps may log a warning about the missing bus                  |
+| `70-printers.rules`, `configure-printer@`, system-config-printer | Plasma module, when printing is on | dropped; CUPS and the Brother driver stay, USB printers are not auto-added |
+| `69-libmtp.rules`, `40-usb-media-players.rules`                  | KDE's MTP and media-player support | dropped with Dolphin; no phone file transfer over USB                      |
+| openvpn, openconnect, strongswan, vpnc scripts                   | Plasma's network applet            | dropped; no VPN connection is configured in NetworkManager on ilmenite     |
+| ddcutil                                                          | PowerDevil                         | dropped; Noctalia can use it for external monitor brightness if added      |
+| Xwayland as a system package                                     | Plasma module                      | `xwayland-satellite` from the home config                                  |
+| KDE and SDDM PAM services                                        | Plasma module                      | `greetd`; an unused `swaylock` service appears from the niri module        |
+| pciutils, lsof, dmidecode, clinfo, vulkan-tools, wayland-utils   | KInfoCenter                        | dropped from the system closure                                            |
+
+Added: niri, noctalia, noctalia-greeter, greetd, seatd, gnome-keyring, gcr,
+nautilus with its dependencies (localsearch, gnome-autoar, gnome-user-share
+with apache-httpd), xdg-desktop-portal-gnome, adwaita-icon-theme.
+
 ## Review changes
 
 Four reviewers attacked this design and its plan on 2026-11-23 (power and
