@@ -98,6 +98,7 @@ in
     # Also in the session environment: a Noctalia started by systemd, and the
     # apps its launcher starts, do not see niri's cursor block.
     home.pointerCursor = {
+      enable = true;
       package = pkgs.adwaita-icon-theme;
       name = "Adwaita";
       size = 24;
