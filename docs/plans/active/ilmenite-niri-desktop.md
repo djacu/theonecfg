@@ -560,7 +560,10 @@ login of 2026-11-22 after a cold boot, read from the journal on 2026-11-23:
   quiet) and the owner's impression next to them.
 - About two thirds of this login was the fingerprint wait, which is removed
   by `security.pam.services.login.fprintAuth = false` regardless of desktop.
-- Owner's impression of Plasma's start-up: not yet recorded.
+- Owner's impression (2026-11-23): Plasma was sluggish to start, with a
+  wait of several seconds after boot and login before it was usable. Under
+  niri the login is almost instantaneous, Noctalia feels much snappier, and
+  the launcher opens at once.
 
 ## Service diff
 
