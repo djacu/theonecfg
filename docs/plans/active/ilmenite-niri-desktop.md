@@ -591,6 +591,30 @@ Added: niri, noctalia, noctalia-greeter, greetd, seatd, gnome-keyring, gcr,
 nautilus with its dependencies (localsearch, gnome-autoar, gnome-user-share
 with apache-httpd), xdg-desktop-portal-gnome, adwaita-icon-theme.
 
+## Hardware verification
+
+**Resume here (written 2026-11-24, before the switch-over reboot):** plan
+tasks 1 to 6 are committed on `djacu/niri-desktop` up to `ce14722`. Next is
+plan Task 7, Step 4, test 1: boot, type the password at the greeter. After
+logging in to niri, open kitty with Super+T, go to the worktree
+`~/dev/djacu/theonecfg/.claude/worktrees/djacu+niri-desktop` and resume the
+Claude session there; the test table is in the plan, and results go in the
+table below.
+
+If the niri session does not come up:
+
+- Blank screen instead of the greeter: Ctrl+Alt+F2, log in, then
+  `sudo systemctl restart greetd`.
+- Locked screen with no prompt (solid red): Super+Alt+L, or
+  `loginctl lock-session` from a text console or SSH.
+- To go back to Plasma: reboot, pick generation 9 in the boot menu (shown
+  for 5 seconds). That lasts one boot; `sudo nixos-rebuild boot --rollback`
+  from it makes it the default again. The home configuration needs no
+  rollback.
+
+| #   | Date | Result | Journal evidence |
+| --- | ---- | ------ | ---------------- |
+
 ## Review changes
 
 Four reviewers attacked this design and its plan on 2026-11-23 (power and
