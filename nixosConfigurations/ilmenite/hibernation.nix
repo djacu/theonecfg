@@ -24,17 +24,18 @@
     "systemd-cryptsetup@cryptzroot.service"
   ];
 
-  # What "sleep" means to systemd. On battery: s2idle, then a wake at 3 h
-  # that hibernates. SuspendEstimationSec matches the delay so systemd adds
-  # no extra estimation wake before it knows a drain rate; once it has one,
-  # a low battery can bring the check forward. On AC the deadline is
-  # re-armed at every wake, so a docked laptop wakes briefly every 3 h,
-  # checks, and suspends again; unplug it and it hibernates at the next
-  # check. The firmware battery alarm is disabled further down.
+  # What "sleep" means to systemd. On battery: s2idle, then one wake at
+  # 30 min that hibernates. SuspendEstimationSec matches the delay so
+  # systemd adds no extra estimation wake before it knows a drain rate; once
+  # it has one, a low battery can bring the check forward. On AC nothing
+  # sleeps the laptop by itself; after a manual suspend on AC the deadline is
+  # re-armed at every wake, so it wakes briefly every 30 min, checks, and
+  # suspends again; unplug it and it hibernates at the next check. The
+  # firmware battery alarm is disabled further down.
   systemd.sleep.settings.Sleep = {
-    HibernateDelaySec = "3h";
+    HibernateDelaySec = "30min";
     HibernateOnACPower = false;
-    SuspendEstimationSec = "3h";
+    SuspendEstimationSec = "30min";
   };
 
   # Lid handling when no desktop session is running (SDDM screen). Plasma
