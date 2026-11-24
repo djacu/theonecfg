@@ -593,13 +593,14 @@ with apache-httpd), xdg-desktop-portal-gnome, adwaita-icon-theme.
 
 ## Hardware verification
 
-**Resume here (written 2026-11-24, before the switch-over reboot):** plan
-tasks 1 to 6 are committed on `djacu/niri-desktop` up to `ce14722`. Next is
-plan Task 7, Step 4, test 1: boot, type the password at the greeter. After
-logging in to niri, open kitty with Super+T, go to the worktree
-`~/dev/djacu/theonecfg/.claude/worktrees/djacu+niri-desktop` and resume the
-Claude session there; the test table is in the plan, and results go in the
-table below.
+**Resume here (updated 2026-11-23 22:00, before the shutdown for test 18):**
+tests 1 to 13, 16, 17 and 19 have passed and are in the table below. Test 18
+is in progress: the laptop was shut down on AC, then unplugged and booted on
+battery. After logging in, open kitty with Super+T, go to the worktree
+`~/dev/djacu/theonecfg/.claude/worktrees/djacu+niri-desktop`, resume the
+Claude session and check `powerprofilesctl get` (expected `balanced`) and
+that `power-profile-ac.service` ran at boot. Still to do after that, at the
+dock: tests 14 and 15 and the Samsung output name. Then plan Task 8, tuning.
 
 If the niri session does not come up:
 
@@ -652,6 +653,8 @@ Start-up logging quiet about 1.5 s after the session opened, against 9 to
 | 16  | 2026-11-23 | pass: lid closed on AC with no external screen stayed awake; unplugging put it to sleep                                                                                                                                                                                                                                                                               | 20:47:42 `Lid closed.`, nothing for 45 s; 20:48:27 lock requested as the charger came out, 20:48:29 suspend entry, returned from 'suspend-then-hibernate' 20:49:38 on `Lid opened.`; finger unlocked; profile `balanced`                                                                                                                                                                              |
 | 19  | 2026-11-23 | pass: idle on AC turned the screen off at 5 min and locked at 10 min, and did not sleep                                                                                                                                                                                                                                                                               | 20:57:44 `idle behavior 'screen-off' triggered`; 21:02:44 `'lock' triggered` and `'battery-sleep' triggered`, user unit `noctalia-battery-sleep` started; no suspend between 21:02:44 and the unplug                                                                                                                                                                                                  |
 | 9   | 2026-11-23 | pass: unplugged while already idle, with no input, it slept 22 s later                                                                                                                                                                                                                                                                                                | profile unit finished 21:05:24 after the unplug; 21:05:44 logind `suspend-then-hibernate requested from client ... ('systemctl')`; 21:05:45 suspend entry; on wake the three behaviours logged `resumed` and a finger unlocked                                                                                                                                                                        |
+| 13  | 2026-11-23 | pass: idle on battery turned the screen off at 5 min and slept at 10 min                                                                                                                                                                                                                                                                                              | 21:14:32 `'screen-off' triggered`; 21:19:32 `'lock' triggered`, `'battery-sleep' triggered`, logind `suspend-then-hibernate requested from client ... ('systemctl')`; 21:19:34 suspend entry                                                                                                                                                                                                          |
+| 17  | 2026-11-23 | pass (blocker): hibernated 30 min after sleeping, was powered off, resumed on the power button to the locked session, finger unlocked. Run from the idle sleep of test 13, not from a lid close; the lid path into the same operation passed in tests 10 and 11                                                                                                       | 21:49:34 `System returned from sleep operation 'suspend-then-hibernate'` then `Performing sleep operation 'hibernate'`, `PM: hibernation: hibernation entry`; 21:57:54 `hibernation exit`, `Operation 'suspend-then-hibernate' finished`; profile unit finished 21:57:57; 21:59:22 fingerprint released, unlock requested. No fingerprint or fprintd error lines after the resume                     |
 
 Open observation: Noctalia logged `[storage-key] encrypted cache/history exists, but its storage master key is missing` 50 ms before it reported the
 keyring unlocked. Not investigated.
