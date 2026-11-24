@@ -666,6 +666,20 @@ The source logs it when the keyring lookup returns not-found
 reopening, so it looks like Noctalia asking before the keyring is ready and
 retrying, but no success line confirms that. Left for tuning.
 
+Found in use on 2026-11-23, not by a planned test: Signal refused to start
+with "the OS encryption keyring backend has changed from kwallet6 to
+basic_text". Electron picks its secret store from the desktop's name; it
+knows GNOME and KDE, and under niri it falls back to `basic_text`, which
+uses no keyring. So "gnome-keyring becomes the secret store" was not true
+for Electron apps, which neither this design nor the reviews had checked.
+Fix: under niri, Signal, Slack, Discord and Element are started with
+`--password-store=gnome-libsecret` (shared messaging module, only when the
+niri config is enabled). Signal's old data was moved to
+`~/.config/Signal.kwallet-backup` and the app relinked to the phone with
+its history transferred; its `config.json` now records `gnome_libsecret`.
+The owner chose to stay on gnome-keyring over oo7 for now, since oo7 can
+import gnome-keyring's keyrings later.
+
 ## Review changes
 
 Four reviewers attacked this design and its plan on 2026-11-23 (power and
