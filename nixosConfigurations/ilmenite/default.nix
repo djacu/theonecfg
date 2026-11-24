@@ -17,6 +17,7 @@ inputs: {
         ./hardware.nix
         ./hibernation.nix
         ./impermanence.nix
+        ./power.nix
 
         theonecfg.nixosHardware.framework-intel-core-ultra-series3
       ];
