@@ -723,6 +723,14 @@ Go through, one at a time, with the owner in the session:
 - optionally `noctalia msg greeter-sync`, to give the greeter the shell's
   wallpaper and colours.
 
+- the GnuPG prompt (owner's request, 2026-11-23): switch from `pinentry-qt`
+  to `pinentry-gnome3`, set from the niri home module so the Plasma hosts
+  keep `pinentry-qt`; the shared gpg module sets the package plainly, so the
+  override needs a priority. Test with one signed commit.
+
+- Qt apps look plain without Plasma's theme. Noctalia's templates can
+  generate matching GTK and Qt colours; try them.
+
 - [ ] **Step 3: Carry the result into Nix and drop the live copies**
 
 Port the changed KDL into the niri module (or the host config for
