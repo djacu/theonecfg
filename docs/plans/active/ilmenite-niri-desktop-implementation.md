@@ -731,6 +731,12 @@ Go through, one at a time, with the owner in the session:
 - Qt apps look plain without Plasma's theme. Noctalia's templates can
   generate matching GTK and Qt colours; try them.
 
+- a file manager and an image viewer (owner's question, 2026-11-23).
+  Nautilus is in the system only for file dialogs and is not in the
+  launcher; `imv` and `mpv` are the only image viewers installed.
+
+- Noctalia's storage-key warning at start-up (see the design doc).
+
 - [ ] **Step 3: Carry the result into Nix and drop the live copies**
 
 Port the changed KDL into the niri module (or the host config for
