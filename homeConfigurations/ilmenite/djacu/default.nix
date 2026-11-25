@@ -22,8 +22,7 @@ inputs: {
       # Per-monitor settings. External monitors are matched by manufacturer,
       # model and serial so they follow the monitor across ports; the laptop
       # panel has no serial and is matched by its connector. The Samsung name
-      # is the expected form from its EDID and is to be confirmed against
-      # `niri msg outputs`.
+      # is as `niri msg outputs` reports it (checked 2026-11-25).
       wayland.windowManager.niri.extraConfig = ''
         output "eDP-1" {
             scale 1.7
