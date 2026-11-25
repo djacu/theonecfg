@@ -66,6 +66,11 @@ in
             // stays locked with no prompt, and locking again brings it back.
             Super+Alt+L allow-when-locked=true hotkey-overlay-title="Lock the Screen: Noctalia" { spawn "noctalia" "msg" "session" "lock"; }
 
+            // The Framework's F9 "display" key sends Super+P, which niri
+            // leaves unbound. Keep-awake suspends the idle timers, for
+            // presenting.
+            Mod+P hotkey-overlay-title="Toggle Keep-Awake: Noctalia" { spawn "noctalia" "msg" "caffeine-toggle"; }
+
             XF86AudioRaiseVolume allow-when-locked=true { spawn "noctalia" "msg" "volume-up"; }
             XF86AudioLowerVolume allow-when-locked=true { spawn "noctalia" "msg" "volume-down"; }
             XF86AudioMute        allow-when-locked=true { spawn "noctalia" "msg" "volume-mute"; }
