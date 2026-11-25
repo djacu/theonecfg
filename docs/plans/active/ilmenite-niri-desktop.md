@@ -680,6 +680,26 @@ its history transferred; its `config.json` now records `gnome_libsecret`.
 The owner chose to stay on gnome-keyring over oo7 for now, since oo7 can
 import gnome-keyring's keyrings later.
 
+At the work dock on 2026-11-25 (Anker Prime Thunderbolt 5 dock, Samsung
+Odyssey G95NC):
+
+- The Samsung's name is confirmed. `niri msg outputs` reports
+  `Samsung Electric Company Odyssey G95NC HNTY301614` on `DP-1`, as
+  configured, and the scale of 1.0 and the width steps apply.
+- The monitor showed no picture at first, with the lid closed and with it
+  open. niri had the output enabled at 7680x2160 @ 120 Hz, and the kernel
+  logged `xe 0000:00:02.0: [drm] *ERROR* Failed to enable FEC after retries`
+  at 11:29:11 and again at 11:33:02 when the output was turned off and on.
+  A mode that needs no compression (3840x1080 @ 60 Hz) showed nothing
+  either, and neither did a text console, where niri is not involved.
+  Re-seating the cable and trying other ports on the laptop did not help.
+  Power-cycling the monitor and checking its input brought the picture
+  back, and the native mode then worked with no further error. No such
+  error was logged on 2026-11-23 under Plasma with the same dock and
+  monitor. The cause of the monitor's state is not known; one occurrence.
+- A mode set with `niri msg output ... mode` stays in force across a
+  re-plug of the dock. It is not reset by reconnecting.
+
 ## Review changes
 
 Four reviewers attacked this design and its plan on 2026-11-23 (power and
