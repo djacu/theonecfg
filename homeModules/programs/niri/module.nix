@@ -68,8 +68,9 @@ in
 
             // The Framework's F9 "display" key sends Super+P, which niri
             // leaves unbound. Keep-awake suspends the idle timers, for
-            // presenting.
-            Mod+P hotkey-overlay-title="Toggle Keep-Awake: Noctalia" { spawn "noctalia" "msg" "caffeine-toggle"; }
+            // presenting. repeat=false: a toggle that repeats while the key
+            // is held switches itself straight back off.
+            Mod+P repeat=false hotkey-overlay-title="Toggle Keep-Awake: Noctalia" { spawn "noctalia" "msg" "caffeine-toggle"; }
 
             XF86AudioRaiseVolume allow-when-locked=true { spawn "noctalia" "msg" "volume-up"; }
             XF86AudioLowerVolume allow-when-locked=true { spawn "noctalia" "msg" "volume-down"; }
