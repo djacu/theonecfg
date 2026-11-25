@@ -104,7 +104,11 @@ in
       size = 24;
     };
 
-    home.packages = [ pkgs.wl-mirror ];
+    # libnotify for notify-send, which used to come in with Plasma.
+    home.packages = [
+      pkgs.libnotify
+      pkgs.wl-mirror
+    ];
 
   };
 
