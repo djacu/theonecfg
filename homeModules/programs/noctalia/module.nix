@@ -36,6 +36,10 @@ in
 
       settings = {
 
+        # Off by default. Without an agent in the session, pkexec and other
+        # polkit prompts have nothing to ask through and fail.
+        shell.polkit_agent = true;
+
         # Noctalia's own suspend is a plain one, which never hibernates.
         shell.session.power.suspend = "${pkgs.systemd}/bin/systemctl suspend-then-hibernate";
 
