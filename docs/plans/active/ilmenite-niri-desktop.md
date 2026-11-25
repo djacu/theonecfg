@@ -612,8 +612,42 @@ If the niri session does not come up:
   from it makes it the default again. The home configuration needs no
   rollback.
 
-| #   | Date | Result | Journal evidence |
-| --- | ---- | ------ | ---------------- |
+The switch-over did not go as planned: the owner ran `nixos-rebuild switch`
+instead of `boot`, which ended the Plasma session and started the greeter,
+and logged in to a bare niri session before the home configuration was
+applied. niri wrote its own default `~/.config/niri/config.kdl`, which had
+to be removed before `home-manager switch` would run. Seen in that state
+and gone after the reboot: the greeter could not write its state
+(`/var/lib/noctalia-greeter` was `root:root` until tmpfiles ran at boot;
+it is `greeter:greeter 0750` now), and Noctalia could not take over
+`org.freedesktop.Notifications` from a leftover Plasma service.
+
+niri, first login after a cold boot on 2026-11-23 (clock as logged):
+
+| Step                                            | Time         | Since password submitted |
+| ----------------------------------------------- | ------------ | ------------------------ |
+| Password submitted at the greeter               | 19:57:42.292 | 0                        |
+| "authentication successful"                     | 19:57:42.317 | 0.03 s                   |
+| logind "New session '3' of user 'djacu'"        | 19:57:42.439 | 0.15 s                   |
+| "Reached target Current graphical user session" | 19:57:42.942 | 0.65 s                   |
+| start-up logging quiet                          | 19:57:44     | about 2 s                |
+
+Session to `graphical-session.target`: 0.5 s, against 1.8 s for Plasma.
+Start-up logging quiet about 1.5 s after the session opened, against 9 to
+15 s. Password to target: 0.65 s, against 34 s with the fingerprint wait.
+
+| #   | Date       | Result                                                                                                                                                                                                                                                                                                                                                                | Journal evidence                                                                                                                                                                                                                                                             |
+| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 2026-11-23 | pass: password login at once, niri session with Noctalia                                                                                                                                                                                                                                                                                                              | timings above; `gkr-pam: gnome-keyring-daemon started properly and unlocked keyring`; no greeter warnings                                                                                                                                                                    |
+| 2   | 2026-11-23 | pass on the panel; Samsung name still to confirm at the dock                                                                                                                                                                                                                                                                                                          | `niri msg outputs`: eDP-1 at scale 1.7; `noctalia.service` active; `power-profile-ac` finished at boot, profile `performance` on AC                                                                                                                                          |
+| 3   | 2026-11-23 | covered by test 1: the login was by password and timed from the journal; no separate logout was done                                                                                                                                                                                                                                                                  | as test 1                                                                                                                                                                                                                                                                    |
+| 4   | 2026-11-23 | pass: volume, mute, brightness, play and the launcher act with Noctalia's display. The Framework has no mic-mute key                                                                                                                                                                                                                                                  | owner's report                                                                                                                                                                                                                                                               |
+| 5   | 2026-11-23 | pass: finger unlock, password unlock, media keys while locked                                                                                                                                                                                                                                                                                                         | 20:04:27 locked, reader claimed, unlocked 20:04:32 with no PAM line; 20:04:38 locked, `noctalia-pam-helper` logged `gkr-pam: unlocked login keyring` at 20:04:44. Also logged: `pam_unix(login:account): setuid failed: Operation not permitted`, with the unlock succeeding |
+| 6   | 2026-11-23 | pass: after `systemctl --user restart noctalia` while locked the screen was solid red with no prompt; Super+Alt+L brought the prompt back and unlock worked. A red flash showed once on that unlock and not again                                                                                                                                                     | owner's report; Noctalia restarted 20:08:00                                                                                                                                                                                                                                  |
+| 7   | 2026-11-23 | pass after two fixes. First run: `pkexec true` fell back to a terminal prompt and failed because Noctalia's polkit agent is off by default, and `notify-send` was not installed. With `shell.polkit_agent = true` and libnotify: Noctalia's prompt took a finger and `pkexec` succeeded; `notify-send` works. File chooser works. Slack opens, logged out as expected | before the fix, 20:09:48: polkit-agent-helper `No session for cookie`, polkitd `FAILED to authenticate`                                                                                                                                                                      |
+
+Open observation: Noctalia logged `[storage-key] encrypted cache/history exists, but its storage master key is missing` 50 ms before it reported the
+keyring unlocked. Not investigated.
 
 ## Review changes
 
