@@ -131,8 +131,11 @@ in
     services.gpg-agent.pinentry.package = mkForce pkgs.pinentry-gnome3;
 
     # libnotify for notify-send, which used to come in with Plasma.
+    # wl-clipboard gives command-line programs (gh, scripts) wl-copy and
+    # wl-paste; graphical apps and OSC 52 in kitty do not need it.
     home.packages = [
       pkgs.libnotify
+      pkgs.wl-clipboard
       pkgs.wl-mirror
     ];
 
