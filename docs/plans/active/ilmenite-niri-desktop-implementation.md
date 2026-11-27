@@ -726,7 +726,11 @@ Go through, one at a time, with the owner in the session:
 - the GnuPG prompt (owner's request, 2026-11-23): switch from `pinentry-qt`
   to `pinentry-gnome3`, set from the niri home module so the Plasma hosts
   keep `pinentry-qt`; the shared gpg module sets the package plainly, so the
-  override needs a priority. Test with one signed commit.
+  override needs a priority. Test with one signed commit. Done 2026-11-26.
+  Known and accepted by the owner: the GNOME dialog sizes itself to its
+  title, which pinentry builds from the caller's full command line, so the
+  real prompt opens over half the screen wide. niri cannot shrink it, and
+  the owner declined a wrapper that would strip the caller from the title.
 
 - Qt apps look plain without Plasma's theme. Noctalia's templates can
   generate matching GTK and Qt colours; try them.
