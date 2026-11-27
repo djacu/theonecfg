@@ -67,6 +67,11 @@ in
         default = true;
       };
     };
+    templates = {
+      qt.enable = mkEnableOption "Noctalia's colours in Qt apps, through qt5ct" // {
+        default = true;
+      };
+    };
   };
 
   config = mkIf cfg.enable (mkMerge [
@@ -207,6 +212,26 @@ in
       programs.noctalia.settings.plugins = {
         source = [ (pluginSource "kaomoji" pkgs.noctalia-official-plugin-kaomoji) ];
         enabled = [ "noctalia/kaomoji" ];
+      };
+    })
+
+    # Noctalia's built-in "qt" template writes its palette as a qt5ct and a
+    # qt6ct colour scheme. The qt5ct platform theme applies it to Qt 5 apps,
+    # and qt6ct answers to the same name for Qt 6 apps. Both only watch their
+    # top directory, so an open app keeps its colours until restarted.
+    (mkIf cfg.templates.qt.enable {
+      programs.noctalia.settings.theme.templates.builtin_ids = [ "qt" ];
+      qt = {
+        enable = true;
+        platformTheme.name = "qtct";
+        qt5ctSettings.Appearance = {
+          custom_palette = true;
+          color_scheme_path = "${config.xdg.configHome}/qt5ct/colors/noctalia.conf";
+        };
+        qt6ctSettings.Appearance = {
+          custom_palette = true;
+          color_scheme_path = "${config.xdg.configHome}/qt6ct/colors/noctalia.conf";
+        };
       };
     })
 
