@@ -8,6 +8,7 @@ let
 
   inherit (lib.modules)
     mkBefore
+    mkForce
     mkIf
     ;
 
@@ -121,6 +122,13 @@ in
       name = "Adwaita";
       size = 24;
     };
+
+    # The GTK passphrase prompt matches the other windows in this session;
+    # pinentry-qt has no theme without Plasma. It draws through GNOME's
+    # prompt service, which the NixOS niri module registers along with
+    # gnome-keyring; the Plasma hosts lack it, so the shared gpg module
+    # keeps pinentry-qt and this overrides it for niri only.
+    services.gpg-agent.pinentry.package = mkForce pkgs.pinentry-gnome3;
 
     # libnotify for notify-send, which used to come in with Plasma.
     home.packages = [
