@@ -7,6 +7,7 @@
 let
 
   inherit (lib.modules)
+    mkForce
     mkIf
     ;
 
@@ -26,9 +27,17 @@ in
     programs.niri.enable = true;
     # The default registers Nautilus on the session bus as the file-open
     # dialog back end, which also makes it answer "show in folder" requests
-    # (org.freedesktop.FileManager1). Luciole is the file manager here; the
-    # file-open dialogs fall back to the GTK portal's chooser.
+    # (org.freedesktop.FileManager1). Luciole is the file manager here.
     programs.niri.useNautilus = false;
+
+    # File-open and save dialogs go to Luciole, which the home-manager
+    # Luciole module installs. The portal skips a back end that is not
+    # installed, so without Luciole they fall back to the GTK portal. The
+    # niri module sets "gtk" here when Nautilus is off.
+    xdg.portal.config.niri."org.freedesktop.impl.portal.FileChooser" = mkForce [
+      "luciole"
+      "gtk"
+    ];
 
     # xdg-desktop-portal reads its routing (portals.conf) and the list of
     # installed back ends only at start-up. Declare them as restart triggers,

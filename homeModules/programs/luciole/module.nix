@@ -60,6 +60,12 @@ in
     xdg.dataFile."dbus-1/services/dev.noctalia.luciole.FileManager1.service".source =
       "${pkgs.luciole}/share/dbus-1/services/dev.noctalia.luciole.FileManager1.service";
 
+    # Serve file-open and save dialogs for apps that ask the desktop portal;
+    # the NixOS niri module routes them here. The portal finds the .portal
+    # file in the profile, but the service file has to be linked as above.
+    xdg.dataFile."dbus-1/services/org.freedesktop.impl.portal.desktop.luciole.service".source =
+      "${pkgs.luciole}/share/dbus-1/services/org.freedesktop.impl.portal.desktop.luciole.service";
+
     # Noctalia's built-in template writes ~/.config/luciole/colors.toml from
     # its palette, and Luciole reloads that file live.
     programs.noctalia.settings.theme.templates.builtin_ids = mkIf config.programs.noctalia.enable [
