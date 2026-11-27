@@ -18,6 +18,7 @@ inputs: {
 
       theonecfg.programs.niri.enable = true;
       theonecfg.programs.noctalia.enable = true;
+      theonecfg.programs.luciole.enable = true;
 
       # Per-monitor settings. External monitors are matched by manufacturer,
       # model and serial so they follow the monitor across ports; the laptop
