@@ -63,6 +63,12 @@ in
             xcursor-size 24
         }
 
+        // Offer apps server-side decorations, which niri draws as nothing
+        // but its border. Without this, kitty, Luciole and plain GTK
+        // windows draw their own title bars, and xwayland-satellite draws a
+        // fixed white one on X11 windows. Apps with header bars keep them.
+        prefer-no-csd
+
         binds {
             Mod+T hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
             Mod+D hotkey-overlay-title="Run an Application: Noctalia" { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
