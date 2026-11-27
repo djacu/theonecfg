@@ -65,6 +65,9 @@ in
             // Allowed while locked: if the lock screen's process dies, niri
             // stays locked with no prompt, and locking again brings it back.
             Super+Alt+L allow-when-locked=true hotkey-overlay-title="Lock the Screen: Noctalia" { spawn "noctalia" "msg" "session" "lock"; }
+            // niri's default quits the session after a confirmation. Open
+            // Noctalia's session menu instead, so no key logs out directly.
+            Mod+Shift+E hotkey-overlay-title="Session Menu: Noctalia" { spawn "noctalia" "msg" "panel-toggle" "session"; }
 
             // The Framework's F9 "display" key sends Super+P, which niri
             // leaves unbound. Keep-awake suspends the idle timers, for
