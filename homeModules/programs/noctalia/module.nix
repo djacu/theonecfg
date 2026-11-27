@@ -66,6 +66,9 @@ in
       kaomoji.enable = mkEnableOption "the Kaomoji plugin" // {
         default = true;
       };
+      worldClock.enable = mkEnableOption "the World Clock plugin" // {
+        default = true;
+      };
     };
     templates = {
       qt.enable = mkEnableOption "Noctalia's colours in Qt apps, through qt5ct" // {
@@ -214,6 +217,68 @@ in
         enabled = [ "noctalia/kaomoji" ];
       };
     })
+
+    (
+      let
+        zonesDir = "${config.xdg.stateHome}/noctalia/plugins/data/noctalia/world_clock";
+        zones = pkgs.writeText "noctalia-world-clock-zones.json" (
+          builtins.toJSON [
+            {
+              id = "America/Los_Angeles";
+              label = "Pacific";
+              on_bar = true;
+            }
+            {
+              id = "America/New_York";
+              label = "Eastern";
+              on_bar = true;
+            }
+            {
+              id = "UTC";
+              label = "UTC";
+              on_bar = true;
+            }
+            # Switches between CET and CEST with the EU's daylight saving.
+            {
+              id = "Europe/Berlin";
+              label = "Central Europe";
+              on_bar = true;
+            }
+          ]
+        );
+      in
+      mkIf cfg.plugins.worldClock.enable {
+        programs.noctalia.settings = {
+          plugins = {
+            source = [ (pluginSource "world_clock" pkgs.noctalia-official-plugin-world-clock) ];
+            enabled = [ "noctalia/world_clock" ];
+          };
+          # Plan mode highlights a zone while its local hour is in [start, end).
+          plugin_settings."noctalia/world_clock" = {
+            working_hours_start = 8;
+            working_hours_end = 20;
+          };
+        };
+        # The plugin reads its zones from this file when it starts and
+        # rewrites it on every change made in its panel. Replace it on each
+        # switch, before Noctalia restarts; the restart trigger makes a change
+        # to the list here restart Noctalia so the plugin reads it.
+        home.activation.noctaliaWorldClockZones =
+          lib.hm.dag.entryBetween [ "reloadSystemd" ] [ "writeBoundary" ]
+            ''
+              run mkdir -p ${zonesDir}
+              run install -m 644 ${zones} ${zonesDir}/zones.json
+            '';
+        systemd.user.services.noctalia.Unit.X-Restart-Triggers = [ "${zones}" ];
+        wayland.windowManager.niri.extraConfig = mkIf niriEnabled (
+          niriBinds "world-clock" ''
+            Mod+C repeat=false hotkey-overlay-title="Toggle World Clock: Noctalia" { spawn "noctalia" "msg" "panel-toggle" "noctalia/world_clock:panel"; }
+            // niri's default for Mod+C, moved up one modifier.
+            Mod+Shift+C { center-column; }
+          ''
+        );
+      }
+    )
 
     # Noctalia's built-in "qt" template writes its palette as a qt5ct and a
     # qt6ct colour scheme. The qt5ct platform theme applies it to Qt 5 apps,
