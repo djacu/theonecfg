@@ -108,6 +108,13 @@ in
           # Noctalia's own suspend is a plain one, which never hibernates.
           shell.session.power.suspend = "${pkgs.systemd}/bin/systemctl suspend-then-hibernate";
 
+          # Noctalia's built-in Nord palette, dark (owner's choice).
+          theme = {
+            source = "builtin";
+            builtin = "Nord";
+            mode = "dark";
+          };
+
           idle = {
             behavior_order = [
               "screen-off"
