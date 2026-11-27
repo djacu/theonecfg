@@ -40,6 +40,12 @@ in
         # polkit prompts have nothing to ask through and fail.
         shell.polkit_agent = true;
 
+        # Noctalia runs as a systemd user service, and apps started from its
+        # launcher land in that service's cgroup. Every restart of Noctalia,
+        # including each home-manager switch that changes its config, then
+        # kills them all. Start them as their own transient units instead.
+        shell.launch_apps_as_systemd_services = true;
+
         # Noctalia's own suspend is a plain one, which never hibernates.
         shell.session.power.suspend = "${pkgs.systemd}/bin/systemctl suspend-then-hibernate";
 
