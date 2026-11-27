@@ -71,6 +71,12 @@ in
             // niri's default quits the session after a confirmation. Open
             // Noctalia's session menu instead, so no key logs out directly.
             Mod+Shift+E hotkey-overlay-title="Session Menu: Noctalia" { spawn "noctalia" "msg" "panel-toggle" "session"; }
+            // Clipboard history on Super+V, as on other desktops (owner's
+            // choice). niri's two floating actions move up one modifier.
+            // All three are toggles, so they do not repeat while held.
+            Mod+V repeat=false hotkey-overlay-title="Clipboard History: Noctalia" { spawn "noctalia" "msg" "panel-toggle" "clipboard"; }
+            Mod+Shift+V repeat=false { toggle-window-floating; }
+            Mod+Ctrl+V repeat=false { switch-focus-between-floating-and-tiling; }
 
             // The Framework's F9 "display" key sends Super+P, which niri
             // leaves unbound. Keep-awake suspends the idle timers, for
