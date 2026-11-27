@@ -25,6 +25,8 @@ in
     theonecfg.programs.kitty.enable = true;
     theonecfg.programs.mpv.enable = true;
 
+    programs.btop.enable = true;
+
     theonecfg.packages.messaging.enable = true;
     theonecfg.packages.multimedia.enable = true;
     theonecfg.packages.productivity.enable = true;
