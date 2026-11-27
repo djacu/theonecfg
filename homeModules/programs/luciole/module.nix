@@ -54,6 +54,12 @@ in
       run ${pkgs.xdg-utils}/bin/xdg-mime default dev.noctalia.luciole.desktop inode/directory
     '';
 
+    # Answer "show in folder" requests (org.freedesktop.FileManager1) from
+    # any app. The session bus reads ~/.local/share/dbus-1/services, but not
+    # the home-manager profile where the package installs this file.
+    xdg.dataFile."dbus-1/services/dev.noctalia.luciole.FileManager1.service".source =
+      "${pkgs.luciole}/share/dbus-1/services/dev.noctalia.luciole.FileManager1.service";
+
     # Noctalia's built-in template writes ~/.config/luciole/colors.toml from
     # its palette, and Luciole reloads that file live.
     programs.noctalia.settings.theme.templates.builtin_ids = mkIf config.programs.noctalia.enable [
