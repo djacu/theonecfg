@@ -41,6 +41,8 @@ in
 
   config = mkIf cfg.enable {
 
+    # The session bus and the desktop portal find the package's D-Bus
+    # services ("show in folder", file dialogs) in the profile.
     home.packages = [ pkgs.luciole ];
 
     xdg.configFile."luciole/config.toml" = mkIf (cfg.settings != { }) {
@@ -53,18 +55,6 @@ in
     home.activation.lucioleDefaultFileManager = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
       run ${pkgs.xdg-utils}/bin/xdg-mime default dev.noctalia.luciole.desktop inode/directory
     '';
-
-    # Answer "show in folder" requests (org.freedesktop.FileManager1) from
-    # any app. The session bus reads ~/.local/share/dbus-1/services, but not
-    # the home-manager profile where the package installs this file.
-    xdg.dataFile."dbus-1/services/dev.noctalia.luciole.FileManager1.service".source =
-      "${pkgs.luciole}/share/dbus-1/services/dev.noctalia.luciole.FileManager1.service";
-
-    # Serve file-open and save dialogs for apps that ask the desktop portal;
-    # the NixOS niri module routes them here. The portal finds the .portal
-    # file in the profile, but the service file has to be linked as above.
-    xdg.dataFile."dbus-1/services/org.freedesktop.impl.portal.desktop.luciole.service".source =
-      "${pkgs.luciole}/share/dbus-1/services/org.freedesktop.impl.portal.desktop.luciole.service";
 
     # Noctalia's built-in template writes ~/.config/luciole/colors.toml from
     # its palette, and Luciole reloads that file live.
