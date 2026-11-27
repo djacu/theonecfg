@@ -56,6 +56,10 @@ in
     # SSH agent is not wanted.
     services.gnome.gcr-ssh-agent.enable = false;
 
+    # Trash, mounting and network locations for GIO file managers such as
+    # Luciole and Nautilus. Plasma used KIO instead and never needed it.
+    services.gvfs.enable = true;
+
   };
 
 }
