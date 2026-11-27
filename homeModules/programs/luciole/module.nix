@@ -54,6 +54,12 @@ in
       run ${pkgs.xdg-utils}/bin/xdg-mime default dev.noctalia.luciole.desktop inode/directory
     '';
 
+    # Noctalia's built-in template writes ~/.config/luciole/colors.toml from
+    # its palette, and Luciole reloads that file live.
+    programs.noctalia.settings.theme.templates.builtin_ids = mkIf config.programs.noctalia.enable [
+      "luciole"
+    ];
+
   };
 
 }
