@@ -81,6 +81,9 @@ in
       btop.enable = mkEnableOption "Noctalia's colours in btop" // {
         default = true;
       };
+      gtk.enable = mkEnableOption "Noctalia's colours in GTK 3 and GTK 4 apps" // {
+        default = true;
+      };
     };
   };
 
@@ -331,6 +334,29 @@ in
     (mkIf (cfg.templates.btop.enable && config.programs.btop.enable) {
       programs.noctalia.settings.theme.templates.builtin_ids = [ "btop" ];
       programs.btop.settings.color_theme = "noctalia";
+    })
+
+    # Noctalia writes noctalia.css for GTK 3 and GTK 4. The colour names it
+    # sets are libadwaita's, which GTK 3 apps only use under the adw-gtk3
+    # theme; GTK 4 apps need only the import. The hook adds the import to
+    # gtk.css when it is missing and replaces a read-only gtk.css with its
+    # own file, so the import is declared here.
+    (mkIf cfg.templates.gtk.enable {
+      programs.noctalia.settings.theme.templates.builtin_ids = [
+        "gtk3"
+        "gtk4"
+      ];
+      gtk = {
+        enable = true;
+        # No GTK 2 apps here.
+        gtk2.enable = false;
+        theme = {
+          name = "adw-gtk3-dark";
+          package = pkgs.adw-gtk3;
+        };
+        gtk3.extraCss = ''@import url("noctalia.css");'';
+        gtk4.extraCss = ''@import url("noctalia.css");'';
+      };
     })
 
   ]);
