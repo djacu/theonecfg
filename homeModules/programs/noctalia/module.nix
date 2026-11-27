@@ -16,6 +16,8 @@ let
 
   cfg = config.theonecfg.programs.noctalia;
 
+  niriEnabled = config.wayland.windowManager.niri.enable;
+
   # Noctalia runs an idle command once per idle period, so wait here until
   # the laptop is on battery. systemd-ac-power exits 0 on AC.
   batterySleep = pkgs.writeShellScript "noctalia-battery-sleep" ''
@@ -84,8 +86,10 @@ in
 
     # The unit is wanted by graphical-session.target, which a Plasma session
     # also reaches. Under Plasma (the fallback generation) it would run as a
-    # second shell with its idle behaviours armed.
-    systemd.user.services.noctalia.Unit.ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
+    # second shell with its idle behaviours armed. Only when niri is the
+    # compositor: otherwise this would keep Noctalia from starting at all.
+    systemd.user.services.noctalia.Unit.ConditionEnvironment =
+      mkIf niriEnabled "XDG_CURRENT_DESKTOP=niri";
 
   };
 
