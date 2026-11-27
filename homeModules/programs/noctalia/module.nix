@@ -78,6 +78,9 @@ in
       niri.enable = mkEnableOption "Noctalia's colours in niri's borders and focus ring" // {
         default = true;
       };
+      btop.enable = mkEnableOption "Noctalia's colours in btop" // {
+        default = true;
+      };
     };
   };
 
@@ -320,6 +323,14 @@ in
       wayland.windowManager.niri.extraConfig = mkAfter ''
         include optional=true "${config.xdg.configHome}/niri/noctalia.kdl"
       '';
+    })
+
+    # Noctalia writes ~/.config/btop/themes/noctalia.theme. btop.conf comes
+    # from home-manager, so the theme is selected here and the hook, finding
+    # it selected, only reloads btop.
+    (mkIf (cfg.templates.btop.enable && config.programs.btop.enable) {
+      programs.noctalia.settings.theme.templates.builtin_ids = [ "btop" ];
+      programs.btop.settings.color_theme = "noctalia";
     })
 
   ]);
