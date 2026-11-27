@@ -24,6 +24,11 @@ in
   config = mkIf cfg.enable {
 
     programs.niri.enable = true;
+    # The default registers Nautilus on the session bus as the file-open
+    # dialog back end, which also makes it answer "show in folder" requests
+    # (org.freedesktop.FileManager1). Luciole is the file manager here; the
+    # file-open dialogs fall back to the GTK portal's chooser.
+    programs.niri.useNautilus = false;
 
     # home-manager owns the Noctalia user service, so systemd.enable stays
     # off here.
