@@ -17,12 +17,15 @@ let
 
   cfg = config.theonecfg.programs.niri;
 
-  # niri's shipped config, minus the one line that starts a bar this setup
-  # does not install. The grep makes the build fail if that line changes.
+  # niri's shipped config, minus the line that starts a bar this setup does
+  # not install and the Ctrl+Alt+Delete bind that quits the session. niri
+  # has no way to unbind a key, only to replace it, so the line is removed
+  # here. The greps make the build fail if either line changes.
   defaultConfig = pkgs.runCommand "niri-default-config.kdl" { } ''
     src=${pkgs.niri.src}/resources/default-config.kdl
     grep -qx 'spawn-at-startup "waybar"' "$src"
-    grep -vx 'spawn-at-startup "waybar"' "$src" > $out
+    grep -qx '    Ctrl+Alt+Delete { quit; }' "$src"
+    grep -vx -e 'spawn-at-startup "waybar"' -e '    Ctrl+Alt+Delete { quit; }' "$src" > $out
   '';
 
 in
