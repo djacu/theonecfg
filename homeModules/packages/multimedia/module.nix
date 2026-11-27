@@ -22,6 +22,8 @@ in
   options.theonecfg.packages.multimedia.enable = mkEnableOption "multimedia package config";
 
   config = mkIf cfg.enable {
+    theonecfg.programs.loupe.enable = true;
+
     home.packages = [
 
       pkgs.ffmpeg
