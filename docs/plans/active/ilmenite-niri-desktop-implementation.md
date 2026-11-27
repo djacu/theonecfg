@@ -737,7 +737,13 @@ Go through, one at a time, with the owner in the session:
 
 - a file manager and an image viewer (owner's question, 2026-11-23).
   Nautilus is in the system only for file dialogs and is not in the
-  launcher; `imv` and `mpv` are the only image viewers installed.
+  launcher; `imv` and `mpv` are the only image viewers installed. Done
+  2026-11-26: Luciole (the Noctalia project's file manager, packaged in
+  this repo) and Loupe, each the default for its file types.
+
+- go through the Noctalia project's plugins (owner's request,
+  2026-11-26): 15 official and about 370 community ones, listed at
+  noctalia.dev/plugins.
 
 - Noctalia's storage-key warning at start-up (see the design doc).
 
