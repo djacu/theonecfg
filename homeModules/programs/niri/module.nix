@@ -136,6 +136,13 @@ in
     # keeps pinentry-qt and this overrides it for niri only.
     services.gpg-agent.pinentry.package = mkForce pkgs.pinentry-gnome3;
 
+    # Qt apps draw their own file dialogs unless the platform theme hands
+    # them to the desktop portal, which routes them to Luciole. This only
+    # applies while qt5ct is the platform theme (the Noctalia module's Qt
+    # colours); qt6ct reads the same setting for Qt 6 apps.
+    qt.qt5ctSettings.Appearance.standard_dialogs = "xdgdesktopportal";
+    qt.qt6ctSettings.Appearance.standard_dialogs = "xdgdesktopportal";
+
     # libnotify for notify-send, which used to come in with Plasma.
     # wl-clipboard gives command-line programs (gh, scripts) wl-copy and
     # wl-paste; graphical apps and OSC 52 in kitty do not need it.
