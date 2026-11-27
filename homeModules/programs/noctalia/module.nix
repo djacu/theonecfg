@@ -7,6 +7,7 @@
 let
 
   inherit (lib.modules)
+    mkAfter
     mkIf
     mkMerge
     ;
@@ -72,6 +73,9 @@ in
     };
     templates = {
       qt.enable = mkEnableOption "Noctalia's colours in Qt apps, through qt5ct" // {
+        default = true;
+      };
+      niri.enable = mkEnableOption "Noctalia's colours in niri's borders and focus ring" // {
         default = true;
       };
     };
@@ -305,6 +309,17 @@ in
           color_scheme_path = "${config.xdg.configHome}/qt6ct/colors/noctalia.conf";
         };
       };
+    })
+
+    # Noctalia writes ~/.config/niri/noctalia.kdl: focus ring, border and tab
+    # colours. Its hook appends an include to config.kdl when there is none,
+    # which fails on the read-only file, so it is declared here, last, so its
+    # colours win. optional: niri only warns until Noctalia has written it.
+    (mkIf (cfg.templates.niri.enable && niriEnabled) {
+      programs.noctalia.settings.theme.templates.builtin_ids = [ "niri" ];
+      wayland.windowManager.niri.extraConfig = mkAfter ''
+        include optional=true "${config.xdg.configHome}/niri/noctalia.kdl"
+      '';
     })
 
   ]);
