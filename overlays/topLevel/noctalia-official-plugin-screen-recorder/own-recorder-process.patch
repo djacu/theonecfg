@@ -1,0 +1,295 @@
+Follow the gpu-screen-recorder process the service starts instead of finding
+it by name every 2 seconds.
+
+Upstream goes idle as soon as it sends the stop signal. A process check that
+lands while the recorder is still saving adopts it as an externally started
+recording, and when it exits the "Recording saved" notification is shown a
+second time. The recorder is now launched through runStream with a wrapper
+that prints its pid and, once it has exited, its exit status. The service
+signals only that pid and settles the capture only on its exit. setsid keeps
+the recorder out of the stream's process group, which Noctalia kills when it
+ends a stream on reload or exit.
+
+The Flatpak branch is untested: signals go to the flatpak process, not the
+recorder inside it. Related upstream issue:
+https://github.com/noctalia-dev/official-plugins/issues/84
+
+--- a/recorder_service.luau
++++ b/recorder_service.luau
+@@ -31,6 +31,14 @@
+ local updateDisplay
+ local lastStatusKey
+ 
++-- The capture this service launched. Its launch wrapper reports the recorder's
++-- pid and, once the recorder has exited, its exit status, so the service follows
++-- its own process instead of searching for it by name. nil while idle and while
++-- following a recorder adopted from outside.
++local capture = nil -- { id, pid, stopping, killAt, killed }
++local captureSeq = 0
++local STOP_KILL_TICKS = 12 -- 3s: kill a recorder still running this long after a stop
++
+ -- ── Helpers ──────────────────────────────────────────────────────────────
+ 
+ local function cfg(key)
+@@ -232,7 +240,8 @@
+     local savedPath = outputPath
+     if savedPath == "" then return end
+ 
+-    noctalia.runAsync(`sleep 0.5; test -s {shellQuote(savedPath)}`, function(result)
++    -- The recorder has exited by the time this runs, so the file is complete.
++    noctalia.runAsync(`test -s {shellQuote(savedPath)}`, function(result)
+         if result.exitCode ~= 0 then
+             if notifyIfMissing then
+                 if portalCaptureCancelled() then
+@@ -387,7 +396,7 @@
+   flatpak list --app 2>/dev/null | grep -q "com.dec05eba.gpu_screen_recorder"
+ }
+ if command -v gpu-screen-recorder >/dev/null 2>&1; then
+-  gpu-screen-recorder]]
++  setsid gpu-screen-recorder]]
+ end
+ 
+ local function outputDirectory()
+@@ -403,7 +412,16 @@
+     return [[
+ 
+ elif command -v flatpak >/dev/null 2>&1 && _gpuscreenrecorder_flatpak_installed; then
+-  flatpak run --command=gpu-screen-recorder com.dec05eba.gpu_screen_recorder]]
++  setsid flatpak run --command=gpu-screen-recorder com.dec05eba.gpu_screen_recorder]]
++end
++
++-- Start the recorder in the background, print "pid N", then "exit N" once it
++-- has exited. The shell reaps it only at `wait`, so the pid cannot be reused
++-- before "exit" is printed. setsid gives the recorder its own process group:
++-- Noctalia kills a stream's whole group when it ends the stream on reload or
++-- exit, which would cut the recording off mid-save. onExit stops it cleanly.
++local function trackedCommand(header, flags)
++    return `{header}\n{buildGsrPrefix()} {flags} &{buildGsrSuffix()} {flags} &\nelse\n  echo "exit 127"\n  exit 0\nfi\necho "pid $!"\nwait $!\necho "exit $?"`
+ end
+ 
+ local function buildRecordCommand(focusedOutputName, sourceOverride)
+@@ -443,7 +461,7 @@
+     local header = `printf '=== gpu-screen-recorder recording %s ===\n' "$(date '+%Y-%m-%d %H:%M:%S')" > "{logFile}"`
+     flags ..= ` >> "{logFile}" 2>&1`
+ 
+-    return `{header}\n{buildGsrPrefix()} {flags}{buildGsrSuffix()} {flags}\nfi`
++    return trackedCommand(header, flags)
+ end
+ 
+ local function buildReplayCommand(focusedOutputName, sourceOverride)
+@@ -481,7 +499,7 @@
+     local header = `printf '=== gpu-screen-recorder replay %s ===\n' "$(date '+%Y-%m-%d %H:%M:%S')" > "{logFile}"`
+     flags ..= ` >> "{logFile}" 2>&1`
+ 
+-    return `{header}\n{buildGsrPrefix()} {flags}{buildGsrSuffix()} {flags}\nfi`
++    return trackedCommand(header, flags)
+ end
+ 
+ -- ── Portal check ─────────────────────────────────────────────────────────
+@@ -506,6 +524,97 @@
+     end
+ end
+ 
++-- ── Own capture process ──────────────────────────────────────────────────
++
++local function sendSignal(pid, signal)
++    noctalia.runAsync(`kill -s {signal} {pid} 2>/dev/null || true`)
++end
++
++-- The launched recorder has exited and been reaped: report how it ended and go
++-- idle. Nothing else moves an own capture out of its state, so a recorder still
++-- saving after a stop is never mistaken for a new one.
++local function onCaptureExit(ended, code)
++    log(`gpu-screen-recorder exited with status {code}`)
++    local endedIn = state
++    setState("idle")
++
++    if endedIn == "pending" or endedIn == "replay_pending" then
++        if ended.stopping then
++            log("capture stopped before it started")
++        elseif portalCaptureCancelled() then
++            log("target selection cancelled by user")
++        elseif endedIn == "pending" then
++            logGsrTail("recording failed to start")
++            noctalia.notifyError(noctalia.tr("notify.recording-failed"), noctalia.tr("notify.recording-stopped-early"))
++        else
++            logGsrTail("replay buffer failed to start")
++            noctalia.notifyError(noctalia.tr("notify.replay-failed"), noctalia.tr("notify.recording-stopped-early"))
++        end
++    elseif endedIn == "recording" then
++        if ended.killed then
++            logGsrTail("gpu-screen-recorder did not stop within 3s and was killed")
++            noctalia.notifyError(noctalia.tr("notify.recording-failed"), noctalia.tr("notify.recording-stopped-early"))
++        else
++            if not ended.stopping then
++                log("recording process ended on its own")
++            end
++            notifyRecordingSavedIfPresent(not ended.stopping)
++        end
++    elseif endedIn == "replaying" then
++        if not ended.stopping then
++            log("replay buffer process ended on its own")
++            logGsrTail("replay buffer stopped")
++        end
++        noctalia.notify(noctalia.tr("notify.replay-stopped"))
++    end
++
++    -- A recorder adopted later is not ours; never report this file for it.
++    outputPath = ""
++    updateDisplay()
++end
++
++local function onCaptureLine(id, line)
++    if capture == nil or capture.id ~= id then return end
++
++    local pid = line:match("^pid (%d+)$")
++    if pid ~= nil then
++        capture.pid = tonumber(pid)
++        if capture.stopping then
++            sendSignal(capture.pid, "INT") -- stopped before the pid arrived
++        end
++        return
++    end
++
++    local code = line:match("^exit (%d+)$")
++    if code ~= nil then
++        local ended = capture
++        capture = nil
++        onCaptureExit(ended, tonumber(code))
++    end
++end
++
++local function launchCapture(cmd)
++    captureSeq += 1
++    local id = captureSeq
++    capture = { id = id, pid = nil, stopping = false, killAt = 0, killed = false }
++    if noctalia.runStream(cmd, function(line) onCaptureLine(id, line) end) then
++        return true
++    end
++    capture = nil
++    return false
++end
++
++-- Ask the own recorder to stop; update() kills it if it is still running 3s
++-- later, and onCaptureExit reports the result once it has exited.
++local function stopCapture()
++    if capture.stopping then return end
++    capture.stopping = true
++    capture.killAt = tickCount + STOP_KILL_TICKS
++    if capture.pid ~= nil then
++        sendSignal(capture.pid, "INT")
++    end
++end
++
+ -- ── Recording controls ───────────────────────────────────────────────────
+ 
+ local function startRecording(focusedOutputName, sourceOverride)
+@@ -542,7 +651,7 @@
+             return
+         end
+ 
+-        if noctalia.runAsync(cmd) then
++        if launchCapture(cmd) then
+             log("gpu-screen-recorder launched")
+         else
+             setState("idle")
+@@ -557,6 +666,12 @@
+     if not table.find(RECORDING_STATES, state) then return end
+ 
+     log("stopping recording (user request)")
++    if capture ~= nil then
++        stopCapture()
++        return
++    end
++
++    -- Not launched yet, or adopted from outside: no own process to follow.
+     signalRecorder("INT", false, true)
+ 
+     if state == "recording" then
+@@ -602,7 +717,7 @@
+             return
+         end
+ 
+-        if noctalia.runAsync(cmd) then
++        if launchCapture(cmd) then
+             log("gpu-screen-recorder replay buffer launched")
+         else
+             setState("idle")
+@@ -617,6 +732,11 @@
+     if not table.find(REPLAY_STATES, state) then return end
+ 
+     log("stopping replay buffer (user request)")
++    if capture ~= nil then
++        stopCapture()
++        return
++    end
++
+     signalRecorder("INT", true, true)
+ 
+     setState("idle")
+@@ -626,7 +746,13 @@
+ local function saveReplay()
+     if state ~= "replaying" then return end
+     log("saving replay buffer (SIGUSR1)")
+-    signalRecorder("USR1", true, false)
++    if capture ~= nil then
++        if capture.pid ~= nil then
++            sendSignal(capture.pid, "USR1")
++        end
++    else
++        signalRecorder("USR1", true, false)
++    end
+ 
+     local pattern = cfg("replay_filename_pattern")
+     if pattern ~= nil and pattern ~= "" then
+@@ -659,6 +785,9 @@
+ -- ── State polling ────────────────────────────────────────────────────────
+ 
+ local function checkProcessState(processState)
++    -- An own capture is followed through its launch wrapper (onCaptureLine).
++    if capture ~= nil then return end
++
+     if state == "pending" then
+         if tickCount - pendingSince >= PENDING_TICKS then
+             if processState == "recording" then
+@@ -749,6 +878,26 @@
+         requestProcessStateCheck()
+     end
+ 
++    if capture ~= nil then
++        if capture.stopping then
++            if not capture.killed and capture.pid ~= nil and tickCount >= capture.killAt then
++                log("gpu-screen-recorder still running 3s after stop; killing it")
++                capture.killed = true
++                sendSignal(capture.pid, "KILL")
++            end
++        elseif tickCount - pendingSince >= PENDING_TICKS then
++            -- Still running a full check interval after the start: the capture is live.
++            if state == "pending" then
++                log("recording active")
++                setState("recording")
++            elseif state == "replay_pending" then
++                log("replay buffer active")
++                setState("replaying")
++                noctalia.notify(noctalia.tr("notify.replay-active"))
++            end
++        end
++    end
++
+     updateDisplay()
+ end
+ 
+@@ -806,7 +955,12 @@
+ function onExit()
+     if state ~= "idle" then
+         log("stopping capture (service exit)")
+-        signalRecorder("INT", false, true)
++        if capture ~= nil and capture.pid ~= nil then
++            -- Detached, so the fallback kill still runs after the runtime is gone.
++            noctalia.runAsync(`kill -s INT {capture.pid} 2>/dev/null || exit 0\nsleep 3\nkill -s KILL {capture.pid} 2>/dev/null || true`)
++        else
++            signalRecorder("INT", false, true)
++        end
+     end
+ end
+ 
