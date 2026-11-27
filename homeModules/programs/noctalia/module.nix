@@ -75,6 +75,9 @@ in
       qt.enable = mkEnableOption "Noctalia's colours in Qt apps, through qt5ct" // {
         default = true;
       };
+      kitty.enable = mkEnableOption "Noctalia's colours in kitty" // {
+        default = true;
+      };
       niri.enable = mkEnableOption "Noctalia's colours in niri's borders and focus ring" // {
         default = true;
       };
@@ -315,6 +318,15 @@ in
           color_scheme_path = "${config.xdg.configHome}/qt6ct/colors/noctalia.conf";
         };
       };
+    })
+
+    # Noctalia writes ~/.config/kitty/themes/noctalia.conf and reloads kitty.
+    # Its hook appends this exact line to kitty.conf when it is missing, which
+    # fails on home-manager's read-only file, so it is declared here. It comes
+    # after the kitty module's theme, so these colours win.
+    (mkIf (cfg.templates.kitty.enable && config.programs.kitty.enable) {
+      programs.noctalia.settings.theme.templates.builtin_ids = [ "kitty" ];
+      programs.kitty.extraConfig = "include themes/noctalia.conf";
     })
 
     # Noctalia writes ~/.config/niri/noctalia.kdl: focus ring, border and tab
