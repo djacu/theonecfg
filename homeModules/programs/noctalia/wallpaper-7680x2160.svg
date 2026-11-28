@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="7680" height="2160" viewBox="0 0 7680 2160">
+  <!--
+    NixOS "simple-dark-gray" wallpaper in Nord colours, dithered, for a 7680x2160 screen.
+    Derived from wallpapers/simple-dark-gray.svg in https://github.com/louwers/branding
+    at b74b2f86ed3a1c23672ed418089c99a27798ac17.
+
+    colour(t) = #2e3440 + (#4c566a - #2e3440) * (1 - t)^1.91
+    with t = distance from the centre / 1180
+
+    The filter takes v = 1 - t from the gradient and computes u = v^1.91,
+    w = 0.15 + 0.8 u + 0.1 (noise - 0.5) and colour = edge + (centre - edge) (w - 0.15) / 0.8.
+    The noise comes before the final rounding to 8 bits, which dithers away the bands.
+
+    "NixOS Logomark" (nixos-logomark-white-flat-none) by Simon Frankau,
+    Tim Cuthbertson and Daniel Baker (maintained by the NixOS Marketing Team),
+    from https://github.com/NixOS/branding/tree/24f982b224936c2dcadaa6c8c52fba80d19b12d2,
+    licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
+    Changes: scaled and centred.
+  -->
+  <defs>
+    <radialGradient id="a" cx="3840" cy="1080" r="1180" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset="1"/>
+    </radialGradient>
+    <filter id="b" width="100%" height="100%" x="0" y="0" color-interpolation-filters="sRGB">
+      <feComponentTransfer result="u">
+        <feFuncR exponent="1.91" type="gamma"/>
+        <feFuncG exponent="1.91" type="gamma"/>
+        <feFuncB exponent="1.91" type="gamma"/>
+      </feComponentTransfer>
+      <feTurbulence baseFrequency=".7071" seed="1" type="fractalNoise"/>
+      <feColorMatrix result="noise" values="0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 1"/>
+      <feComposite in="u" in2="noise" k2=".8" k3=".1" k4=".1" operator="arithmetic"/>
+      <feComponentTransfer>
+        <feFuncR intercept=".158333" slope=".147059" type="linear"/>
+        <feFuncG intercept=".178922" slope=".166667" type="linear"/>
+        <feFuncB intercept=".220098" slope=".205882" type="linear"/>
+      </feComponentTransfer>
+    </filter>
+    <path id="c" d="m3782.6 1103 11.8-20.5 51.5 89.3h-23.6l-11.7-20.4-11.8 20.4H3787l-5.9-10.2 17.7-30.6zm8.8-61.2h23.6l-51.6 89.2-11.7-20.4 11.7-20.4H3740l-5.9-10.2 5.9-10.2h35.3zm57.4-23 11.8 20.4h-103l11.7-20.4h23.6l-11.8-20.4 5.9-10.2h11.8l17.6 30.6zm48.6 38.2-11.8 20.5-51.5-89.3h23.6l11.7 20.4 11.8-20.4h11.8l5.9 10.2-17.7 30.6zm-8.8 61.2H3865l51.6-89.2 11.7 20.4-11.7 20.4h23.5l5.9 10.2-5.9 10.2h-35.3zm-57.4 23-11.8-20.4h103l-11.7 20.4H3887l11.8 20.4-5.9 10.2h-11.8l-17.6-30.6z"/>
+  </defs>
+  <path fill="url(#a)" d="M0 0h7680v2160H0z" filter="url(#b)"/>
+  <use fill="#fff" href="#c"/>
+</svg>

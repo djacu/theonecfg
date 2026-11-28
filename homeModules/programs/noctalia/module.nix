@@ -88,6 +88,9 @@ in
         default = true;
       };
     };
+    wallpaper.enable = mkEnableOption "the Nord NixOS wallpaper" // {
+      default = true;
+    };
   };
 
   config = mkIf cfg.enable (mkMerge [
@@ -368,6 +371,18 @@ in
         };
         gtk3.extraCss = ''@import url("noctalia.css");'';
         gtk4.extraCss = ''@import url("noctalia.css");'';
+      };
+    })
+
+    # Noctalia draws an SVG once, at the size it declares, so each file is
+    # made for one screen's pixels. A wallpaper picked in Noctalia's panel
+    # goes to settings.toml and wins over these.
+    (mkIf cfg.wallpaper.enable {
+      programs.noctalia.settings.wallpaper = {
+        # eDP-1, and any screen without a file of its own: once any path is
+        # set, Noctalia drops its bundled wallpaper, so those would get none.
+        default.path = "${./wallpaper-2880x1920.svg}";
+        monitors.DP-1.path = "${./wallpaper-7680x2160.svg}";
       };
     })
 
